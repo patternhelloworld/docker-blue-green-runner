@@ -1,0 +1,49 @@
+version: '3.1'
+
+# https://www.consul.io/intro/index.html
+# http://gliderlabs.github.io/registrator/latest/
+
+services:
+  consul:
+    hostname: consul
+    container_name: consul
+    image: consul:latest
+    restart: always
+    environment:
+      - CONSUL_LOCAL_CONFIG={"disable_update_check":true}
+    entrypoint:
+      - consul
+      - agent
+      - -server
+      - -bootstrap
+      - -data-dir=/data
+      - -bind={{ GetInterfaceIP "eth0" }}
+      - -client=0.0.0.0
+      - -ui
+    volumes:
+      - consul:/data
+    networks:
+      - consul
+    ports:
+      - 8500:8500  # protect this in the real world!
+
+  registrator:
+    container_name: registrator
+    command: -internal consul://consul:8500
+    privileged: true
+    image: gliderlabs/registrator:latest
+    restart: always
+    links:
+      - consul
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    networks:
+      - consul
+
+networks:
+  consul:
+    external:
+      name: consul
+
+volumes:
+  consul:

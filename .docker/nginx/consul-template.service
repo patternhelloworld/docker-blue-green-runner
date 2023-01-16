@@ -1,0 +1,5 @@
+#!/bin/sh
+
+exec consul-template \
+     -consul-addr consul:8500 \
+     -template "/etc/consul-templates/nginx.conf.ctmpl:/etc/nginx/conf.d/nginx.conf::service nginx reload"

@@ -1,0 +1,60 @@
+version: '3'
+
+services:
+  ${PROJECT_NAME}-blue:
+    container_name: ${PROJECT_NAME}-blue
+    stdin_open: true
+    tty: true
+    image: ${PROJECT_NAME}:blue
+    privileged: true
+    restart: always
+    networks:
+      - app
+      - consul
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - TZ=Asia/Seoul
+      - SERVICE_NAME=blue
+    env_file:
+      - .env
+    volumes:
+      # 기타 모든 로그 및 공유 파일들
+      - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/shared'
+      # 시스템 로그
+      - '${HOST_SYSTEM_LOG_PATH}:/var/log'
+      # .env 파일
+      - './.docker/env/real:/env'
+      # docker-image 파일
+      - './.docker/image:${PROJECT_LOCATION}/${PROJECT_NAME}/.docker/image'
+
+  ${PROJECT_NAME}-green:
+    container_name: ${PROJECT_NAME}-green
+    stdin_open: true
+    tty: true
+    image: ${PROJECT_NAME}:green
+    privileged: true
+    restart: always
+    networks:
+      - app
+      - consul
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - TZ=Asia/Seoul
+      - SERVICE_NAME=green
+    env_file:
+      - .env
+    volumes:
+      # 기타 모든 로그 및 공유 파일들
+      - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/shared'
+      # 시스템 로그
+      - '${HOST_SYSTEM_LOG_PATH}:/var/log'
+      # .env 파일
+      - './.docker/env/real:/env'
+
+networks:
+  app:
+  consul:
+    external:
+      name: consul
