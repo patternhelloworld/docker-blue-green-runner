@@ -1,12 +1,11 @@
-/.idea
 /.env
+/.env.example.local
+/.env.example.real
 
 # docker
 /.docker/env/local/*
 !/.docker/env/local/.gitkeep
 /.docker/env/real/*
 !/.docker/env/real/.gitkeep
-/.docker/ssh/*
-!/.docker/ssh/.gitkeep
 /.docker/ssl/*
 !/.docker/ssl/.gitkeep

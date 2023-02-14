@@ -1,6 +1,9 @@
 #!/bin/bash
+project_name=$(printenv PROJECT_NAME)
+project_port=$(printenv PROJECT_PORT)
 app_url=$(printenv APP_URL)
 protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
+consul_key=$(echo $(printenv CONSUL_KEY_VALUE_STORE) | cut -d "/" -f6)\\/$(echo $(printenv CONSUL_KEY_VALUE_STORE) | cut -d "/" -f7)
 
 if [[ ! -d /etc/consul-templates ]]; then
     echo "[NOTICE] /etc/consul-templates 디랙토리가 없어서 생성하였습니다."
@@ -10,17 +13,25 @@ fi
 echo "[NOTICE] ${protocol} 에 해당하는 템플릿 파일을 위치 시킵니다."
 mv /ctmpl/${protocol}/nginx.conf.ctmpl /etc/consul-templates
 
+sed -i -e "s/###PROJECT_PORT###/${project_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_port (${project_port}) 치환 실패" && exit 1)
+sed -i -e "s/###PROJECT_NAME###/${project_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_name (${project_name}) 치환 실패" && exit 1)
+sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "consul_key (${consul_key}) 치환 실패" && exit 1)
+
 if [[ ${protocol} = 'https' ]]; then
+
+    use_commercial_ssl=$(printenv USE_COMMERCIAL_SSL)
+    commercial_ssl_name=$(printenv COMMERCIAL_SSL_NAME)
 
     echo "[NOTICE] 인증서를 위치시키는 작업을 시작합니다."
 
-    mv /etc/nginx/ssl/akuodash.com.crt /etc/nginx/ssl/akuodash.com.chained.crt
+    # nginx 의 경우 apache2 와 다르게 별도로 chained 인증서가 필요하지 않다.
+    \cp /etc/nginx/ssl/${commercial_ssl_name}.crt /etc/nginx/ssl/${commercial_ssl_name}.chained.crt
 
     nginxSslRoot="/etc/nginx/ssl"
-    nginxCrt="/etc/nginx/ssl/akuodash.com.chained.crt"
-    nginxKey="/etc/nginx/ssl/akuodash.com.key"
+    nginxCrt="/etc/nginx/ssl/${commercial_ssl_name}.chained.crt"
+    nginxKey="/etc/nginx/ssl/${commercial_ssl_name}.key"
 
-    if [[ ! -f ${nginxCrt} || ! -f ${nginxKey} || ! -s ${nginxCrt} || ! -s ${nginxKey} ]]; then
+    if [[ ${use_commercial_ssl} == false ]] && [[ ! -f ${nginxCrt} || ! -f ${nginxKey} || ! -s ${nginxCrt} || ! -s ${nginxKey} ]]; then
 
         echo "[NOTICE] 폐쇄망 용 SSL 인증서를 생성합니다."
 
@@ -40,8 +51,8 @@ if [[ ${protocol} = 'https' ]]; then
     fi
 
     chown -R root:www-data /etc/nginx/ssl
-    chmod 640 /etc/nginx/ssl/akuodash.com.key
-    chmod 644 /etc/nginx/ssl/akuodash.com.chained.crt
+    chmod 640 /etc/nginx/ssl/${commercial_ssl_name}.key
+    chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.chained.crt
 
 
     app_host=$(echo ${app_url} | awk -F[/:] '{print $4}')
@@ -51,7 +62,8 @@ if [[ ${protocol} = 'https' ]]; then
     sed -i -e "s/###APP_URL###/${escaped_app_url}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "###APP_URL### 치환 실패" && exit 1)
     sleep 1
     sed -i -e "s/###APP_HOST###/${app_host}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "###APP_HOST### 치환 실패" && exit 1)
-
+    sleep 1
+    sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "commercial_ssl_name (${commercial_ssl_name}) 치환 실패" && exit 1)
 fi
 
 

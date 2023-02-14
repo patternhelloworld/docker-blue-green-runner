@@ -1,25 +1,22 @@
 version: '3'
-
 services:
-  ${PROJECT_NAME}-nginx:
+  rpa-bpo-dashboard-nginx:
     container_name: ${PROJECT_NAME}-nginx
-    image: ${PROJECT_NAME}-nginx:latest
-    build: ./.docker/nginx/
+    image: '${PROJECT_NAME}-nginx:latest'
     restart: always
     environment:
       - TZ=Asia/Seoul
-      - 'APP_URL=${APP_URL}'
-      - 'USE_COMMERCIAL_SSL=${USE_COMMERCIAL_SSL}'
-      - 'SSL_NAME=${SSL_NAME}'
       - SERVICE_NAME=nginx
+    env_file:
+      - .env
+    volumes:
+      - ./.docker/ssl:/etc/nginx/ssl
     networks:
       - app
       - consul
     ports:
-      - '80:80'
-      - '443:443'
-      - '8093:8093'
-
+      - ${PROJECT_PORT}:${PROJECT_PORT}
+      - 8093:8093
 networks:
   app:
   consul:

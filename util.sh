@@ -1,5 +1,4 @@
 #!/bin/bash
-sudo sed -i -e "s/\r$//g" $(basename $0)
 set -eu
 
 # 리눅스 - 윈도우 개발 환경 충돌 방지
@@ -9,7 +8,7 @@ git config core.filemode false
 
 cache_all_states() {
 
-  echo '[NOTICE] 환경 변수들을 전역 변수로 불러옵니다.'
+  echo '[NOTICE] blue, green 중 어떤 컨테이너가 띄어져 있는 지 확인 합니다.'
 
   blue_is_run=$(docker exec ${project_name}-blue echo 'yes' 2>/dev/null || echo 'no')
   green_is_run=$(docker exec ${project_name}-green echo 'yes' 2>/dev/null || echo 'no')
@@ -26,47 +25,47 @@ cache_all_states() {
     new_upstream=${blue_upstream}
   fi
 
-  echo "[NOTICE] 지금은 ${state} 가 배포 되어 있으며, ${new_state} (${new_upstream})를 배포 예정 입니다. "
+  echo "[NOTICE] ${new_state} (${new_upstream}) 컨테이너를 띄울 예정 입니다. "
 }
-
-sync_app_version_real() {
-  if [[ ${app_env} == 'real' ]]; then
-    app_version=$(cat appVersion.txt) || app_version=
-    if [[ -z $app_version ]]; then
-      app_version=$(git describe --exact-match --tags) || app_version=
-    fi
-    if [[ -z $app_version ]]; then
-       echo "[ERROR] app_version 이 확인되지 않습니다." && exit 1
-    else
-       # HealthCheckController@showAppVersion 을 확인해 보면 appVersion 을 확인하는 두 가지 방식이 있다.
-       bash -c "echo '${app_version}' > appVersion.txt"
-    fi
-  fi
-}
-
 
 cache_global_vars() {
-  
+
+  host_root_location=$(get_value_from_env "HOST_ROOT_LOCATION")
+  docker_file_location=$(get_value_from_env "DOCKER_FILE_LOCATION")
+
   project_name=$(get_value_from_env "PROJECT_NAME")
   project_location=$(get_value_from_env "PROJECT_LOCATION")
   project_port=$(get_value_from_env "PROJECT_PORT")
-  key_value_store=$(get_value_from_env "CONSUL_KEY_VALUE_STORE")
+  additional_ports=(`echo $(get_value_from_env "ADDITIONAL_PORTS") | cut -d ","  --output-delimiter=" " -f 1-`)
+  echo "[DEBUG] ADDITIONAL_PORTS : ${additional_ports[@]}"
 
-  # Read .env
+  consul_key_value_store=$(get_value_from_env "CONSUL_KEY_VALUE_STORE")
+
+  app_health_check_path=$(get_value_from_env "APP_HEALTH_CHECK_PATH")
+  bad_app_health_check_pattern=$(get_value_from_env "BAD_APP_HEALTH_CHECK_PATTERN")
+  good_app_health_check_pattern=$(get_value_from_env "GOOD_APP_HEALTH_CHECK_PATTERN")
+
   app_env=$(get_value_from_env "APP_ENV")
   if [[ ! (${app_env} == 'real' || ${app_env} == 'local') ]]; then
      echo "[ERROR] app_env 는 local 또는 real 값만 유효합니다." && exit 1
   fi
-  host_shared_path=$(get_value_from_env "HOST_SHARED_PATH")
-  host_system_log_path=$(get_value_from_env "HOST_SYSTEM_LOG_PATH")
+
+  if [[ ${app_env} == 'real' ]]; then
+    host_shared_path=$(get_value_from_env "HOST_SHARED_PATH")
+    host_system_log_path=$(get_value_from_env "HOST_SYSTEM_LOG_PATH")
+    host_error_log_path=$(get_value_from_env "HOST_ERROR_LOG_PATH")
+  fi
 
   docker_layer_corruption_recovery=$(get_value_from_env "DOCKER_LAYER_CORRUPTION_RECOVERY")
   app_url=$(get_value_from_env "APP_URL")
   protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
-  use_commercial_ssl=$(get_value_from_env "USE_COMMERCIAL_SSL")
-  if [[ ${protocol} == 'https' ]]; then
-     ssl_name=$(get_value_from_env "SSL_NAME")
+
+  if [[ ${protocol} = 'https' ]]; then
+    use_commercial_ssl=$(get_value_from_env "USE_COMMERCIAL_SSL")
+    commercial_ssl_name=$(get_value_from_env "COMMERCIAL_SSL_NAME")
+    container_ssl_volume_path=$(get_value_from_env "CONTAINER_SSL_VOLUME_PATH")
   fi
+
   nginx_restart=$(get_value_from_env "NGINX_RESTART")
   consul_restart=$(get_value_from_env "CONSUL_RESTART")
 
@@ -85,15 +84,224 @@ cache_global_vars() {
 
   cache_all_states
 
-  docker_file_path_name=$(get_value_from_env "DOCKER_FILE_PATH_NAME")
-  app_health_check_path=$(get_value_from_env "APP_HEALTH_CHECK_PATH")
 
+  # 주로 real (Jenkins & 고객사 서버)에서 사용
+  git_image_load_from=$(get_value_from_env "GIT_IMAGE_LOAD_FROM")
+  git_image_load_from_hostname=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_HOSTNAME")
+  git_image_load_from_pathname=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_PATHNAME")
+  docker_image_env_concatenate=":"
+  if [[ ${git_image_load_from} == 'registry' ]] && [[ ! -z ${git_image_load_from_hostname} ]] && [[ ! -z ${git_image_load_from_pathname} ]]; then
+    load_from_registry_image_with_env="${git_image_load_from_hostname}:5050/$(echo ${git_image_load_from_pathname} | awk '{ print tolower($0); }')${docker_image_env_concatenate}${app_env}"
+  fi
+  git_token_image_load_from_username=$(get_value_from_env "GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME")
+  git_token_image_load_from_password=$(get_value_from_env "GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD")
 
   sync_app_version_real
 
 }
 
+apply_env_service_name_onto_app_yaml(){
+  command -v yq >/dev/null 2>&1 ||
+  { echo >&2 "[ERROR] yq가 설치되어 있지 않습니다. 설치를 진행합니다.";
 
+    sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    sudo chmod a+x /usr/local/bin/yq
+  }
+  echo "[NOTICE] docker-compose-app-${app_env}.yml 의 service 명에 .env 의 PROJECT_NAME 을 적용 합니다."
+  yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] app yaml 의 blue service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
+  sleep 2
+  yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] app yaml 의 green service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
+
+  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-nginx.yml || (echo "[ERROR] nginx yaml 의 service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
+}
+
+
+apply_ports_onto_nginx_yaml(){
+   echo "[NOTICE] docker-compose-nginx.yml 에 .env 의 PORTS 를 적용 합니다."
+   yq -i '.services.rpa-bpo-dashboard-nginx.ports = []' docker-compose-nginx.yml
+   yq -i '.services.rpa-bpo-dashboard-nginx.ports += "${PROJECT_PORT}:${PROJECT_PORT}"' docker-compose-nginx.yml
+
+   for i in "${additional_ports[@]}"
+   do
+      [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] .env 의 잘못 된 Port Number 발견 : ${i}" && exit 1);
+      yq -i '.services.rpa-bpo-dashboard-nginx.ports += "'$i:$i'"' docker-compose-nginx.yml
+   done
+}
+
+create_nginx_ctmpl(){
+
+    if [[ ${protocol} = 'http' ]]; then
+
+    echo "[NOTICE] NGINX 탬플릿 (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) 을 생성합니다."
+
+    cat > .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
+server {
+     listen ###PROJECT_PORT### default_server;
+     server_name localhost;
+
+     client_max_body_size 50M;
+
+     location / {
+         add_header Pragma no-cache;
+         add_header Cache-Control no-cache;
+         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
+             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
+                 proxy_pass http://###PROJECT_NAME###-{{ \$key_value }}:###PROJECT_PORT###;
+             {{ else }}
+                 proxy_pass http://###PROJECT_NAME###-blue:###PROJECT_PORT###;
+             {{ end }}
+         {{ end }}
+         proxy_set_header Host \$http_host;
+         proxy_set_header X-Scheme \$scheme;
+         proxy_set_header X-Forwarded-Protocol \$scheme;
+         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+         proxy_set_header X-Real-IP \$remote_addr;
+         proxy_http_version 1.1;
+         proxy_read_timeout 300s;
+         proxy_connect_timeout 75s;
+     }
+
+
+     access_log /var/log/access.log;
+     error_log /var/log/error.log;
+}
+EOF
+
+   for i in "${additional_ports[@]}"
+   do
+        cat >> .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
+
+server {
+     listen $i default_server;
+     server_name localhost;
+
+     client_max_body_size 50M;
+
+     location / {
+         add_header Pragma no-cache;
+         add_header Cache-Control no-cache;
+         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
+             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
+                 proxy_pass http://###PROJECT_NAME###-{{ \$key_value }}:$i;
+             {{ else }}
+                 proxy_pass http://###PROJECT_NAME###-blue:$i;
+             {{ end }}
+         {{ end }}
+         proxy_set_header Host \$http_host;
+         proxy_set_header X-Scheme \$scheme;
+         proxy_set_header X-Forwarded-Protocol \$scheme;
+         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+         proxy_set_header X-Real-IP \$remote_addr;
+         proxy_http_version 1.1;
+         proxy_read_timeout 300s;
+         proxy_connect_timeout 75s;
+    }
+
+     access_log /var/log/access.log;
+     error_log /var/log/error.log;
+}
+EOF
+   done
+
+   else
+
+    echo "[NOTICE] NGINX 탬플릿 (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) 을 생성합니다."
+
+    cat > .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
+server {
+
+    if (\$http_host != "###APP_HOST###") {
+        return 301 ###APP_URL###\$request_uri;
+    }
+
+    listen ###PROJECT_PORT### default_server ssl http2;
+    server_name localhost;
+
+    client_max_body_size 50M;
+
+    ssl on;
+    ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
+    ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+
+
+    location / {
+        add_header Pragma no-cache;
+        add_header Cache-Control no-cache;
+        {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
+            {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
+                proxy_pass https://###PROJECT_NAME###-{{ \$key_value }}:###PROJECT_PORT###;
+            {{ else }}
+                proxy_pass https://###PROJECT_NAME###-blue:###PROJECT_PORT###;
+            {{ end }}
+        {{ end }}
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Scheme \$scheme;
+        proxy_set_header X-Forwarded-Protocol \$scheme;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_http_version 1.1;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+
+    access_log /var/log/access.log;
+    error_log /var/log/error.log;
+}
+EOF
+
+   for i in "${additional_ports[@]}"
+   do
+        cat >> .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
+
+server {
+    listen $i default_server ssl http2;
+    server_name localhost;
+
+    client_max_body_size 50M;
+
+    ssl on;
+    ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
+    ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+
+    location / {
+        add_header Pragma no-cache;
+        add_header Cache-Control no-cache;
+        {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
+            {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
+                proxy_pass https://###PROJECT_NAME###-{{ \$key_value }}:$i;
+            {{ else }}
+                proxy_pass https://###PROJECT_NAME###-blue:$i;
+            {{ end }}
+        {{ end }}
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Scheme \$scheme;
+        proxy_set_header X-Forwarded-Protocol \$scheme;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_http_version 1.1;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+
+    access_log /var/log/access.log;
+    error_log /var/log/error.log;
+}
+EOF
+   done
+
+
+
+   fi
+
+}
 
 get_value_from_env(){
   value=''
@@ -154,7 +362,7 @@ check_empty_env_values(){
 
       value="$(echo -e "${value}" | sed -e 's/^[[:space:]]*|[[:space:]]*$//')"
 
-      if [[ ${value} == '' ]]; then
+      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" ]]; then
          empty_keys+=(${key})
       fi
 
@@ -201,10 +409,29 @@ docker_login_with_params() {
 }
 
 check_necessary_commands(){
+  command -v git >/dev/null 2>&1 ||
+  { echo >&2 "[ERROR] git 이 설치되어 있지 않습니다. 종료 합니다.";
+    exit 1
+  }
 
   if ! docker info > /dev/null 2>&1; then
     echo "[ERROR] docker 가 실행 중이지 않습니다. 종료 합니다."
     exit 1
+  fi
+}
+
+sync_app_version_real() {
+  if [[ ${app_env} == 'real' ]]; then
+    app_version=$(cat appVersion.txt) || app_version=
+    if [[ -z $app_version ]]; then
+      app_version=$(git describe --exact-match --tags) || app_version=
+    fi
+    if [[ -z $app_version ]]; then
+       echo "[ERROR] app_version 이 확인되지 않습니다." && exit 1
+    else
+       # HealthCheckController@showAppVersion 을 확인해 보면 appVersion 을 확인하는 두 가지 방식이 있다.
+       bash -c "echo '${app_version}' > appVersion.txt"
+    fi
   fi
 }
 
@@ -243,9 +470,9 @@ check_availability_inside_container(){
 
   container_load_timeout=${2}
 
-  local re_wait_for_it=$(docker exec ${project_location}/${project_name}/wait-for-it.sh localhost:${project_port} --timeout=${2})
+  local wait_for_it_re=$(docker exec -w ${project_location}/${project_name} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2})
   if [[ $? != 0 ]]; then
-      echo "[ERROR] wait-for-it.sh 호출에 실패 하였습니다. (사용된 명령어 : docker exec -w ${project_location}/${project_name} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2}, 출력 결과 : $re_wait_for_it)" >&2
+      echo "[ERROR] wait-for-it.sh 호출에 실패 하였습니다. (${wait_for_it_re})" >&2
       echo "false"
       return
   else
@@ -253,21 +480,29 @@ check_availability_inside_container(){
       echo "[NOTICE] ${project_name}-${check_state} 컨테이너 내부에서 ${check_state} container 의 Health Check 를 진행합니다."  >&2
       sleep 1
 
-      local total_cnt=6
       local interval_sec=5
+
+      # timeout설정값으로 재시도 횟수를 맞추기 위해 로직 변경
+      local total_cnt=$((${container_load_timeout}/${interval_sec}))
+
+      # 0으로 나눠떨이지지 않을경우 재시도 횟수 1회 추가
+      if [[ $((container_load_timeout%interval_sec)) != 0 ]]; then
+        total_cnt=$((${total_cnt}+1))
+      fi
+
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
         echo "[NOTICE] ${retry_count}회 차 Health check 연결 시도... (timeout : ${3} 초)"  >&2
         response=$(docker exec ${project_name}-${check_state} bash -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
         # 전체 status의 UP을 확인하는 regex
-        down_count=$(echo ${response} | egrep -i 'status":"DOWN' | wc -l)
+        down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
         # 단순히 DOWN이 없다면으로 판별하기가 어려운 것이.. JSON response 가 아닌 Html 오류 화면(ex. Apache2 web server 502 오류)과 같은 것으로 화면 상에 아파치 오류가 뜰 수 있음.
-        up_count=$(echo ${response} | egrep -i 'status":"UP' | wc -l)
+        up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
 
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then # $down_count >= 1 ("DOWN" 문자열이 있는지 검증)
 
-            echo "[WARNING] Health check의 응답을 알 수 없거나 혹은 status가 UP이 아닙니다."  >&2
+            echo "[WARNING] Health check의 응답을 알 수 없거나 혹은 status가 UP이 아닙니다. (response : ${response})"  >&2
 
         else
              echo "[NOTICE] 앱 내부 Health check 성공. (response : ${response})"  >&2

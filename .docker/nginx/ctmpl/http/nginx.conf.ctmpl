@@ -1,63 +1,60 @@
 server {
-    listen 80 default_server;
-    server_name localhost;
+     listen ###PROJECT_PORT### default_server;
+     server_name localhost;
 
-    client_max_body_size 50M;
+     client_max_body_size 50M;
 
-    location / {
-        add_header Pragma no-cache;
-        add_header Cache-Control no-cache;
-        {{ with $key_value := keyOrDefault "deploy/dashboard" "blue" }}
-            {{ if or (eq $key_value "blue") (eq $key_value "green") }}
-                proxy_pass http://rpa-bpo-dashboard-{{ $key_value }};
-            {{ else }}
-                proxy_pass http://rpa-bpo-dashboard-blue;
-            {{ end }}
-        {{ end }}
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Scheme $scheme;
-        proxy_set_header X-Forwarded-Protocol $scheme;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_http_version 1.1;
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75s;
-    }
+     location / {
+         add_header Pragma no-cache;
+         add_header Cache-Control no-cache;
+         {{ with $key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
+             {{ if or (eq $key_value "blue") (eq $key_value "green") }}
+                 proxy_pass http://###PROJECT_NAME###-{{ $key_value }}:###PROJECT_PORT###;
+             {{ else }}
+                 proxy_pass http://###PROJECT_NAME###-blue:###PROJECT_PORT###;
+             {{ end }}
+         {{ end }}
+         proxy_set_header Host $http_host;
+         proxy_set_header X-Scheme $scheme;
+         proxy_set_header X-Forwarded-Protocol $scheme;
+         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+         proxy_set_header X-Real-IP $remote_addr;
+         proxy_http_version 1.1;
+         proxy_read_timeout 300s;
+         proxy_connect_timeout 75s;
+     }
 
 
-    access_log /var/log/access.log;
-    error_log /var/log/error.log;
+     access_log /var/log/access.log;
+     error_log /var/log/error.log;
 }
-
 
 server {
-    listen 8093 default_server;
-    server_name localhost;
+     listen 8093 default_server;
+     server_name localhost;
 
-    client_max_body_size 50M;
+     client_max_body_size 50M;
 
-    location / {
-        add_header Pragma no-cache;
-        add_header Cache-Control no-cache;
-        {{ with $key_value := keyOrDefault "deploy/dashboard" "blue" }}
-            {{ if or (eq $key_value "blue") (eq $key_value "green") }}
-                proxy_pass http://rpa-bpo-dashboard-{{ $key_value }}:8093;
-            {{ else }}
-                proxy_pass http://rpa-bpo-dashboard-blue:8093;
-            {{ end }}
-        {{ end }}
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Scheme $scheme;
-        proxy_set_header X-Forwarded-Protocol $scheme;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_http_version 1.1;
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75s;
+     location / {
+         add_header Pragma no-cache;
+         add_header Cache-Control no-cache;
+         {{ with $key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
+             {{ if or (eq $key_value "blue") (eq $key_value "green") }}
+                 proxy_pass http://###PROJECT_NAME###-{{ $key_value }}:8093;
+             {{ else }}
+                 proxy_pass http://###PROJECT_NAME###-blue:8093;
+             {{ end }}
+         {{ end }}
+         proxy_set_header Host $http_host;
+         proxy_set_header X-Scheme $scheme;
+         proxy_set_header X-Forwarded-Protocol $scheme;
+         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+         proxy_set_header X-Real-IP $remote_addr;
+         proxy_http_version 1.1;
+         proxy_read_timeout 300s;
+         proxy_connect_timeout 75s;
     }
 
-
-    access_log /var/log/access.log;
-    error_log /var/log/error.log;
+     access_log /var/log/access.log;
+     error_log /var/log/error.log;
 }
-

@@ -57,7 +57,7 @@ if [[ $(check_availability_inside_container ${new_state} 60 5 | tail -n 1) != 't
 fi
 
 # Consul 과 연동하여 Blue-Green 세팅을 한다.
-./activate.sh ${new_state} ${state} ${new_upstream} ${key_value_store}
+./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
 echo "[NOTICE] 기존 ${state} 컨테이너 종료"
 docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${state}

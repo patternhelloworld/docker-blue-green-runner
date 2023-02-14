@@ -2,8 +2,6 @@
 sudo sed -i -e 's/\r$//' *.sh
 echo "[NOTICE] WIN 운영체제에 따른 스크립트들의 CRLF 오류를 방지하기 위해, CRLF->LF 치환 중... (만약 이래도 개행 오류 발생 시 readme 참조)"
 sudo sed -i -e 's/\r$//' *.sh
-find ./.docker/sh -type f -exec sed -i -e 's/\r$//' {} \;
-find ./.docker/nginx -type f -exec sed -i -e 's/\r$//' {} \;
 sudo bash prevent-crlf.sh
 
 sleep 3

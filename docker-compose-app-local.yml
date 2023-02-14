@@ -1,12 +1,10 @@
 version: '3'
-
 services:
-  ${PROJECT_NAME}-blue:
+  rpa-bpo-dashboard-blue:
     container_name: ${PROJECT_NAME}-blue
     stdin_open: true
     tty: true
-    image: '${PROJECT_NAME}:blue'
-    privileged: true
+    image: ${PROJECT_NAME}:blue
     restart: always
     networks:
       - app
@@ -19,14 +17,13 @@ services:
     env_file:
       - .env
     volumes:
-      - ../:${PROJECT_LOCATION}/${PROJECT_NAME}:rw
-
-  ${PROJECT_NAME}-green:
+      - ${HOST_ROOT_LOCATION}:${PROJECT_LOCATION}/${PROJECT_NAME}:rw
+      - ./.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}
+  rpa-bpo-dashboard-green:
     container_name: ${PROJECT_NAME}-green
     stdin_open: true
     tty: true
     image: ${PROJECT_NAME}:green
-    privileged: true
     restart: always
     networks:
       - app
@@ -39,9 +36,8 @@ services:
     env_file:
       - .env
     volumes:
-      - ../:${PROJECT_LOCATION}/${PROJECT_NAME}:rw
-
-
+      - ${HOST_ROOT_LOCATION}:${PROJECT_LOCATION}/${PROJECT_NAME}:rw
+      - ./.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}
 networks:
   app:
   consul:

@@ -1,12 +1,10 @@
 version: '3'
-
 services:
-  ${PROJECT_NAME}-blue:
+  rpa-bpo-dashboard-blue:
     container_name: ${PROJECT_NAME}-blue
     stdin_open: true
     tty: true
     image: ${PROJECT_NAME}:blue
-    privileged: true
     restart: always
     networks:
       - app
@@ -19,21 +17,21 @@ services:
     env_file:
       - .env
     volumes:
+      # Web APP 의 오류의 경우 가급적 로그 파일을 디폴트 경로에 남기는 것이 추후 발생할 가능성이 있는 권한 이슈를 최소화 한다.
+      - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/storage/logs'
       # 기타 모든 로그 및 공유 파일들
       - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/shared'
       # 시스템 로그
       - '${HOST_SYSTEM_LOG_PATH}:/var/log'
-      # .env 파일
+      # env 파일 (ex. .properties, .env)
       - './.docker/env/real:/env'
-      # docker-image 파일
-      - './.docker/image:${PROJECT_LOCATION}/${PROJECT_NAME}/.docker/image'
-
-  ${PROJECT_NAME}-green:
+      # SSL Certificate Path (ex. /etc/apache2/ssl )
+      - './.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}'
+  rpa-bpo-dashboard-green:
     container_name: ${PROJECT_NAME}-green
     stdin_open: true
     tty: true
     image: ${PROJECT_NAME}:green
-    privileged: true
     restart: always
     networks:
       - app
@@ -46,13 +44,16 @@ services:
     env_file:
       - .env
     volumes:
+      # Web APP 의 오류의 경우 가급적 로그 파일을 디폴트 경로에 남기는 것이 추후 발생할 가능성이 있는 권한 이슈를 최소화 한다.
+      - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/storage/logs'
       # 기타 모든 로그 및 공유 파일들
       - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/shared'
       # 시스템 로그
       - '${HOST_SYSTEM_LOG_PATH}:/var/log'
       # .env 파일
       - './.docker/env/real:/env'
-
+      # SSL Certificate Path (ex. /etc/apache2/ssl )
+      - './.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}'
 networks:
   app:
   consul:

@@ -9,12 +9,12 @@ source ./util.sh
 
 cache_global_vars
 
-key_value_store=$1
+consul_key_value_store=$1
 state=$2
 new_state=$3
 
 echo "[NOTICE] ${state} 로 CONSUL 에 저장합니다."
-docker exec ${project_name}-nginx curl -X PUT -d ${state} ${key_value_store} > /dev/null
+docker exec ${project_name}-nginx curl -X PUT -d ${state} ${consul_key_value_store} > /dev/null
 
 echo "Stop the ${new_state} container"
 docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${new_state}
