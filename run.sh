@@ -23,49 +23,49 @@ backup_app_to_previous_images(){
   then
       # new 이미지가 있을 경우
       echo "[NOTICE] Docker tag 'new' 'previous'"
-      docker tag ${project_name}:new ${project_name}:previous && return  || echo "[NOTICE] 백업 할 앱 new 이미지가 존재하지 않습니다."
+      docker tag ${project_name}:new ${project_name}:previous && return  || echo "[NOTICE] There is no 'new' tag image to backup the app."
   fi
 
   # new 이미지가 없을 경우
-  echo "[NOTICE] 앱의 new 이미지가 없어서, blue 또는 green 컨테이너를 확인하고 정상적으로 띄어져 있는 컨테이너의 이미지를 백업 이미지로 사용합니다."
+  echo "[NOTICE] Since there is no 'new' tag image for the app, we will check the blue or green container and use the image of the container that is running properly as the backup image."
   if [[ $(docker exec ${project_name}-blue printenv SERVICE_NAME 2> /dev/null) == 'blue' ]]
   then
-      echo "[NOTICE] blue 컨테이너가 띄어져 있는 지 확인 중..."
+      echo "[NOTICE] Checking if the blue container is running..."
       if [[ $(check_availability_inside_container 'blue' 10 5 | tail -n 1) == 'true' ]]; then
-          echo "[NOTICE] 기존의 앱 blue 이미지를 previous 로 백업 합니다."
-          docker tag ${project_name}:blue ${project_name}:previous && return || echo "[NOTICE] 백업 할 앱 blue 이미지가 존재하지 않습니다."
+          echo "[NOTICE] Docker tag 'blue' 'previous'"
+          docker tag ${project_name}:blue ${project_name}:previous && return || echo "[NOTICE] No 'blue' tagged image."
       fi
   fi
 
   if [[ $(docker exec ${project_name}-green printenv SERVICE_NAME 2> /dev/null) == 'green' ]]
   then
-      echo "[NOTICE] green 컨테이너가 띄어져 있는 지 확인 중..."
+      echo "[NOTICE] Checking if the green container is running..."
       if [[ $(check_availability_inside_container 'green' 10 5 | tail -n 1) == 'true' ]]; then
-        echo "[NOTICE] 기존의 앱 green 이미지를 previous 로 백업 합니다."
-        docker tag ${project_name}:green ${project_name}:previous && return || echo "[NOTICE] 백업 할 앱 green 이미지가 존재하지 않습니다."
+        echo "[NOTICE] Docker tag 'green' 'previous'"
+        docker tag ${project_name}:green ${project_name}:previous && return || echo "[NOTICE] No 'green' tagged image."
       fi
   fi
 
-  echo "[NOTICE] 기존의 앱 new, blue, green 이미지 모두 없어서, latest 이미지를 previous 로 백업 시도 합니다."
-  docker tag ${project_name}:latest ${project_name}:previous || echo "[NOTICE] 백업 할 앱 latest 이미지도 존재하지 않습니다."
+  echo "[NOTICE] Since there are no 'new', 'blue', and 'green' images, we will attempt to back up the latest image as previous"
+  docker tag ${project_name}:latest ${project_name}:previous || echo "[NOTICE] No 'latest' tagged image."
 
 }
 
 backup_nginx_to_previous_images(){
   # NGINX
-  echo "[NOTICE] Nginx 의 previous 이미지를 생성하기 이전에, 기존의 previous 이미지가 있다면 previous2 로 백업을 진행합니다."
-  docker tag ${project_name}-nginx:previous ${project_name}-nginx:previous2 || echo "[NOTICE] 기존의 previous2 이미지가 존재하지 않습니다."
+  echo "[NOTICE] Before creating the 'previous' tagged image of Nginx, if there is an existing 'previous' tagged image, we will proceed with backing it up as the 'previous2' tagged image."
+  docker tag ${project_name}-nginx:previous ${project_name}-nginx:previous2 || echo "[NOTICE] No 'previous' tagged image."
 
   if [[ $(docker images -q ${project_name}-nginx:new 2> /dev/null) != '' ]]
   then
 
-    echo "[NOTICE] 기존의 Nginx new 이미지를 previous 로 백업 합니다."
-    docker tag ${project_name}-nginx:new ${project_name}-nginx:previous && return || echo "[NOTICE] 백업 할 nginx new 이미지가 존재하지 않습니다."
+    echo "[NOTICE] Docker tag 'new' 'previous' (NGINX)"
+    docker tag ${project_name}-nginx:new ${project_name}-nginx:previous && return || echo "[NOTICE] No Nginx 'new' tagged image."
 
   fi
 
-  echo "[NOTICE] 기존의 Nginx new 이미지가 없어서, latest 이미지를 previous 로 백업 시도 합니다."
-  docker tag ${project_name}-nginx:latest ${project_name}-nginx:previous || echo "[NOTICE] 백업 할 nginx latest 이미지도 존재하지 않습니다."
+  echo "[NOTICE] Since there is no existing Nginx 'new' image, we will attempt to back up the latest image as 'previous'."
+  docker tag ${project_name}-nginx:latest ${project_name}-nginx:previous || echo "[NOTICE] No Nginx 'latest' tagged image."
 
 }
 
@@ -95,9 +95,14 @@ create_host_folders_if_not_exists() {
 
 give_host_group_id_full_permissions(){
 
-  # 기본적으로, 모든 volume 폴더에는 host 의 사용자 그룹 (root 사용자가 아닌 현재 사용자)을 권한을 준다. 그리고 Dockerfile 또는 ENTRYPOINT 에서 컨테이너 안에서 해당 폴더를 사용하는 App 의 권한 (www-data, redis 등)을 준다.
-  # 왜냐하면, 개발 환경에서는 Volume 폴더를 IDE 등으로 수정할 수도 있어야 하므로, host 에 권한을 주고, 도커 안 각 폴더에는 각 라이브러리들이 접근할 수 있는 권한이 필요하다. (도커 안 권한은 ENTRYPOINT 스크립트에서 실행 된다.)
-  echo "[NOTICE] IDE 의 도커 내부 접근 권한을 용이하게 하기 위해, 로컬에서 host 권한을 주고, 777 로 세팅 합니다."
+  # By default, all volume folders are granted 'permission for the user's group of the host (not the root user, but the current user)'.
+  # Then, the permissions for the App using the folder in the container (such as www-data, redis, etc.)
+  # are given in the Dockerfile or ENTRYPOINT.
+  # This is because, in the development environment,
+  # volume folders may need to be modified by IDEs or other tools on the host,
+  # so permissions are given to the host, and permissions are also required for the libraries to access each folder inside Docker
+  # (permissions inside Docker are executed in the ENTRYPOINT script)
+  echo "[NOTICE] To facilitate access from an IDE to Docker's internal permissions, we grant host permissions locally and set them to 777."
   sudo chgrp -R ${host_root_gid} ${host_root_location}
   sudo chmod -R 777 ${host_root_location}
 }
@@ -114,11 +119,11 @@ terminate_whole_system(){
     docker rmi -f ${project_name}:blue
     docker rmi -f ${project_name}:green
 
-    docker-compose -f docker-compose-app-local.yml down || echo "[NOTICE] docker-compose-app-local.yml down 에 실패 하였습니다."
-    docker-compose -f docker-compose-app-real.yml down || echo "[NOTICE] docker-compose-app-real.yml down 에 실패 하였습니다."
-    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] docker-compose-app-consul.yml down 에 실패 하였습니다."
-    docker-compose -f docker-compose-nginx.yml down || echo "[NOTICE] docker-compose-app-nginx.yml down 에 실패 하였습니다."
-    docker-compose down || echo "[NOTICE] docker-compose.yml down 에 실패 하였습니다."
+    docker-compose -f docker-compose-app-local.yml down || echo "[NOTICE] docker-compose-app-local.yml down failure"
+    docker-compose -f docker-compose-app-real.yml down || echo "[NOTICE] docker-compose-app-real.yml down failure"
+    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] docker-compose-app-consul.yml down failure"
+    docker-compose -f docker-compose-nginx.yml down || echo "[NOTICE] docker-compose-app-nginx.yml down failure"
+    docker-compose down || echo "[NOTICE] docker-compose.yml down failure"
     docker system prune -f
   fi
 }
@@ -128,33 +133,33 @@ load_consul_docker_image(){
 
   if [[ $(docker exec consul echo 'yes' 2> /dev/null) == '' ]]
   then
-      echo '[NOTICE] 컨테이너가 띄어져 있지 않으므로  consul_restart=true 로 간주하여 이미지 load 부터 다시 시작합니다. (.env 파일은 변경되지 않습니다.)'
+      echo '[NOTICE] Since the Consul container is not running, we consider it as consul_restart=true and start from loading the image again. (The .env file will not be changed.)'
       consul_restart=true
 
-      # Dockerfile 이 없으므로 load_nginx_docker_image, load_app_docker_image 함수들과 다르게 build 명령어가 없다.
+      # Since there is no Dockerfile, unlike the 'load_nginx_docker_image' and 'load_app_docker_image' functions, there is no 'build' command.
   fi
 
   if [ ${consul_restart} = "true" ]; then
 
     if [ ${git_image_load_from} = "registry" ]; then
 
-      # 거의 대부분의 고객사는 이 배포를 사용한다.
+      # Almost all of clients use this deployment.
 
-      echo "[NOTICE] Registry 로그인을 시도합니다."
+      echo "[NOTICE] Attempt to log in to the Registry."
       docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}
 
-      echo "[NOTICE] Registry 에 저장되어 있는 registrator 이미지를 pull 합니다."
+      echo "[NOTICE] Pull the Registrator image stored in the Registry."
       docker pull ${load_from_registry_image_with_env}-registrator-${app_version}|| exit 1
       docker tag ${load_from_registry_image_with_env}-registrator-${app_version} gliderlabs/registrator:latest || exit 1
       docker rmi -f ${load_from_registry_image_with_env}-registrator-${app_version}|| exit 1
 
-      echo "[NOTICE] Registry 에 저장되어 있는 consul 이미지를 pull 합니다."
+      echo "[NOTICE] Pull the Consul image stored in the Registry."
       docker pull ${load_from_registry_image_with_env}-consul-${app_version}|| exit 1
       docker tag ${load_from_registry_image_with_env}-consul-${app_version} consul:latest || exit 1
       docker rmi -f ${load_from_registry_image_with_env}-consul-${app_version}|| exit 1
     fi
 
-    # Dockerfile 이 없으므로 load_nginx_docker_image, load_app_docker_image 함수들과 다르게 build 명령어가 없다.
+    # Since there is no Dockerfile, unlike the 'load_nginx_docker_image' and 'load_app_docker_image' functions, there is no 'build' command.
 
   fi
 
@@ -165,7 +170,7 @@ load_nginx_docker_image(){
 
   if [[ $(docker exec ${project_name}-nginx echo 'yes' 2> /dev/null) == '' ]]
   then
-      echo "[NOTICE] ${project_name}-nginx:latest 컨테이너가 띄어져 있지 않으므로 nginx_restart=true 로 간주하여 빌드부터 다시 시작합니다."
+      echo "[NOTICE] Since the '${project_name}-nginx:latest' container is not running, we consider it as 'nginx_restart=true' and start from building again."
       nginx_restart=true
   fi
 
@@ -173,16 +178,16 @@ load_nginx_docker_image(){
 
     if [ ${git_image_load_from} = "registry" ]; then
 
-      echo "[NOTICE] Registry 로그인을 시도합니다."
+      echo "[NOTICE] Attempt to log in to the Registry."
       docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} "${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}"
 
-      echo "[NOTICE] Registry 에 저장되어 있는 nginx 이미지를 pull 합니다."
+      echo "[NOTICE] Pull the Nginx image stored in the Registry."
       docker pull ${load_from_registry_image_with_env}-nginx-${app_version}|| exit 1
       docker tag ${load_from_registry_image_with_env}-nginx-${app_version} ${project_name}-nginx:latest || exit 1
       docker rmi -f ${load_from_registry_image_with_env}-nginx-${app_version}|| exit 1
     else
 
-      echo "[NOTICE] ${project_name}-nginx 이미지를 빌드 합니다. (캐시는 활용 합니다.)"
+      echo "[NOTICE] Build the ${project_name}-nginx image (using cache)."
       docker build --build-arg DISABLE_CACHE=${CUR_TIME}  --build-arg protocol="${protocol}" --tag ${project_name}-nginx -f ./.docker/nginx/Dockerfile . || exit 1
 
     fi
@@ -190,22 +195,22 @@ load_nginx_docker_image(){
   fi
 }
 
-# 이미지 명 : ${project_name} (태그 4가지를 활용하여 무중단 Blue-Green 배포 구현 - ${project_name}:latest, ${project_name}:previous, ${project_name}:blue, ${project_name}:green)
+# Image name: ${project_name} (utilizing 4 tags for Blue-Green deployment: ${project_name}:latest, ${project_name}:previous, ${project_name}:blue, ${project_name}:green)
 load_app_docker_image() {
 
   if [ ${git_image_load_from} = "registry" ]; then
 
-    echo "[NOTICE] Registry 로그인을 시도합니다."
+    echo "[NOTICE] Attempt to log in to the Registry."
     docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}
 
-    echo "[NOTICE] Registry 에 저장되어 있는 app 이미지를 pull 합니다."
+    echo "[NOTICE] Pull the app image stored in the Registry."
     docker pull ${load_from_registry_image_with_env}-app-${app_version}|| exit 1
     docker tag ${load_from_registry_image_with_env}-app-${app_version} ${project_name}:latest || exit 1
     docker rmi -f ${load_from_registry_image_with_env}-app-${app_version}|| exit 1
   else
 
     #  이미지 파일을 load 하지 않고 Dockerfile 을 활용하는 경우
-    echo "[NOTICE] ${docker_file_location}Dockerfile.${app_env} 로 이미지를 빌드 합니다. (캐시는 활용 합니다.)"
+    echo "[NOTICE] Build the image with ${docker_file_location}Dockerfile.${app_env} (using cache)"
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" -f Dockerfile.${app_env} . || exit 1
       cd -
@@ -228,13 +233,13 @@ load_app_docker_image() {
 }
 
 inject_env_real() {
-  echo "[NOTICE] 현재 프로젝트의 .env 를 사용하기 위해 'cp -f .env ./.docker/env/real/.env' 명령어 실행."
+  echo "[NOTICE] To use the current project's .env, execute the command 'cp -f .env ./.docker/env/real/.env'."
   sudo cp -f .env ./.docker/env/real/.env
 }
 
 nginx_restart(){
 
-   echo "[NOTICE] NGINX 의 컨테이너와 네트워크를 종료합니다."
+   echo "[NOTICE] Terminate NGINX container and network."
 
    # docker-compose -f docker-compose-app-${app_env}.yml down || echo "[DEBUG] A1"
    docker-compose -f docker-compose-nginx.yml down || echo "[DEBUG] N1"
@@ -242,12 +247,12 @@ nginx_restart(){
    docker network rm ${project_name}_app || echo "[DEBUG] NA"
 
    echo "[NOTICE] NGINX 를 컨테이너로 띄웁니다."
-   PROJECT_NAME=${project_name} docker-compose -f docker-compose-nginx.yml up -d ${project_name}-nginx || echo "[ERROR] 중요 오류 - ${project_name}-nginx 가 UP 되는데 실패 하였습니다."
+   PROJECT_NAME=${project_name} docker-compose -f docker-compose-nginx.yml up -d ${project_name}-nginx || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 }
 
 consul_restart(){
 
-    echo "[NOTICE] CONSUL 의 컨테이너와 네트워크를 종료합니다."
+    echo "[NOTICE] Terminate CONSUL container and network."
 
     #docker-compose -f docker-compose-app-${app_env}.yml down || echo "[DEBUG] C-A1"
     #docker-compose -f docker-compose-nginx.yml down || echo "[DEBUG] C-N1"
@@ -255,32 +260,23 @@ consul_restart(){
 
     docker network rm consul || echo "[DEBUG] CA"
 
-    docker network create consul || echo "[NOTICE] network consul 이 미리 생성되어 있습니다. 해당 메시지는 무시하거나, 반드시 재시작 하고자 한다면 consul 을 공유하는 다른 프로젝트를 종료하십시오."
+    docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
 
-    echo "[NOTICE] CONSUL 을 컨테이너로 띄웁니다."
-    docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] consul 이 미리 생성되어 있을 수 있습니다. 해당 메시지는 무시하십시오."
+    echo "[NOTICE] Run CONSUL container"
+    docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
     sleep 10
 }
 
 # 위에서 이미지들을 load 했으니, 해당 이미지들을 바탕으로 컨테이너 들을 load 한다.
 load_all_containers(){
 
-  # app -> consul -> nginx 식으로 재시작 (컨테이너 재시작을 의미)하는 것이 안전하다. 이전에는 nginx 를 app 보다 먼저 재시작 하였는데, 이 것이 nginx conf 쪽에 오류 메시지 (upstream not found)를 남겼었다. 이와 같은 이유로 소캣쪽에 502 오류가 발생한 것으로 보인다.
-  # 엄밀히 app 의 경우 blue/green 배포 이므로 재시작이라고 볼 수는 없다. 현재 blue 로 배포 되어 있다면, green 으로 배포하고자 할 경우 green 대시보드가 완전히 시작한 후에,
-  # nginx 를 green 방향으로 재시작 (배포 스크립트 상에서는 conf 파일이 green 방향으로 바뀜) 하는 것이 오류를 방지할 수 있을 것이다.
-  # 이전의 nginx 를 app 보다 먼저 재시작 하는 스크립트는, blue 컨테이너를 끄고 nginx 를 재시작 하였는데, nginx 가 올라가면서 blue 도 green 도 없으므로 오류 (upstream not found)를 남겼다.
-  # 그러나 비록 오류를 남기더라도, 로컬에서 간헐적으로 소캣이 502 오류가 떠서 재시작하는 불편과, 실서버에서는 nginx 를 재시작 안하므로 (재시작 하는 순간 무중단 배포가 아님) 불편을 크게 초래하지
-  # 않은 것으로 보이나, 이와 같은 조치가 이러한 불편도 완전히 제거시킬 수 있는지는 시간을 두고 지켜볼 것이며, 해결된다면 인증서버와, 파인웍스에도 적용 할 예정이다.
-  # ※ consul 이 안 뜬 상태에서도, nginx 는 혼란을 겪으므로 (다음과 같은 오류 발생 - [WARN] (view) kv.get(deploy/dashboard): Get http://consul:8500/v1/kv/deploy/dashboard?index=47423&stale=&wait=60000ms: dial tcp 172.26.0.4:8500: getsockopt: connection refused (retry attempt 1 after "250ms"))
-  # nginx 는 다른 컨테이너들이 안전하게 다 뜨고나서 마지막에 뜨는 것이 안정성을 높일 것으로 보인다.
+  # In the past, restarting Nginx before App caused error messages like "upstream not found" in the Nginx configuration file. This seems to have caused a 502 error on the socket side.
+  # Therefore, it is safer to restart the containers in the order of App -> Consul -> Nginx.
+  echo "[NOTICE] Run the app as a ${new_state} container. (This doesn't stop the running container since this is a BLUE-GREEN deployment.)"
 
-  echo "[NOTICE] 앱을 ${new_state} 컨테이너로 띄웁니다. (BLUE-GREEN 배포이기 때문에 기존 컨테이너를 종료하지 않습니다.)"
+  docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+  docker-compose -f docker-compose-app-${app_env}.yml up -d ${project_name}-${new_state} || echo "[ERROR] Critical - App ${new_state} UP failure"
 
-  docker network create consul || echo "[NOTICE] network consul 이 미리 생성되어 있습니다. 해당 메시지는 무시합니다."
-  docker-compose -f docker-compose-app-${app_env}.yml up -d ${project_name}-${new_state} || echo "[ERROR] 중요 오류 - 앱이 ${new_state}로 UP 되는데 실패 하였습니다."
-
-
-  # local 개발자 환경의 경우 vendor 폴더나 node_modules 가 없을 경우 재설치 과정을 콘솔에 띄우기 위함 (real 의 경우 이미 Dockerfile 의 ENTRYPOINT 를 통해 이미 뜨고 있거나 떠 있음)
   if [[ ${app_env} == 'local' ]]; then
      re=$(check_availability_inside_container ${new_state} 600 30 | tail -n 1) || exit 1;
   else
@@ -291,7 +287,7 @@ load_all_containers(){
   fi
 
   if [[ ${re} != 'true' ]]; then
-    echo "[ERROR] 신규 앱 ${new_state} 컨테이너를 띄우는데 실패 하였습니다. docker logs -f ${project_name}-${new_state} 명령어를 통해 오류를 확인하십시오. (결과 값 : ${re})" && exit 1
+    echo "[ERROR] Failed in running the ${new_state} container. Run 'docker logs -f ${project_name}-${new_state}' to check errors (Return : ${re})" && exit 1
   fi
 
   if [[ ${consul_restart} == 'true' ]]; then
@@ -310,7 +306,7 @@ load_all_containers(){
 
 check_availability_out_of_container(){
 
-  echo "[NOTICE] 외부에서 호출하여 Status=200 인지 확인 합니다."  >&2
+  echo "[NOTICE] Check Status=200 from the outside of the container."  >&2
   sleep 1
 
   for retry_count in {1..6}
@@ -322,17 +318,17 @@ check_availability_out_of_container(){
 
       if [[ ${retry_count} -eq 5 ]]
       then
-         echo "[ERROR] Health Check 실패. (외부 도메인 접근이 아니라면(=폐쇄망 세팅 환경), APP_URL 이 우분투 호스트에서 ifconfig 로 검색한 값인지 확인 필요. WIN ipconfig 명령어로 출력 된 ip는 접근 실패할 수 있다. 또는 네트워크 방화벽 확인 필요.)"  >&2
+         echo "[ERROR] Health Check Failed. (If you are not accessing an external domain (=closed network setting environment), you need to check if APP_URL is the value retrieved by ifconfig on the Ubuntu host. Access to the ip output by the WIN ipconfig command may fail. Or you need to check the network firewall."  >&2
          echo "false"
          return
       fi
 
     else
-      echo "[NOTICE] 외부 호출 테스트 성공."  >&2
+      echo "[NOTICE] Success."  >&2
       break
     fi
 
-    echo "[NOTICE] 연결 실패. 3초에 한번씩 총 5회 재시도..."  >&2
+    echo "[NOTICE] Retry once every 3 seconds for a total of 5 times..."  >&2
     sleep 3
   done
 
@@ -343,10 +339,10 @@ check_availability_out_of_container(){
 
 backup_to_new_images(){
     # 성공 시 현재 도커 이미지를 previous 로 하여 rollback 시 시용
-    echo "[NOTICE] 성공한 앱 이미지를 new 태그로 백업 합니다."
-    docker tag ${project_name}:latest ${project_name}:new || echo "[NOTICE] 백업 할 ${project_name}:latest 이미지가 존재하지 않습니다."
-    echo "[NOTICE] 성공한 Nginx 이미지를 new 태그로 백업 합니다."
-    docker tag ${project_name}-nginx:latest ${project_name}-nginx:new || echo "[NOTICE] 백업 할 ${project_name}-nginx:latest 이미지가 존재하지 않습니다."
+    echo "[NOTICE] docker tag latest new"
+    docker tag ${project_name}:latest ${project_name}:new || echo "[NOTICE] the ${project_name}:latest image does NOT exist."
+    echo "[NOTICE] docker tag latest new (NGINX)"
+    docker tag ${project_name}-nginx:latest ${project_name}-nginx:new || echo "[NOTICE] ${project_name}-nginx:latest does NOT exist."
 }
 
 
@@ -403,7 +399,7 @@ _main() {
   # 컨테이너 밖에서 app_url 을 호출하여 유효성을 확인한다.
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
-    echo "[ERROR] 컨테이너 밖에서 app_url 을 호출하는데에 실패 하였습니다.  bash rollback.sh 실행을 고려 하십시오. (결과 값 : ${re})" && exit 1
+    echo "[ERROR] Failed to call app_url outside container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
   fi
 
   ## 여기까지 도달하면 성공으로 간주
@@ -412,11 +408,11 @@ _main() {
   backup_to_new_images
 
   # 성공 시 이전 컨테이너 종료
-  echo "[NOTICE] 배포에 성공 하였으므로 이전 (${state}) 컨테이너는 종료합니다. ( NGINX_RESTART=true 또는 CONSUL_RESTART=true 의 경우 기존 컨테이너가 load_all_containers 함수 에서 이미 종료 되었습니다. )"
+  echo "[NOTICE] The previous (${state}) container exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
   docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${state}
 
-  echo "[NOTICE] <none>:<none> 이미지들을 삭제합니다."
-  docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] 사용 중인 이미지가 있다면 삭제되지 않습니다."
+  echo "[NOTICE] Delete <none>:<none> images."
+  docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] If any images are in use, they will not be deleted."
 }
 
 _main
