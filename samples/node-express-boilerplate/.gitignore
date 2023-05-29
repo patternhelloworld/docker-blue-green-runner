@@ -1,0 +1,12 @@
+# Dependencies
+node_modules
+
+# yarn error logs
+yarn-error.log
+
+# Environment varibales
+
+# Code coverage
+coverage
+
+.idea
