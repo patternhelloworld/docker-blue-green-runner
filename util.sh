@@ -8,7 +8,7 @@ git config core.filemode false
 
 cache_all_states() {
 
-  echo '[NOTICE] blue, green 중 어떤 컨테이너가 띄어져 있는 지 확인 합니다.'
+  echo '[NOTICE] Check which container, blue or green, is currently running.'
 
   blue_is_run=$(docker exec ${project_name}-blue echo 'yes' 2>/dev/null || echo 'no')
   green_is_run=$(docker exec ${project_name}-green echo 'yes' 2>/dev/null || echo 'no')
@@ -18,14 +18,14 @@ cache_all_states() {
   new_upstream=${green_upstream}
   if [[ ${blue_is_run} != 'yes' ]]; then
     if [[ ${green_is_run} != 'yes' ]]; then
-      echo "[WARNING] 현재 blue, green 어느 컨테이너도 띄어져 있지 않습니다. blue 로 배포 하겠습니다."
+      echo "[WARNING] Currently, neither the blue nor green container is running, deploy the blue container. "
     fi
     state='green'
     new_state='blue'
     new_upstream=${blue_upstream}
   fi
 
-  echo "[NOTICE] ${new_state} (${new_upstream}) 컨테이너를 띄울 예정 입니다. "
+  echo "[NOTICE] ${new_state} (${new_upstream}) is now going to run."
 }
 
 cache_global_vars() {
@@ -47,7 +47,7 @@ cache_global_vars() {
 
   app_env=$(get_value_from_env "APP_ENV")
   if [[ ! (${app_env} == 'real' || ${app_env} == 'local') ]]; then
-     echo "[ERROR] app_env 는 local 또는 real 값만 유효합니다." && exit 1
+     echo "[ERROR] app_env is only local or real." && exit 1
   fi
 
   if [[ ${app_env} == 'real' ]]; then
@@ -85,7 +85,7 @@ cache_global_vars() {
   cache_all_states
 
 
-  # 주로 real (Jenkins & 고객사 서버)에서 사용
+  # In real env, for Jenkins & customer servers
   git_image_load_from=$(get_value_from_env "GIT_IMAGE_LOAD_FROM")
   git_image_load_from_hostname=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_HOSTNAME")
   git_image_load_from_pathname=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_PATHNAME")
@@ -102,12 +102,12 @@ cache_global_vars() {
 
 apply_env_service_name_onto_app_yaml(){
   command -v yq >/dev/null 2>&1 ||
-  { echo >&2 "[ERROR] yq가 설치되어 있지 않습니다. 설치를 진행합니다.";
+  { echo >&2 "[ERROR] yq is NOT installed. Proceed with it.";
 
     sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
     sudo chmod a+x /usr/local/bin/yq
   }
-  echo "[NOTICE] docker-compose-app-${app_env}.yml 의 service 명에 .env 의 PROJECT_NAME 을 적용 합니다."
+  echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-compose-app-${app_env}.yml."
   yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] app yaml 의 blue service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
   sleep 2
   yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] app yaml 의 green service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
@@ -115,16 +115,15 @@ apply_env_service_name_onto_app_yaml(){
   yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-nginx.yml || (echo "[ERROR] nginx yaml 의 service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
 }
 
-
 apply_ports_onto_nginx_yaml(){
-   echo "[NOTICE] docker-compose-nginx.yml 에 .env 의 PORTS 를 적용 합니다."
-   yq -i '.services.rpa-bpo-dashboard-nginx.ports = []' docker-compose-nginx.yml
-   yq -i '.services.rpa-bpo-dashboard-nginx.ports += "${PROJECT_PORT}:${PROJECT_PORT}"' docker-compose-nginx.yml
+   echo "[NOTICE] PORTS on .env is now being applied to docker-compose-nginx.yml."
+   yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-nginx.yml
+   yq -i '.services.'${project_name}'-nginx.ports += "${PROJECT_PORT}:${PROJECT_PORT}"' docker-compose-nginx.yml
 
    for i in "${additional_ports[@]}"
    do
-      [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] .env 의 잘못 된 Port Number 발견 : ${i}" && exit 1);
-      yq -i '.services.rpa-bpo-dashboard-nginx.ports += "'$i:$i'"' docker-compose-nginx.yml
+      [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
+      yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-nginx.yml
    done
 }
 
@@ -132,7 +131,7 @@ create_nginx_ctmpl(){
 
     if [[ ${protocol} = 'http' ]]; then
 
-    echo "[NOTICE] NGINX 탬플릿 (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) 을 생성합니다."
+    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is not being created."
 
     cat > .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
 server {
@@ -205,7 +204,7 @@ EOF
 
    else
 
-    echo "[NOTICE] NGINX 탬플릿 (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) 을 생성합니다."
+    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
 
     cat > .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
 server {
@@ -318,7 +317,7 @@ get_value_from_env(){
   value=$(echo $value | sed -e 's/\r//g')
 
   if [[ -z ${value} ]]; then
-    echo "[ERROR] .env 에서 ${1}에 해당하는 값을 찾을 수 없습니다." >&2 && exit 1
+    echo "[ERROR] ${1} NOT found on .env." >&2 && exit 1
   fi
 
   echo ${value} # return.
@@ -373,17 +372,16 @@ check_empty_env_values(){
 }
 
 check_env_integrity(){
-    # .env 유효성 검사
-    # .env 파일이 .env.example.${app_env} 와 같은 key 값들을 가지고 있는 지 확인
+
     diff=$(compare_two_envs .env .env.example.${app_env})
     if [[ ${diff} != "" ]]; then
-      echo "[ERROR] .env 파일의 key 값들이 .env.example.${app_env} 과 일치하지 않으므로 진행이 불가합니다. .env 파일을 기준에 맞게 수정하십시오. (차이 : ${diff})"
+      echo "[ERROR] The key values in the .env file do not match with .env.example.${app_env}, so the process cannot continue. Please update the .env file to match the requirements (Difference: ${diff})."
       exit 1
     fi
-    # 비어 있는 value 값들을 확인
+
     empty_values=$(check_empty_env_values .env)
     if [[ ${empty_values} != "" ]]; then
-      echo "[ERROR] .env 파일의 다음 값들이 비어 있어서 진행이 불가 합니다. (차이 : ${empty_values})"
+      echo "[ERROR] The following values in the .env file are empty, so the process cannot proceed (Difference: ${empty_values})"
       exit 1
     fi
 }
@@ -403,19 +401,19 @@ integer_hash_text(){
 
 docker_login_with_params() {
 
-  echo "[NOTICE] 다음 계정 정보로 Gitlab 의 Docker Registry 로그인을 진행 합니다. ( username : ${1}, password : $(integer_hash_text ${2}) (암호화하여 보여집니다.) )"
-  echo ${2} | docker login --username ${1} --password-stdin ${3}:5050 || (echo "[ERROR] Gitlab 의  ${3} 로의 Docker Registry 로그인에 실패 하였습니다. 상기 오류 메시지를 확인해주세요." && exit 1)
+  echo "[NOTICE] Login with the following account on to Gitlab Docker Registry. ( username : ${1}, password : $(integer_hash_text ${2}) (displayed encoded.) )"
+  echo ${2} | docker login --username ${1} --password-stdin ${3}:5050 || (echo "[ERROR] Docker Registry Login failed to ${3}." && exit 1)
 
 }
 
 check_necessary_commands(){
   command -v git >/dev/null 2>&1 ||
-  { echo >&2 "[ERROR] git 이 설치되어 있지 않습니다. 종료 합니다.";
+  { echo >&2 "[ERROR] git NOT installed. Exiting...";
     exit 1
   }
 
   if ! docker info > /dev/null 2>&1; then
-    echo "[ERROR] docker 가 실행 중이지 않습니다. 종료 합니다."
+    echo "[ERROR] docker NOT being run. Exiting..."
     exit 1
   fi
 }
@@ -427,9 +425,8 @@ sync_app_version_real() {
       app_version=$(git describe --exact-match --tags) || app_version=
     fi
     if [[ -z $app_version ]]; then
-       echo "[ERROR] app_version 이 확인되지 않습니다." && exit 1
+       echo "[ERROR] app_version NOT confirmed" && exit 1
     else
-       # HealthCheckController@showAppVersion 을 확인해 보면 appVersion 을 확인하는 두 가지 방식이 있다.
        bash -c "echo '${app_version}' > appVersion.txt"
     fi
   fi
@@ -441,21 +438,21 @@ check_availability_inside_container(){
 
   if [[ -z ${1} ]]
     then
-      echo "[ERROR] check_availability_inside_container 의 대상 state 를 명시해야 합니다."  >&2
+      echo "[ERROR] the 'state' NOT indicated on check_availability_inside_container "  >&2
       echo "false"
       return
   fi
 
   if [[ -z ${2} ]]
     then
-      echo "[ERROR] wait-for-it.sh timeout 파라매터가 없습니다."  >&2
+      echo "[ERROR] there is no wait-for-it.sh timeout parameter."  >&2
       echo "false"
       return
   fi
 
   if [[ -z ${3} ]]
     then
-      echo "[ERROR] Health Check timeout 파라매터가 없습니다."  >&2
+      echo "[ERROR] there is no Health Check timeout parameter."  >&2
       echo "false"
       return
   fi
@@ -463,60 +460,57 @@ check_availability_inside_container(){
 
   check_state=${1}
 
-  echo "[NOTICE] ${project_name}-${check_state} 컨테이너 내부에서 웹 서버 를 호출하여 응답하는 지 확인 합니다. node_modules 또는 vendor 폴더가 없다면, ENTRYSCRIPT 실행 시간이 다소 길어 집니다. (timeout : ${2} 초)"  >&2
+  echo "[NOTICE] ${project_name}-${check_state} Check if the web server is responding by making a request inside the node-express-boilerplate-green container. If library folders such as node_modules (Node.js), vendor (PHP) folders are NOT yet installed, the execution time of the ENTRYSCRIPT of your Dockerfile may be longer than usual (timeout: ${2} seconds)"  >&2
   sleep 10
 
-  # 1) 앱이 띄어졌는지 기본 확인
+  # 1) APP is ON
 
   container_load_timeout=${2}
 
   local wait_for_it_re=$(docker exec -w ${project_location}/${project_name} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2})
   if [[ $? != 0 ]]; then
-      echo "[ERROR] wait-for-it.sh 호출에 실패 하였습니다. (${wait_for_it_re})" >&2
+      echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2
       echo "false"
       return
   else
-      # 2) 앱 자체의 health check
-      echo "[NOTICE] ${project_name}-${check_state} 컨테이너 내부에서 ${check_state} container 의 Health Check 를 진행합니다."  >&2
+      # 2) APP's health check
+      echo "[NOTICE] In the ${project_name}-${check_state}   Container, conduct Health Check."  >&2
       sleep 1
 
       local interval_sec=5
 
-      # timeout설정값으로 재시도 횟수를 맞추기 위해 로직 변경
       local total_cnt=$((${container_load_timeout}/${interval_sec}))
 
-      # 0으로 나눠떨이지지 않을경우 재시도 횟수 1회 추가
       if [[ $((container_load_timeout%interval_sec)) != 0 ]]; then
         total_cnt=$((${total_cnt}+1))
       fi
 
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
-        echo "[NOTICE] ${retry_count}회 차 Health check 연결 시도... (timeout : ${3} 초)"  >&2
+        echo "[NOTICE] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
         response=$(docker exec ${project_name}-${check_state} bash -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
-        # 전체 status의 UP을 확인하는 regex
+
         down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
-        # 단순히 DOWN이 없다면으로 판별하기가 어려운 것이.. JSON response 가 아닌 Html 오류 화면(ex. Apache2 web server 502 오류)과 같은 것으로 화면 상에 아파치 오류가 뜰 수 있음.
         up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
 
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
-        then # $down_count >= 1 ("DOWN" 문자열이 있는지 검증)
+        then
 
-            echo "[WARNING] Health check의 응답을 알 수 없거나 혹은 status가 UP이 아닙니다. (response : ${response})"  >&2
+            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response: ${response})"  >&2
 
         else
-             echo "[NOTICE] 앱 내부 Health check 성공. (response : ${response})"  >&2
+             echo "[NOTICE] Internal health check of the application succeeded. (Response: ${response})"  >&2
              break
         fi
 
         if [[ ${retry_count} -eq ${total_cnt} ]]
         then
-          echo "[실패] Health check 최종 실패. (response : ${response})" >&2
+          echo "[FAILURE] Health check failed in the end. (Response:  ${response})" >&2
           echo "false"
           return
         fi
 
-        echo "[NOTICE] ${retry_count}/${total_cnt}회 차 Health check 연결 실패. ${interval_sec} 초 후 재시도..."  >&2
+        echo "[NOTICE] ${retry_count}/${total_cnt} round Health Check failure. Retrying in ${interval_sec} secs..."  >&2
         for (( i = 1; i <= ${interval_sec}; i++ ));do echo -n "$i." >&2 && sleep 1; done
         echo "\n"  >&2
 

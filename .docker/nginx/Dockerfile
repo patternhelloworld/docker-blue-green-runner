@@ -1,4 +1,7 @@
-FROM nginx:1.11.12
+FROM nginx:latest
+# RUN printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list
+
+
 
 RUN apt-get update -qqy && apt-get -qqy --force-yes install curl runit wget unzip vim && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/*
@@ -24,4 +27,3 @@ COPY ./.docker/ssl/ /etc/nginx/ssl/
 
 #CMD ["/usr/bin/runsvdir", "/etc/service"]
 ENTRYPOINT bash /entrypoint.sh
-

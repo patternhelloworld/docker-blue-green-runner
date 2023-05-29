@@ -1,6 +1,6 @@
 version: '3'
 services:
-  rpa-bpo-dashboard-blue:
+  ${PROJECT_NAME}-blue:
     container_name: ${PROJECT_NAME}-blue
     stdin_open: true
     tty: true
@@ -12,22 +12,20 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - TZ=Asia/Seoul
       - SERVICE_NAME=blue
     env_file:
       - .env
     volumes:
-      # Web APP 의 오류의 경우 가급적 로그 파일을 디폴트 경로에 남기는 것이 추후 발생할 가능성이 있는 권한 이슈를 최소화 한다.
-      - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/storage/logs'
+      - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/logs'
       # 기타 모든 로그 및 공유 파일들
-      - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/shared'
+      - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/shared'
       # 시스템 로그
       - '${HOST_SYSTEM_LOG_PATH}:/var/log'
       # env 파일 (ex. .properties, .env)
       - './.docker/env/real:/env'
       # SSL Certificate Path (ex. /etc/apache2/ssl )
       - './.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}'
-  rpa-bpo-dashboard-green:
+  ${PROJECT_NAME}-green:
     container_name: ${PROJECT_NAME}-green
     stdin_open: true
     tty: true
@@ -39,15 +37,13 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - TZ=Asia/Seoul
       - SERVICE_NAME=green
     env_file:
       - .env
     volumes:
-      # Web APP 의 오류의 경우 가급적 로그 파일을 디폴트 경로에 남기는 것이 추후 발생할 가능성이 있는 권한 이슈를 최소화 한다.
-      - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/storage/logs'
+      - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/logs'
       # 기타 모든 로그 및 공유 파일들
-      - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/${PROJECT_NAME}/shared'
+      - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/shared'
       # 시스템 로그
       - '${HOST_SYSTEM_LOG_PATH}:/var/log'
       # .env 파일

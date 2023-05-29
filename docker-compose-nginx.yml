@@ -1,6 +1,6 @@
 version: '3'
 services:
-  rpa-bpo-dashboard-nginx:
+  node-express-boilerplate-nginx:
     container_name: ${PROJECT_NAME}-nginx
     image: '${PROJECT_NAME}-nginx:latest'
     restart: always
@@ -16,7 +16,6 @@ services:
       - consul
     ports:
       - ${PROJECT_PORT}:${PROJECT_PORT}
-      - 8093:8093
 networks:
   app:
   consul:

@@ -11,6 +11,7 @@ if [[ ! -d /etc/consul-templates ]]; then
 fi
 
 echo "[NOTICE] ${protocol} 에 해당하는 템플릿 파일을 위치 시킵니다."
+sleep 3
 mv /ctmpl/${protocol}/nginx.conf.ctmpl /etc/consul-templates
 
 sed -i -e "s/###PROJECT_PORT###/${project_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_port (${project_port}) 치환 실패" && exit 1)

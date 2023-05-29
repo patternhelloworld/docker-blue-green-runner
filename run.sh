@@ -210,7 +210,7 @@ load_app_docker_image() {
   else
 
     #  이미지 파일을 load 하지 않고 Dockerfile 을 활용하는 경우
-    echo "[NOTICE] Build the image with ${docker_file_location}Dockerfile.${app_env} (using cache)"
+    echo "[NOTICE] Build the image with ${docker_file_location}/Dockerfile.${app_env} (using cache)"
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" -f Dockerfile.${app_env} . || exit 1
       cd -
@@ -306,13 +306,15 @@ load_all_containers(){
 
 check_availability_out_of_container(){
 
-  echo "[NOTICE] Check Status=200 from the outside of the container."  >&2
+  echo "[NOTICE] Check the status from the outside of the container."  >&2
   sleep 1
 
   for retry_count in {1..6}
   do
-    status=$(curl ${app_url} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
-    if [[ ${status} != '200' ]]; then
+    status=$(curl ${app_url}/${app_health_check_path} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
+    available_status_cnt=$(echo ${status} | egrep -i '^2[0-9]+|3[0-9]+$' | wc -l)
+
+    if [[ ${available_status_cnt} < 1 ]]; then
 
       echo "Bad HTTP response in the ${new_state} app: ${status}"  >&2
 
@@ -324,7 +326,7 @@ check_availability_out_of_container(){
       fi
 
     else
-      echo "[NOTICE] Success."  >&2
+      echo "[NOTICE] Success. (Status (2xx, 3xx) : ${status})"  >&2
       break
     fi
 

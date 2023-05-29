@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 sudo sed -i -e "s/\r$//g" $(basename $0)
 set -e
-echo "[NOTICE] WIN 운영체제에 따른 스크립트들의 CRLF 오류를 방지하기 위해, CRLF->LF 치환 중... (만약 이래도 개행 오류 발생 시 readme 참조)"
+echo "[NOTICE] To prevent CRLF errors in scripts based on the Windows operating system, currently performing CRLF to LF conversion."
 # 리눅스 - 윈도우 개발 환경 충돌 방지
 git config apply.whitespace nowarn
 git config core.filemode false
