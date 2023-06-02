@@ -6,31 +6,29 @@ To deploy web projects must be [simple](https://github.com/Andrew-Kang-G/docker-
 
 ## Introduction
 
-With your project with only Dockerfile, Docker-Blue-Green-Runner is in charge of the rest of CD (Continuous Deployment).
-Nginx enables your project to be deployed without downtime.
+With your project and its only Dockerfile, Docker-Blue-Green-Runner handles the rest of the Continuous Deployment (CD) process. Nginx allows your project to be deployed without experiencing any downtime.
 
 ![img.png](/documents/images/img.png)
 
 ## How to Start with Node sample.
 
-I brought a Node.js sample project ( https://github.com/hagopj13/node-express-boilerplate ) which has been getting many stars,
-with MIT License to show how to use Docker-Blue-Green-Runner.
+A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
 ```shell
-# First, as the sample project requires mongodb, run it separately.
+# First, as the sample project requires Mongodb, run it separately.
 cd samples/node-express-boilerplate
 docker-compose up -d mongodb
 ```
 
 ```shell
 cd ../../
-# [NOTE] At first, as "node_modules" is NOT installed in the sample project, the Health Check stage takes longer.
+# [NOTE] Initially, since the sample project does not have the "node_modules" installed, the Health Check stage may take longer.
 bash run.sh
 ```
 
 ## Environment Variables
 ```shell
-# If this is set to be true, NGINX will be restarted, hence, it has a short downtime. Use this when NGINX has errors or when it is a first-time deployment.
+# If this is set to true, Nginx will be restarted, resulting in a short downtime. This option should be used when Nginx encounters errors or during the initial deployment.
 NGINX_RESTART=false
 CONSUL_RESTART=false
 ```
