@@ -528,7 +528,7 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response: ${response}), (${project_name}-${check_state} log : $(docker logs ${project_name}-${check_state})"  >&2
+            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response : ${response}), (${project_name}-${check_state}, Log (print max 5 lines) : $(docker logs --tail 5 ${project_name}-${check_state})"  >&2
 
         else
              echo "[NOTICE] Internal health check of the application succeeded. (Response: ${response})"  >&2
