@@ -17,11 +17,11 @@ services:
       - .env
     volumes:
       - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/logs'
-      # 기타 모든 로그 및 공유 파일들
+
       - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/shared'
-      # 시스템 로그
+
       - '${HOST_SYSTEM_LOG_PATH}:/var/log'
-      # env 파일 (ex. .properties, .env)
+      # your env files (ex. .properties, .env)
       - './.docker/env/real:/env'
       # SSL Certificate Path (ex. /etc/apache2/ssl )
       - './.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}'
@@ -42,11 +42,11 @@ services:
       - .env
     volumes:
       - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/logs'
-      # 기타 모든 로그 및 공유 파일들
+
       - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/shared'
-      # 시스템 로그
+
       - '${HOST_SYSTEM_LOG_PATH}:/var/log'
-      # .env 파일
+
       - './.docker/env/real:/env'
       # SSL Certificate Path (ex. /etc/apache2/ssl )
       - './.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}'

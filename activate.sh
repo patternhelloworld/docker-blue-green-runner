@@ -15,7 +15,7 @@ echo "[NOTICE] new_state : ${new_state}, old_state : ${old_state}, new_upstream 
 was_state=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw)
 echo "[NOTICE] CONSUL (${consul_key_value_store}) is pointing to : ${was_state}"
 
-# ${pid_was} != '-' 의 의미는 Nginx 가 완전히 띄어졌을 때 CONSUL 에 BLUE-GREEN 변경 작업을 진행한다는 의미이다.
+# The meaning of "${pid_was} != '-'" is that when Nginx has fully started, the BLUE-GREEN change operation is performed in CONSUL.
 echo "[NOTICE] Check if Nginx is completely UP."
 for retry_count in {1..5}; do
   pid_was=$(docker exec ${project_name}-nginx pidof nginx 2>/dev/null || echo '-')

@@ -21,12 +21,12 @@ backup_app_to_previous_images(){
 
   if [[ $(docker images -q ${project_name}:new 2> /dev/null) != '' ]]
   then
-      # new 이미지가 있을 경우
+
       echo "[NOTICE] Docker tag 'new' 'previous'"
       docker tag ${project_name}:new ${project_name}:previous && return  || echo "[NOTICE] There is no 'new' tag image to backup the app."
   fi
 
-  # new 이미지가 없을 경우
+
   echo "[NOTICE] Since there is no 'new' tag image for the app, we will check the blue or green container and use the image of the container that is running properly as the backup image."
   if [[ $(docker exec ${project_name}-blue printenv SERVICE_NAME 2> /dev/null) == 'blue' ]]
   then
@@ -165,7 +165,7 @@ load_consul_docker_image(){
 
 }
 
-# TO DO : 폐쇄망 모듈
+
 load_nginx_docker_image(){
 
   if [[ $(docker exec ${project_name}-nginx echo 'yes' 2> /dev/null) == '' ]]
@@ -209,7 +209,7 @@ load_app_docker_image() {
     docker rmi -f ${load_from_registry_image_with_env}-app-${app_version}|| exit 1
   else
 
-    #  이미지 파일을 load 하지 않고 Dockerfile 을 활용하는 경우
+
     echo "[NOTICE] Build the image with ${docker_file_location}/Dockerfile.${app_env} (using cache)"
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" -f Dockerfile.${app_env} . || exit 1
@@ -220,8 +220,6 @@ load_app_docker_image() {
     fi
 
   fi
-
-  # 자 이제, ${project_name}:latest 이미지가 생성되었다.
 
   if [[ $(docker images -q ${project_name}:previous 2> /dev/null) == '' ]]
   then
@@ -246,7 +244,7 @@ nginx_restart(){
 
    docker network rm ${project_name}_app || echo "[DEBUG] NA"
 
-   echo "[NOTICE] NGINX 를 컨테이너로 띄웁니다."
+   echo "[NOTICE] Run NGINX as a container."
    PROJECT_NAME=${project_name} docker-compose -f docker-compose-nginx.yml up -d ${project_name}-nginx || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 }
 
@@ -267,7 +265,7 @@ consul_restart(){
     sleep 10
 }
 
-# 위에서 이미지들을 load 했으니, 해당 이미지들을 바탕으로 컨테이너 들을 load 한다.
+
 load_all_containers(){
 
   # In the past, restarting Nginx before App caused error messages like "upstream not found" in the Nginx configuration file. This seems to have caused a 502 error on the socket side.
@@ -340,7 +338,7 @@ check_availability_out_of_container(){
 }
 
 backup_to_new_images(){
-    # 성공 시 현재 도커 이미지를 previous 로 하여 rollback 시 시용
+
     echo "[NOTICE] docker tag latest new"
     docker tag ${project_name}:latest ${project_name}:new || echo "[NOTICE] the ${project_name}:latest image does NOT exist."
     echo "[NOTICE] docker tag latest new (NGINX)"
@@ -363,53 +361,47 @@ _main() {
   backup_app_to_previous_images
   backup_nginx_to_previous_images
 
-  # 필요한 폴더들의 생성과 권한 설정
   if [[ ${app_env} == 'local' ]]; then
-      # 권한이 적합하지 않을 경우 앱이 작동하는 상황에서 오류 발생
+
       give_host_group_id_full_permissions
   else
-      # docker-compose-app-real.yml 참조
+
       create_host_folders_if_not_exists
   fi
 
-
-  #echo "[NOTICE] docker system prune -f 명령어를 통해 도커 구조를 효율화 합니다."
   #docker system prune -f
   if [[ ${docker_layer_corruption_recovery} == true ]]; then
     terminate_whole_system
   fi
 
-  # 웹 Docker 이미지를 만든다
+
   load_app_docker_image
 
-  # Consul Docker 이미지를 만든다.
+
   load_consul_docker_image
 
-  # Nginx Docker 이미지를 만든다.
+
   load_nginx_docker_image
 
   if [[ ${app_env} == 'real' ]]; then
     inject_env_real
     sleep 2
   fi
-  # 위에서 이미지들을 load 했으니, 해당 이미지들을 바탕으로 컨테이너 들을 load 한다.
+
   load_all_containers
 
-  # Consul 과 연동하여 Blue-Green 세팅을 한다.
   ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
-  # 컨테이너 밖에서 app_url 을 호출하여 유효성을 확인한다.
+
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
     echo "[ERROR] Failed to call app_url outside container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
   fi
 
-  ## 여기까지 도달하면 성공으로 간주
+  ## From this point on, regarded as "success"
 
-  # 성공 시 현재 도커 이미지를 previous 로 하여 rollback 시 시용
   backup_to_new_images
 
-  # 성공 시 이전 컨테이너 종료
   echo "[NOTICE] The previous (${state}) container exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
   docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${state}
 

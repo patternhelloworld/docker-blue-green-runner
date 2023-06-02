@@ -6,26 +6,26 @@ protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
 consul_key=$(echo $(printenv CONSUL_KEY_VALUE_STORE) | cut -d "/" -f6)\\/$(echo $(printenv CONSUL_KEY_VALUE_STORE) | cut -d "/" -f7)
 
 if [[ ! -d /etc/consul-templates ]]; then
-    echo "[NOTICE] /etc/consul-templates 디랙토리가 없어서 생성하였습니다."
+    echo "[NOTICE] As the directory name '/etc/consul-templates' does NOT exist, it has been created."
     mkdir /etc/consul-templates
 fi
 
-echo "[NOTICE] ${protocol} 에 해당하는 템플릿 파일을 위치 시킵니다."
+echo "[NOTICE] Locate the template file for ${protocol}."
 sleep 3
 mv /ctmpl/${protocol}/nginx.conf.ctmpl /etc/consul-templates
 
-sed -i -e "s/###PROJECT_PORT###/${project_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_port (${project_port}) 치환 실패" && exit 1)
-sed -i -e "s/###PROJECT_NAME###/${project_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_name (${project_name}) 치환 실패" && exit 1)
-sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "consul_key (${consul_key}) 치환 실패" && exit 1)
+sed -i -e "s/###PROJECT_PORT###/${project_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_port (${project_port}) replacement failure." && exit 1)
+sed -i -e "s/###PROJECT_NAME###/${project_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_name (${project_name}) replacement failure." && exit 1)
+sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "consul_key (${consul_key}) replacement failure." && exit 1)
 
 if [[ ${protocol} = 'https' ]]; then
 
     use_commercial_ssl=$(printenv USE_COMMERCIAL_SSL)
     commercial_ssl_name=$(printenv COMMERCIAL_SSL_NAME)
 
-    echo "[NOTICE] 인증서를 위치시키는 작업을 시작합니다."
+    echo "[NOTICE] Start the job of relocating certificates."
 
-    # nginx 의 경우 apache2 와 다르게 별도로 chained 인증서가 필요하지 않다.
+    # Unlike Apache2, Nginx does not require a separate chained certificate.
     \cp /etc/nginx/ssl/${commercial_ssl_name}.crt /etc/nginx/ssl/${commercial_ssl_name}.chained.crt
 
     nginxSslRoot="/etc/nginx/ssl"
@@ -34,7 +34,7 @@ if [[ ${protocol} = 'https' ]]; then
 
     if [[ ${use_commercial_ssl} == false ]] && [[ ! -f ${nginxCrt} || ! -f ${nginxKey} || ! -s ${nginxCrt} || ! -s ${nginxKey} ]]; then
 
-        echo "[NOTICE] 폐쇄망 용 SSL 인증서를 생성합니다."
+        echo "[NOTICE] Creating SSL certificates for closed network purposes."
 
         if [[ ! -d ${nginxSslRoot} ]]; then
             mkdir ${nginxSslRoot}
@@ -60,36 +60,36 @@ if [[ ${protocol} = 'https' ]]; then
 
     escaped_app_url=$(echo ${app_url} | sed 's/\//\\\//g')
 
-    sed -i -e "s/###APP_URL###/${escaped_app_url}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "###APP_URL### 치환 실패" && exit 1)
+    sed -i -e "s/###APP_URL###/${escaped_app_url}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "APP_URL on .env failed to be applied." && exit 1)
     sleep 1
-    sed -i -e "s/###APP_HOST###/${app_host}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "###APP_HOST### 치환 실패" && exit 1)
+    sed -i -e "s/###APP_HOST###/${app_host}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "APP_HOST on .env failed to be applied." && exit 1)
     sleep 1
-    sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "commercial_ssl_name (${commercial_ssl_name}) 치환 실패" && exit 1)
+    sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied." && exit 1)
 fi
 
 
-echo "[NOTICE] 템플릿 적용 전 Nginx 를 시작합니다."
+echo "[NOTICE] Start Nginx before applying the template"
 service nginx start
-echo "[NOTICE] Nginx 가 완전히 띄어졌는 지 확인합니다."
+echo "[NOTICE] Check if it has started successfully."
 for retry_count in {1..5}; do
   pid_was=$(pidof nginx 2>/dev/null || echo '-')
 
   if [[ ${pid_was} != '-' ]]; then
-    echo "[NOTICE] 정상적으로 띄어졌습니다."
+    echo "[NOTICE] It has started normally."
     break
   else
-    echo "[NOTICE] 정상적으로 띄어지지 않아서 재시도 합니다. (pid_was : ${pid_was})"
+    echo "[NOTICE] If it fails to start properly, we retry. (pid_was : ${pid_was})"
   fi
 
   if [[ ${retry_count} -eq 4 ]]; then
-    echo "[ERROR] Nginx 가 완전히 띄어졌는 지 확인 재시도에 실패하여 기존의 상태를 유지하고 스크립트를 종료 합니다."
+    echo "[ERROR] After unsuccessful retries to confirm if Nginx has fully started, we maintain the current state and exit the script."
     exit 1
   fi
 
-  echo "[NOTICE] 3초에 한번씩 총 4회 재시도... (${retry_count} 회 재시도 중...)"
+  echo "[NOTICE] Retry four times with a three-second interval... (retrying ${retry_count} times...)"
   sleep 3
 done
-echo "[NOTICE] Nginx 템플릿을 적용합니다."
+echo "[NOTICE] Applying the Nginx template..."
 bash /etc/service/consul-template/run/consul-template.service
-echo "[NOTICE] Nginx 를 기동합니다."
+echo "[NOTICE] Start the Nginx."
 bash /etc/service/nginx/run/nginx.service

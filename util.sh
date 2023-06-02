@@ -1,7 +1,6 @@
 #!/bin/bash
 set -eu
 
-# 리눅스 - 윈도우 개발 환경 충돌 방지
 git config apply.whitespace nowarn
 git config core.filemode false
 
@@ -108,11 +107,11 @@ apply_env_service_name_onto_app_yaml(){
     sudo chmod a+x /usr/local/bin/yq
   }
   echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-compose-app-${app_env}.yml."
-  yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] app yaml 의 blue service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
+  yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
   sleep 2
-  yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] app yaml 의 green service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
+  yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
 
-  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-nginx.yml || (echo "[ERROR] nginx yaml 의 service 명을 ${project_name} 으로 적용 하는데 실패 하였습니다." && exit 1)
+  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YAML as ${project_name}." && exit 1)
 }
 
 apply_ports_onto_nginx_yaml(){

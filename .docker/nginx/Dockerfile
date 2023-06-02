@@ -1,7 +1,4 @@
 FROM nginx:latest
-# RUN printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list
-
-
 
 RUN apt-get update -qqy && apt-get -qqy --force-yes install curl runit wget unzip vim && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/*
@@ -22,7 +19,7 @@ RUN sed -i -e 's/\r$//' /etc/service/consul-template/run/consul-template.service
 RUN sed -i -e 's/\r$//' /etc/service/nginx/run/nginx.service
 RUN rm /etc/nginx/conf.d/default.conf
 
-# 자체적으로 구매한 인증서를 사용할 경우 ./.docker/ssl/ 에 인증서들을 위치시키고 (파일명은 nginx 설정 값 참조) .env 에서 USE_COMMERCIAL_SSL 을 true 로 해야 함
+# If you want to use self-purchased SSL certificates, place the certificates in the ./.docker/ssl/ directory (refer to the file names in the nginx configuration). In the .env file, set USE_COMMERCIAL_SSL to true.
 COPY ./.docker/ssl/ /etc/nginx/ssl/
 
 #CMD ["/usr/bin/runsvdir", "/etc/service"]
