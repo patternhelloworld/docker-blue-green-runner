@@ -6,8 +6,7 @@ git config apply.whitespace nowarn
 git config core.filemode false
 
 
-echo "[NOTICE]
-Delete all containers and networks related to the project. Ignore any error messages that may appear if the items do not exist."
+echo "[NOTICE] Delete all containers and networks related to the project. Ignore any error messages that may appear if the items do not exist."
 
 docker-compose -f docker-compose-app-local.yml down || echo "[DEBUG] A-L"
 docker-compose -f docker-compose-app-real.yml down || echo "[DEBUG] A-R"

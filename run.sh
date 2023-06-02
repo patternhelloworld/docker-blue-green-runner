@@ -356,6 +356,7 @@ _main() {
 
   apply_env_service_name_onto_app_yaml
   apply_ports_onto_nginx_yaml
+  apply_project_environments_onto_app_yaml
   create_nginx_ctmpl
 
   backup_app_to_previous_images

@@ -13,6 +13,8 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - SERVICE_NAME=blue
+      - MONGODB_URL=mongodb://host.docker.internal:27017/node-boilerplate
+      - NODE_ENV=development
     env_file:
       - .env
     volumes:
@@ -31,6 +33,8 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - SERVICE_NAME=green
+      - MONGODB_URL=mongodb://host.docker.internal:27017/node-boilerplate
+      - NODE_ENV=development
     env_file:
       - .env
     volumes:

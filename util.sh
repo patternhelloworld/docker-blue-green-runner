@@ -38,6 +38,8 @@ cache_global_vars() {
   additional_ports=(`echo $(get_value_from_env "ADDITIONAL_PORTS") | cut -d ","  --output-delimiter=" " -f 1-`)
   echo "[DEBUG] ADDITIONAL_PORTS : ${additional_ports[@]}"
 
+  project_environments=$(get_value_from_env "PROJECT_ENVIRONMENTS")
+
   consul_key_value_store=$(get_value_from_env "CONSUL_KEY_VALUE_STORE")
 
   app_health_check_path=$(get_value_from_env "APP_HEALTH_CHECK_PATH")
@@ -99,13 +101,19 @@ cache_global_vars() {
 
 }
 
-apply_env_service_name_onto_app_yaml(){
-  command -v yq >/dev/null 2>&1 ||
-  { echo >&2 "[ERROR] yq is NOT installed. Proceed with it.";
+check_yq_installed(){
+    command -v yq >/dev/null 2>&1 ||
+    { echo >&2 "[ERROR] yq is NOT installed. Proceed with it.";
 
-    sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-    sudo chmod a+x /usr/local/bin/yq
-  }
+      sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+      sudo chmod a+x /usr/local/bin/yq
+    }
+}
+
+apply_env_service_name_onto_app_yaml(){
+
+  check_yq_installed
+
   echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-compose-app-${app_env}.yml."
   yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
   sleep 2
@@ -115,6 +123,9 @@ apply_env_service_name_onto_app_yaml(){
 }
 
 apply_ports_onto_nginx_yaml(){
+
+   check_yq_installed
+
    echo "[NOTICE] PORTS on .env is now being applied to docker-compose-nginx.yml."
    yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-nginx.yml
    yq -i '.services.'${project_name}'-nginx.ports += "${PROJECT_PORT}:${PROJECT_PORT}"' docker-compose-nginx.yml
@@ -125,6 +136,28 @@ apply_ports_onto_nginx_yaml(){
       yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-nginx.yml
    done
 }
+
+apply_project_environments_onto_app_yaml(){
+
+   check_yq_installed
+
+   echo "[NOTICE] PROJECT_ENVIRONMENTS on .env is now being applied to docker-compose-nginx.yml."
+
+   local states=("blue" "green")
+
+   for state in "${states[@]}"
+   do
+       yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-compose-app-${app_env}.yml
+       yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-compose-app-${app_env}.yml
+
+       for ((i=1; i<=$(echo ${project_environments} | yq eval 'length'); i++))
+        do
+           yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${project_environments} | yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${project_environments} | yq -r 'to_entries | .['$((i-1))'].value')'"' docker-compose-app-${app_env}.yml
+        done
+   done
+
+}
+
 
 create_nginx_ctmpl(){
 
@@ -495,7 +528,7 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response: ${response})"  >&2
+            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response: ${response}), (${project_name}-${check_state} log : $(docker logs ${project_name}-${check_state})"  >&2
 
         else
              echo "[NOTICE] Internal health check of the application succeeded. (Response: ${response})"  >&2
