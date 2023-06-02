@@ -351,6 +351,7 @@ _main() {
   check_necessary_commands
 
   cache_global_vars
+  local safe_old_state=${state}
 
   check_env_integrity
 
@@ -403,8 +404,9 @@ _main() {
 
   backup_to_new_images
 
-  echo "[NOTICE] The previous (${state}) container exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
-  docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${state}
+  echo "[DEBUG] state : ${state}, new_state : ${new_state}, safe_old_state : ${safe_old_state}"
+  echo "[NOTICE] The previous (${safe_old_state}) container (safe_old_state) exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+  docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${safe_old_state}
 
   echo "[NOTICE] Delete <none>:<none> images."
   docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] If any images are in use, they will not be deleted."
