@@ -13,8 +13,6 @@ services:
       - "${HOST_IP}:host-gateway"
     environment:
       - SERVICE_NAME=blue
-      - XDEBUG_CONFIG=idekey=IDE_DEBUG
-      - PHP_IDE_CONFIG=serverName=laravel-crud-boilerplate
     env_file:
       - .env
     volumes:
@@ -33,8 +31,6 @@ services:
       - "${HOST_IP}:host-gateway"
     environment:
       - SERVICE_NAME=green
-      - XDEBUG_CONFIG=idekey=IDE_DEBUG
-      - PHP_IDE_CONFIG=serverName=laravel-crud-boilerplate
     env_file:
       - .env
     volumes:

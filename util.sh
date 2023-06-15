@@ -40,7 +40,8 @@ cache_global_vars() {
   additional_ports=(`echo $(get_value_from_env "ADDITIONAL_PORTS") | cut -d ","  --output-delimiter=" " -f 1-`)
   echo "[DEBUG] ADDITIONAL_PORTS : ${additional_ports[@]}"
 
-  project_environments=$(get_value_from_env "PROJECT_ENVIRONMENTS")
+  docker_compose_environment=$(get_value_from_env "DOCKER_COMPOSE_ENVIRONMENT")
+  docker_build_args=$(get_value_from_env "DOCKER_BUILD_ARGS")
 
   consul_key_value_store=$(get_value_from_env "CONSUL_KEY_VALUE_STORE")
 
@@ -112,6 +113,13 @@ check_yq_installed(){
     }
 }
 
+initiate_docker_compose(){
+    cp -f docker-compose-app-${app_env}-original.yml -f docker-compose-app-${app_env}.yml || exit 1
+    cp -f docker-compose-nginx-original.yml -f docker-compose-nginx.yml || exit 1
+
+    sleep 1
+}
+
 apply_env_service_name_onto_app_yaml(){
 
   check_yq_installed
@@ -139,11 +147,11 @@ apply_ports_onto_nginx_yaml(){
    done
 }
 
-apply_project_environments_onto_app_yaml(){
+apply_docker_compose_environment_onto_app_yaml(){
 
    check_yq_installed
 
-   echo "[NOTICE] PROJECT_ENVIRONMENTS on .env is now being applied to docker-compose-nginx.yml."
+   echo "[NOTICE] DOCKER_COMPOSE_ENVIRONMENT on .env is now being applied to docker-compose-app-${app_env}.yml."
 
    local states=("blue" "green")
 
@@ -152,14 +160,31 @@ apply_project_environments_onto_app_yaml(){
        yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-compose-app-${app_env}.yml
        yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-compose-app-${app_env}.yml
 
-       for ((i=1; i<=$(echo ${project_environments} | yq eval 'length'); i++))
+       for ((i=1; i<=$(echo ${docker_compose_environment} | yq eval 'length'); i++))
         do
-           yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${project_environments} | yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${project_environments} | yq -r 'to_entries | .['$((i-1))'].value')'"' docker-compose-app-${app_env}.yml
+           yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].value')'"' docker-compose-app-${app_env}.yml
         done
    done
 
 }
 
+
+make_docker_build_arg_strings(){
+
+   check_yq_installed
+
+   echo "[NOTICE] make_docker_build_arg_strings for the 'docker build command'." >&2
+
+   local re=""
+
+   for ((i=1; i<=$(echo ${docker_build_args} | yq eval 'length'); i++))
+   do
+       re="${re} --build-arg $(echo ${docker_build_args} | yq -r 'to_entries | .['$((i-1))'].key')=$(echo ${docker_build_args} | yq -r 'to_entries | .['$((i-1))'].value')"
+   done
+
+   echo ${re}
+   return
+}
 
 create_nginx_ctmpl(){
 

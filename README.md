@@ -19,6 +19,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 | PHP     | O                   | not yet           |
 | Java    | not yet             | not yet           |
 
+In case you are using WSL2 on Win, I strongly recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
 
 ## How to Start with a Node Sample (Local, PORT: 3000).
 
@@ -78,7 +79,7 @@ NGINX_RESTART=false
 CONSUL_RESTART=false
 
 # The value must be json or yaml type, which is injected into docker-compose-app-${app_env}.yml
-PROJECT_ENVIRONMENTS={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
+DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
 ```
 ## Emergency
 1) Nginx (like when Nginx is NOT booted OR 502 error...)
@@ -103,12 +104,16 @@ _main() {
   check_necessary_commands
 
   cache_global_vars
+  local safe_old_state=${state}
 
   check_env_integrity
 
+  # These are all about passing variables from the .env to the docker-compose-app-local.yml
   apply_env_service_name_onto_app_yaml
   apply_ports_onto_nginx_yaml
-  apply_project_environments_onto_app_yaml
+  apply_docker_compose_environment_onto_app_yaml
+  make_docker_build_arg_strings
+
   create_nginx_ctmpl
 
   backup_app_to_previous_images
@@ -155,11 +160,13 @@ _main() {
 
   backup_to_new_images
 
-  echo "[NOTICE] The previous (${state}) container exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
-  docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${state}
+  echo "[DEBUG] state : ${state}, new_state : ${new_state}, safe_old_state : ${safe_old_state}"
+  echo "[NOTICE] The previous (${safe_old_state}) container (safe_old_state) exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+  docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${safe_old_state}
 
   echo "[NOTICE] Delete <none>:<none> images."
   docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] If any images are in use, they will not be deleted."
+
 }
 
 ```

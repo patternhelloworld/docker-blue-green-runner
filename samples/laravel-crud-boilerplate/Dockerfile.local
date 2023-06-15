@@ -71,6 +71,12 @@ ENV HOST_IP=${HOST_IP}
 
 RUN echo "" >> /var/log/xdebug.log && chmod 777 /var/log/xdebug.log && echo "xdebug.log_level=1 \n xdebug.log=/var/log/xdebug.log \n zend_extension = xdebug.so \n xdebug.idekey=PHPSTORM \n xdebug.discover_client_host=0 \n xdebug.default_enable = 1 \n xdebug.remote_handler = "dbgp" \n xdebug.remote_port=9002 \n xdebug.client_host=${HOST_IP} \n xdebug.client_port=9002 \n xdebug.mode=debug" >> /usr/local/etc/php/conf.d/xdebug.ini
 
+ARG SAMPLE
+ENV SAMPLE=${SAMPLE}
+ARG SAMPLE2
+ENV SAMPLE2=${SAMPLE2}
+
+RUN echo "${SAMPLE} ${SAMPLE2}" >> /var/log/env_build_args.log
 
 WORKDIR /var/www/app
 

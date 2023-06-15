@@ -211,11 +211,16 @@ load_app_docker_image() {
 
 
     echo "[NOTICE] Build the image with ${docker_file_location}/Dockerfile.${app_env} (using cache)"
+    local env_build_args=$(make_docker_build_arg_strings)
+    echo "[NOTICE] DOCKER_BUILD_ARGS on the .env : ${env_build_args}"
+
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
-      cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" -f Dockerfile.${app_env} . || exit 1
-      cd -
+       echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f Dockerfile.${app_env} ."
+       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f Dockerfile.${app_env} . || exit 1
+       cd -
     else
-       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" -f Dockerfile.${app_env} . || exit 1
+       echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f Dockerfile.${app_env} ."
+       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f Dockerfile.${app_env} . || exit 1
        cd -
     fi
 
@@ -355,9 +360,13 @@ _main() {
 
   check_env_integrity
 
+  # These are all about passing variables from the .env to the docker-compose-app-local.yml
+  initiate_docker_compose
   apply_env_service_name_onto_app_yaml
   apply_ports_onto_nginx_yaml
-  apply_project_environments_onto_app_yaml
+  apply_docker_compose_environment_onto_app_yaml
+
+
   create_nginx_ctmpl
 
   backup_app_to_previous_images
