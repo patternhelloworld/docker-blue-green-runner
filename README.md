@@ -20,7 +20,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 | Java    | not yet             | not yet           |
 
 
-## How to Start with a Node Sample (Local).
+## How to Start with a Node Sample (Local, PORT: 3000).
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
@@ -42,7 +42,7 @@ cp -f .env.node.local .env
 bash run.sh
 ```
 
-## How to Start with a PHP Sample. (PORT: 8080)
+## How to Start with a PHP Sample (Local, PORT: 8080).
 
 A Node.js sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
