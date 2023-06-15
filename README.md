@@ -63,6 +63,10 @@ cp -f .env.php.local .env
 bash run.sh
 ```
 
+## Consul
+`` http://localhost:8500 ``
+
+
 ## Environment Variables
 ```shell
 # If this is set to be true, that means running 'stop-all-containers.sh & remove-all-images.sh'
