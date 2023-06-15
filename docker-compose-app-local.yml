@@ -10,7 +10,7 @@ services:
       - app
       - consul
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "${HOST_IP}:host-gateway"
     environment:
       - SERVICE_NAME=blue
       - MONGODB_URL=mongodb://host.docker.internal:27017/node-boilerplate
@@ -30,7 +30,7 @@ services:
       - app
       - consul
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "${HOST_IP}:host-gateway"
     environment:
       - SERVICE_NAME=green
       - MONGODB_URL=mongodb://host.docker.internal:27017/node-boilerplate

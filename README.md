@@ -10,19 +10,56 @@ With your project and its only Dockerfile (docker-compose.yml in the 'samples' f
 
 ![img.png](/documents/images/img.png)
 
-## How to Start with a Node Sample.
+
+Let me continually explain how to use Docker-Blue-Green-Runner with the following samples.
+
+|         | Local (Development) | Real (Production) |
+|---------|---------------------|-------------------|
+| Node.js | O                   | not yet           |
+| PHP     | O                   | not yet           |
+| Java    | not yet             | not yet           |
+
+
+## How to Start with a Node Sample (Local).
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
 ```shell
 # First, as the sample project requires Mongodb, run it separately.
 cd samples/node-express-boilerplate
+docker-compose build
 docker-compose up -d mongodb
+# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'MONGODB_URL' to your host IP in the ./samples/node-express-boilerplate/.env
+
 ```
 
 ```shell
+# Go back to the ROOT
 cd ../../
+cp -f .env.node.local .env
+# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 # [NOTE] Initially, since the sample project does not have the "node_modules" installed, the Health Check stage may take longer.
+bash run.sh
+```
+
+## How to Start with a PHP Sample. (PORT: 8080)
+
+A Node.js sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
+
+```shell
+# First, as the sample project requires MariaDB, run it separately.
+cd samples/laravel-crud-boilerplate
+docker-compose build
+docker-compose up -d 
+# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'HOST_IP' to your host IP in the ./samples/laravel-crud-boilerplate/.env
+```
+
+```shell
+# Go back to the root
+cd ../../
+cp -f .env.php.local .env
+# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
+# [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
 bash run.sh
 ```
 

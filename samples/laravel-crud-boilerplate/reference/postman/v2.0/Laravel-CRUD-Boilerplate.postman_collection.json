@@ -1,0 +1,432 @@
+{
+	"info": {
+		"_postman_id": "ff8c0989-8694-4810-85f4-5dac7286101c",
+		"name": "Laravel-CRUD-Boilerplate",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "1787314"
+	},
+	"item": [
+		{
+			"name": "http://localhost:8100/api/v1/login",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"content-type": true,
+					"accept": true,
+					"user-agent": true,
+					"connection": true
+				}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-Requested-With",
+						"value": "XMLHttpRequest",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\" : \"tester@example.com\",\r\n    \"password\" : \"secret\",\r\n    \"grant_type\" : \"pasword\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8100/api/v1/login?XDEBUG_SESSION_START=PHPSTORM",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8100",
+					"path": [
+						"api",
+						"v1",
+						"login"
+					],
+					"query": [
+						{
+							"key": "XDEBUG_SESSION_START",
+							"value": "PHPSTORM"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8100/api/v1/courses",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"content-type": true,
+					"accept": true,
+					"user-agent": true,
+					"connection": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIyIiwianRpIjoiMjNjOWQyYmYxMzA1YTgyYmJlOWNhY2IxN2Y3YjkwOWZkNzRkOTRkZjgyMDM1ZjhjNDBlNTk2Njk2NWUwMjY0YjM1MjA0M2U3ZGJiN2YxOWIiLCJpYXQiOjE2ODYyNzE5NTAuMzIyMjE0LCJuYmYiOjE2ODYyNzE5NTAuMzIyMjE4LCJleHAiOjE2ODY3MDM5NTAuMzA1OTc5LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.lALFv3UOH0wiI9MnEFnoAxl2mUI2KcxKW6GSkd1d9QN6U9Hfke1BgRLGrnDkfrJoWsjyRFmGBQvo4oTR-3M7ZlZckpG9dkQbK3BV5i_N0LtSDS3GjzQ6OAa-XB-KBcRDzmoZjgCYNIBUgEeGMb93td9I6Q8Rlgi7CcnwJSc6j9b45iARweCqR_LDsWo4p5ePNca6UPJQvMA_3sy0Al3f-z-8Ac94bpI22800JVXdx5p5zXcGuA0bkZl0Wn3t-y9Zc3CnOj-gRaeqsXwQ862ULuIpHx-GfSAhMtCnN44soSb8i0SQRGkYlC-05SVgYtl9II8tRB9XI_9dGArpW792UGkZf0p5wN7gsZlB4ttdGA_0JNNs5fwmw7Xuk9A75z2y10K5PulGvNmBZSB0iexFA5UhLdl5jEe8GLab8xsRdgaWayhWbpd6R6dTPQrGwztNOVh4lorI9x4JIy66dzoW9iJT_u7KpJcUjyhdISTMgElHATM7wS-qyp8WejdJxhYRI--DWkU120OmRfsHYItNEfoS3mOK0tE9ouN6lQeXEQjrkMxm851YxZHG0F-1JfuLrBrIlobQ_cdBCv8G_npBA5nNSWapv_eGv5CTTwXS0eXOCi4mg4uhOhWq2hC5Udhmud7VJC6BZHDedaHu9d6MBPpZS1pPYxVYCWpGCRnfBHs"
+					}
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-Requested-With",
+						"value": "XMLHttpRequest",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8100/api/v1/courses?XDEBUG_SESSION_START=PHPSTORM&page=1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8100",
+					"path": [
+						"api",
+						"v1",
+						"courses"
+					],
+					"query": [
+						{
+							"key": "XDEBUG_SESSION_START",
+							"value": "PHPSTORM"
+						},
+						{
+							"key": "page",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8100/api/v1/courses DELETE",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"content-type": true,
+					"accept": true,
+					"user-agent": true,
+					"connection": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIyIiwianRpIjoiMjNjOWQyYmYxMzA1YTgyYmJlOWNhY2IxN2Y3YjkwOWZkNzRkOTRkZjgyMDM1ZjhjNDBlNTk2Njk2NWUwMjY0YjM1MjA0M2U3ZGJiN2YxOWIiLCJpYXQiOjE2ODYyNzE5NTAuMzIyMjE0LCJuYmYiOjE2ODYyNzE5NTAuMzIyMjE4LCJleHAiOjE2ODY3MDM5NTAuMzA1OTc5LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.lALFv3UOH0wiI9MnEFnoAxl2mUI2KcxKW6GSkd1d9QN6U9Hfke1BgRLGrnDkfrJoWsjyRFmGBQvo4oTR-3M7ZlZckpG9dkQbK3BV5i_N0LtSDS3GjzQ6OAa-XB-KBcRDzmoZjgCYNIBUgEeGMb93td9I6Q8Rlgi7CcnwJSc6j9b45iARweCqR_LDsWo4p5ePNca6UPJQvMA_3sy0Al3f-z-8Ac94bpI22800JVXdx5p5zXcGuA0bkZl0Wn3t-y9Zc3CnOj-gRaeqsXwQ862ULuIpHx-GfSAhMtCnN44soSb8i0SQRGkYlC-05SVgYtl9II8tRB9XI_9dGArpW792UGkZf0p5wN7gsZlB4ttdGA_0JNNs5fwmw7Xuk9A75z2y10K5PulGvNmBZSB0iexFA5UhLdl5jEe8GLab8xsRdgaWayhWbpd6R6dTPQrGwztNOVh4lorI9x4JIy66dzoW9iJT_u7KpJcUjyhdISTMgElHATM7wS-qyp8WejdJxhYRI--DWkU120OmRfsHYItNEfoS3mOK0tE9ouN6lQeXEQjrkMxm851YxZHG0F-1JfuLrBrIlobQ_cdBCv8G_npBA5nNSWapv_eGv5CTTwXS0eXOCi4mg4uhOhWq2hC5Udhmud7VJC6BZHDedaHu9d6MBPpZS1pPYxVYCWpGCRnfBHs"
+					}
+				},
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-Requested-With",
+						"value": "XMLHttpRequest",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8100/api/v1/courses/1?XDEBUG_SESSION_START=PHPSTORM",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8100",
+					"path": [
+						"api",
+						"v1",
+						"courses",
+						"1"
+					],
+					"query": [
+						{
+							"key": "XDEBUG_SESSION_START",
+							"value": "PHPSTORM"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8100/api/v1/courses PATCH",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"content-type": true,
+					"accept": true,
+					"user-agent": true,
+					"connection": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIyIiwianRpIjoiMjNjOWQyYmYxMzA1YTgyYmJlOWNhY2IxN2Y3YjkwOWZkNzRkOTRkZjgyMDM1ZjhjNDBlNTk2Njk2NWUwMjY0YjM1MjA0M2U3ZGJiN2YxOWIiLCJpYXQiOjE2ODYyNzE5NTAuMzIyMjE0LCJuYmYiOjE2ODYyNzE5NTAuMzIyMjE4LCJleHAiOjE2ODY3MDM5NTAuMzA1OTc5LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.lALFv3UOH0wiI9MnEFnoAxl2mUI2KcxKW6GSkd1d9QN6U9Hfke1BgRLGrnDkfrJoWsjyRFmGBQvo4oTR-3M7ZlZckpG9dkQbK3BV5i_N0LtSDS3GjzQ6OAa-XB-KBcRDzmoZjgCYNIBUgEeGMb93td9I6Q8Rlgi7CcnwJSc6j9b45iARweCqR_LDsWo4p5ePNca6UPJQvMA_3sy0Al3f-z-8Ac94bpI22800JVXdx5p5zXcGuA0bkZl0Wn3t-y9Zc3CnOj-gRaeqsXwQ862ULuIpHx-GfSAhMtCnN44soSb8i0SQRGkYlC-05SVgYtl9II8tRB9XI_9dGArpW792UGkZf0p5wN7gsZlB4ttdGA_0JNNs5fwmw7Xuk9A75z2y10K5PulGvNmBZSB0iexFA5UhLdl5jEe8GLab8xsRdgaWayhWbpd6R6dTPQrGwztNOVh4lorI9x4JIy66dzoW9iJT_u7KpJcUjyhdISTMgElHATM7wS-qyp8WejdJxhYRI--DWkU120OmRfsHYItNEfoS3mOK0tE9ouN6lQeXEQjrkMxm851YxZHG0F-1JfuLrBrIlobQ_cdBCv8G_npBA5nNSWapv_eGv5CTTwXS0eXOCi4mg4uhOhWq2hC5Udhmud7VJC6BZHDedaHu9d6MBPpZS1pPYxVYCWpGCRnfBHs"
+					}
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-Requested-With",
+						"value": "XMLHttpRequest",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8100/api/v1/courses/1?XDEBUG_SESSION_START=PHPSTORM",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8100",
+					"path": [
+						"api",
+						"v1",
+						"courses",
+						"1"
+					],
+					"query": [
+						{
+							"key": "XDEBUG_SESSION_START",
+							"value": "PHPSTORM"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8100/api/v1/lessons POST START",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"content-type": true,
+					"accept": true,
+					"user-agent": true,
+					"connection": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIyIiwianRpIjoiMjNjOWQyYmYxMzA1YTgyYmJlOWNhY2IxN2Y3YjkwOWZkNzRkOTRkZjgyMDM1ZjhjNDBlNTk2Njk2NWUwMjY0YjM1MjA0M2U3ZGJiN2YxOWIiLCJpYXQiOjE2ODYyNzE5NTAuMzIyMjE0LCJuYmYiOjE2ODYyNzE5NTAuMzIyMjE4LCJleHAiOjE2ODY3MDM5NTAuMzA1OTc5LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.lALFv3UOH0wiI9MnEFnoAxl2mUI2KcxKW6GSkd1d9QN6U9Hfke1BgRLGrnDkfrJoWsjyRFmGBQvo4oTR-3M7ZlZckpG9dkQbK3BV5i_N0LtSDS3GjzQ6OAa-XB-KBcRDzmoZjgCYNIBUgEeGMb93td9I6Q8Rlgi7CcnwJSc6j9b45iARweCqR_LDsWo4p5ePNca6UPJQvMA_3sy0Al3f-z-8Ac94bpI22800JVXdx5p5zXcGuA0bkZl0Wn3t-y9Zc3CnOj-gRaeqsXwQ862ULuIpHx-GfSAhMtCnN44soSb8i0SQRGkYlC-05SVgYtl9II8tRB9XI_9dGArpW792UGkZf0p5wN7gsZlB4ttdGA_0JNNs5fwmw7Xuk9A75z2y10K5PulGvNmBZSB0iexFA5UhLdl5jEe8GLab8xsRdgaWayhWbpd6R6dTPQrGwztNOVh4lorI9x4JIy66dzoW9iJT_u7KpJcUjyhdISTMgElHATM7wS-qyp8WejdJxhYRI--DWkU120OmRfsHYItNEfoS3mOK0tE9ouN6lQeXEQjrkMxm851YxZHG0F-1JfuLrBrIlobQ_cdBCv8G_npBA5nNSWapv_eGv5CTTwXS0eXOCi4mg4uhOhWq2hC5Udhmud7VJC6BZHDedaHu9d6MBPpZS1pPYxVYCWpGCRnfBHs"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-Requested-With",
+						"value": "XMLHttpRequest",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"student_id\" :2,\r\n    \"course_id\": 1,\r\n    \"status\": \"Start\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8100/api/v1/lessons?XDEBUG_SESSION_START=PHPSTORM",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8100",
+					"path": [
+						"api",
+						"v1",
+						"lessons"
+					],
+					"query": [
+						{
+							"key": "XDEBUG_SESSION_START",
+							"value": "PHPSTORM"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8100/api/v1/lessons POST END",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"content-type": true,
+					"accept": true,
+					"user-agent": true,
+					"connection": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIyIiwianRpIjoiMjNjOWQyYmYxMzA1YTgyYmJlOWNhY2IxN2Y3YjkwOWZkNzRkOTRkZjgyMDM1ZjhjNDBlNTk2Njk2NWUwMjY0YjM1MjA0M2U3ZGJiN2YxOWIiLCJpYXQiOjE2ODYyNzE5NTAuMzIyMjE0LCJuYmYiOjE2ODYyNzE5NTAuMzIyMjE4LCJleHAiOjE2ODY3MDM5NTAuMzA1OTc5LCJzdWIiOiIxIiwic2NvcGVzIjpbXX0.lALFv3UOH0wiI9MnEFnoAxl2mUI2KcxKW6GSkd1d9QN6U9Hfke1BgRLGrnDkfrJoWsjyRFmGBQvo4oTR-3M7ZlZckpG9dkQbK3BV5i_N0LtSDS3GjzQ6OAa-XB-KBcRDzmoZjgCYNIBUgEeGMb93td9I6Q8Rlgi7CcnwJSc6j9b45iARweCqR_LDsWo4p5ePNca6UPJQvMA_3sy0Al3f-z-8Ac94bpI22800JVXdx5p5zXcGuA0bkZl0Wn3t-y9Zc3CnOj-gRaeqsXwQ862ULuIpHx-GfSAhMtCnN44soSb8i0SQRGkYlC-05SVgYtl9II8tRB9XI_9dGArpW792UGkZf0p5wN7gsZlB4ttdGA_0JNNs5fwmw7Xuk9A75z2y10K5PulGvNmBZSB0iexFA5UhLdl5jEe8GLab8xsRdgaWayhWbpd6R6dTPQrGwztNOVh4lorI9x4JIy66dzoW9iJT_u7KpJcUjyhdISTMgElHATM7wS-qyp8WejdJxhYRI--DWkU120OmRfsHYItNEfoS3mOK0tE9ouN6lQeXEQjrkMxm851YxZHG0F-1JfuLrBrIlobQ_cdBCv8G_npBA5nNSWapv_eGv5CTTwXS0eXOCi4mg4uhOhWq2hC5Udhmud7VJC6BZHDedaHu9d6MBPpZS1pPYxVYCWpGCRnfBHs"
+					}
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-Requested-With",
+						"value": "XMLHttpRequest",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"student_id\" :2,\r\n    \"course_id\": 1,\r\n    \"status\": \"End\",\r\n    \"recording\": \"bbb\",\r\n    \"result\": \"ccc\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8100/api/v1/lessons?XDEBUG_SESSION_START=PHPSTORM",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8100",
+					"path": [
+						"api",
+						"v1",
+						"lessons"
+					],
+					"query": [
+						{
+							"key": "XDEBUG_SESSION_START",
+							"value": "PHPSTORM"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8100/api/v1/health",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"accept-encoding": true,
+					"content-type": true,
+					"accept": true,
+					"user-agent": true,
+					"connection": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-Requested-With",
+						"value": "XMLHttpRequest",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8100/api/v1/health?XDEBUG_SESSION_START=PHPSTORM",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8100",
+					"path": [
+						"api",
+						"v1",
+						"health"
+					],
+					"query": [
+						{
+							"key": "XDEBUG_SESSION_START",
+							"value": "PHPSTORM"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

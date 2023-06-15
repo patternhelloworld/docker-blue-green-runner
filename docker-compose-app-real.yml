@@ -10,7 +10,7 @@ services:
       - app
       - consul
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "${HOST_IP}:host-gateway"
     environment:
       - SERVICE_NAME=blue
     env_file:
@@ -35,7 +35,7 @@ services:
       - app
       - consul
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "${HOST_IP}:host-gateway"
     environment:
       - SERVICE_NAME=green
     env_file:

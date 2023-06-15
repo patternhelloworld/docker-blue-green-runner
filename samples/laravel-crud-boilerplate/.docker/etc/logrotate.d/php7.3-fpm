@@ -1,0 +1,17 @@
+/var/log/php7.3-fpm.log {
+        maxsize 20M
+        daily
+        rotate 93
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 644 root root
+        dateext
+        dateformat .%Y-%m-%d
+        postrotate
+            if [ -x /usr/lib/php/php7.3-fpm-reopenlogs ]; then
+                /usr/lib/php/php7.3-fpm-reopenlogs;
+            fi
+        endscript
+}

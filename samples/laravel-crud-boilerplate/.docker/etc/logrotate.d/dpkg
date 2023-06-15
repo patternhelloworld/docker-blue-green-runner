@@ -1,0 +1,12 @@
+/var/log/dpkg.log {
+        maxsize 20M
+        daily
+        rotate 93
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 644 root root
+        dateext
+        dateformat .%Y-%m-%d
+}

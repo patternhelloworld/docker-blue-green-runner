@@ -7,3 +7,4 @@
 !/.docker/ssl/.gitkeep
 
 .idea
+.env

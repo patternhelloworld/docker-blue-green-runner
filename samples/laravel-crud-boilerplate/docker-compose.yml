@@ -1,0 +1,25 @@
+version: "3.8"
+services:
+  #DB Service
+  lr_database:
+    image: mariadb:latest
+    container_name: lr_database
+    restart: always
+    working_dir: /etc/mysql
+    tty: true
+    environment:
+      MYSQL_DATABASE: laravel_crud_boilerplate
+      MYSQL_USER: tester
+      MYSQL_ROOT_PASSWORD: test1235
+      MYSQL_PASSWORD: test1235
+    ports:
+      - 3333:3306
+    volumes:
+      #- ./.docker/db/data:/var/lib/mysql
+      - ./.docker/db/log:/var/log/mysql
+      - ./.docker/db/dump.sql:/docker-entrypoint-initdb.d/dump.sql
+    command: --default-authentication-plugin=mysql_native_password --transaction-isolation=READ-COMMITTED --binlog-format=ROW --log-bin
+
+volumes:
+  dbdata:
+    driver: local

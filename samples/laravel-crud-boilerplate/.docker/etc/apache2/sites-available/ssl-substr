@@ -1,0 +1,11 @@
+# This will redirect all http reqs to https ones.
+ErrorDocument 400 /%{escape:%{REQUEST_URI}}
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R=301,L]
+
+SSLEngine on
+
+SSLCertificateFile /etc/apache2/ssl/###COMMERCIAL_SSL_NAME###.crt
+SSLCertificateKeyFile /etc/apache2/ssl/###COMMERCIAL_SSL_NAME###.key
+#SSLCertificateChainFile /etc/apache2/ssl/###COMMERCIAL_SSL_NAME###.chained.crt

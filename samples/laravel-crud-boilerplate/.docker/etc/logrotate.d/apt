@@ -1,0 +1,25 @@
+/var/log/apt/term.log {
+        maxsize 20M
+        daily
+        rotate 93
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 640 root adm
+        dateext
+        dateformat .%Y-%m-%d
+}
+
+/var/log/apt/history.log {
+        maxsize 20M
+        daily
+        rotate 93
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 644 root root
+        dateext
+        dateformat .%Y-%m-%d
+}

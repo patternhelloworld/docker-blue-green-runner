@@ -1,0 +1,11 @@
+name: LocalStorage
+abbreviation: lclstrg
+checker: PragmaRX\Health\Checkers\CloudStorage
+notify: true
+error_message: "Cloud storage is not retrieving files correctly."
+column_size: 3
+targets:
+  - default:
+      driver: local
+      file: pragmarx-health-storage-testfile.txt
+      contents: "{{ \\Illuminate\\Support\\Str::random(32) }}"

@@ -28,6 +28,8 @@ cache_all_states() {
 }
 
 cache_global_vars() {
+  
+  HOST_IP=$(get_value_from_env "HOST_IP")
 
   host_root_location=$(get_value_from_env "HOST_ROOT_LOCATION")
   docker_file_location=$(get_value_from_env "DOCKER_FILE_LOCATION")

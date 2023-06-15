@@ -1,0 +1,100 @@
+FROM php:7.4-fpm-buster  as production
+
+ARG server
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get -qqy update && apt-get -qqy upgrade
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        locales \
+        apt-utils \
+        git \
+        g++ \
+        libicu-dev \
+        libpng-dev \
+        libxml2-dev \
+        libzip-dev \
+        libonig-dev \
+        libxslt-dev \
+        unzip \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        apache2 \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install \
+        pdo \
+        pdo_mysql \
+        opcache \
+        intl \
+        zip \
+        calendar \
+        dom \
+        mbstring \
+        gd \
+        xsl \
+    && pecl install apcu \
+    && docker-php-ext-enable apcu
+
+
+
+RUN \cp /usr/local/etc/php/php.ini-production  /usr/local/etc/php/php.ini \
+&& rm /etc/apache2/sites-available/000-default.conf \
+&& rm /etc/apache2/sites-enabled/000-default.conf \
+&& a2enmod proxy \
+&& a2enmod proxy_http \
+&& a2enmod proxy_wstunnel \
+&& a2enmod ssl \
+&& a2enmod proxy_fcgi \
+&& a2enmod rewrite \
+&& a2enmod headers \
+&& usermod -u 1000 www-data && groupmod -g 1000 www-data
+
+
+
+RUN sed -i -E "s/(post_max_size\s*=\s*)[^\n\r]+/\1100M/" /usr/local/etc/php/php.ini \
+    && sed -i -E "s/(upload_max_filesize\s*=\s*)[^\n\r]+/\1100M/" /usr/local/etc/php/php.ini \
+    && sed -i -E "s/(memory_limit\s*=\s*)[^\n\r]+/\11024M/" /usr/local/etc/php/php.ini
+
+RUN curl -s https://getcomposer.org/installer | php \
+    && mv composer.phar /usr/local/bin/composer && \
+    chmod +x /usr/local/bin/composer && \
+    ## https://stackoverflow.com/questions/46263043/how-to-setup-docker-phpstorm-xdebug-on-ubuntu-16-04
+    ## https://bugs.xdebug.org/view.php?id=1593
+    pecl install xdebug-3.0.2
+
+ARG DISABLE_CACHE
+
+ARG HOST_IP
+ENV HOST_IP=${HOST_IP}
+
+RUN echo "" >> /var/log/xdebug.log && chmod 777 /var/log/xdebug.log && echo "xdebug.log_level=1 \n xdebug.log=/var/log/xdebug.log \n zend_extension = xdebug.so \n xdebug.idekey=PHPSTORM \n xdebug.discover_client_host=0 \n xdebug.default_enable = 1 \n xdebug.remote_handler = "dbgp" \n xdebug.remote_port=9002 \n xdebug.client_host=${HOST_IP} \n xdebug.client_port=9002 \n xdebug.mode=debug" >> /usr/local/etc/php/conf.d/xdebug.ini
+
+
+WORKDIR /var/www/app
+
+
+COPY ./.docker/etc/apache2/apache2.conf /etc/apache2/apache2.conf
+COPY ./.docker/etc/apache2/sites-available/default.conf /etc/apache2/sites-available/default.conf
+COPY ./.docker/etc/apache2/sites-available/ssl-substr /etc/apache2/sites-available/ssl-substr
+COPY ./.docker/etc/apache2/conf-enabled/security.conf /etc/apache2/conf-enabled/security.conf
+
+COPY ./.docker/etc/sysctl.conf /etc/sysctl.conf
+
+COPY ./.docker/etc/logrotate.d/* /etc/logrotate.d/
+
+COPY ./.docker/oauth2-key/ /var/www/app/storage/
+
+COPY ./.docker/sh/update/$server/run.sh /run.sh
+
+WORKDIR /var/www/app
+ENTRYPOINT bash /run.sh && /bin/bash
+
+
+
+
+
+
+
+

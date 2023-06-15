@@ -1,41 +1,18 @@
 version: '3'
 
 services:
-  node-app:
-    build:
-      context: ./
-      dockerfile: Dockerfile.local
-    tty: true
-    stdin_open: true
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    image: node-app:latest
-    environment:
-      - MONGODB_URL=mongodb://host.docker.internal:27017/node-boilerplate
-      - NODE_ENV="development"
-    depends_on:
-      - mongodb
-    volumes:
-      - .:/usr/src/node-app
-    networks:
-      - node-network
-
   mongodb:
     image: mongo:4.2.1-bionic
     tty: true
     stdin_open: true
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
       - '27017:27017'
     volumes:
       - dbdata:/data/db
     networks:
       - node-network
-
 volumes:
   dbdata:
-
 networks:
   node-network:
     driver: bridge

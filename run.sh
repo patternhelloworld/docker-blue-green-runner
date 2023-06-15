@@ -215,7 +215,7 @@ load_app_docker_image() {
       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" -f Dockerfile.${app_env} . || exit 1
       cd -
     else
-       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" -f Dockerfile.${app_env} . || exit 1
+       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" -f Dockerfile.${app_env} . || exit 1
        cd -
     fi
 
