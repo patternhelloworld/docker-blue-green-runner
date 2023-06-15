@@ -46,10 +46,10 @@ echo "[NOTICE] Start the ${new_state} container."
 docker-compose -f docker-compose-app-${app_env}.yml up -d ${project_name}-${new_state}
 
 
-if [[ ${app_env} == 'local' ]]; then
-  sleep 5
-  docker exec -it ${project_name}-${new_state}  bash -c 'bash '${project_location}'/'${project_name}'/.docker/sh/update/local/'${project_name}'.sh'
-fi
+#if [[ ${app_env} == 'local' ]]; then
+ # sleep 5
+  #docker exec -it ${project_name}-${new_state}  bash -c 'bash '${project_location}'/.docker/sh/update/local/'${project_name}'.sh'
+#fi
 
 echo "[NOTICE] Wait until the ${new_state} container is fully up."
 if [[ $(check_availability_inside_container ${new_state} 60 5 | tail -n 1) != 'true' ]]; then

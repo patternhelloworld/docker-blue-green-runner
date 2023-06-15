@@ -22,8 +22,8 @@ chown -R www-data storage bootstrap/cache shared
 
 composer dump-autoload
 php artisan cache:clear
-php artisan config:cache
-php artisan route:cache || php artisan route:clear
+php artisan config:clear
+php artisan route:clear
 php artisan view:clear
 
 # Symbolic link /etc/apache2/sites-available -> /etc/apache2/sites-enabled

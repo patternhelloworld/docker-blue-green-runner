@@ -62,10 +62,10 @@ cp -f .env.php.local .env
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
 bash run.sh
 ```
+and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 ## Consul
 `` http://localhost:8500 ``
-
 
 ## Environment Variables
 ```shell
