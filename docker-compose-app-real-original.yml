@@ -15,16 +15,7 @@ services:
       - SERVICE_NAME=blue
     env_file:
       - .env
-    volumes:
-      - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/logs'
-
-      - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/shared'
-
-      - '${HOST_SYSTEM_LOG_PATH}:/var/log'
-      # your env files (ex. .properties, .env)
-      - './.docker/env/real:/env'
-      # SSL Certificate Path (ex. /etc/apache2/ssl )
-      - './.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}'
+    volumes: []
   ${PROJECT_NAME}-green:
     container_name: ${PROJECT_NAME}-green
     stdin_open: true
@@ -40,16 +31,7 @@ services:
       - SERVICE_NAME=green
     env_file:
       - .env
-    volumes:
-      - '${HOST_ERROR_LOG_PATH}:${PROJECT_LOCATION}/logs'
-
-      - '${HOST_SHARED_PATH}:${PROJECT_LOCATION}/shared'
-
-      - '${HOST_SYSTEM_LOG_PATH}:/var/log'
-
-      - './.docker/env/real:/env'
-      # SSL Certificate Path (ex. /etc/apache2/ssl )
-      - './.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}'
+    volumes: []
 networks:
   app:
   consul:

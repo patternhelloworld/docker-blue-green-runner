@@ -235,10 +235,6 @@ load_app_docker_image() {
   docker tag ${project_name}:latest ${project_name}:green
 }
 
-inject_env_real() {
-  echo "[NOTICE] To use the current project's .env, execute the command 'cp -f .env ./.docker/env/real/.env'."
-  sudo cp -f .env ./.docker/env/real/.env
-}
 
 nginx_restart(){
 
@@ -366,6 +362,11 @@ _main() {
   apply_ports_onto_nginx_yaml
   apply_docker_compose_environment_onto_app_yaml
 
+  # Refer to .env.*.real
+  if [[ ${app_env} == 'real' ]]; then
+    apply_docker_compose_volumes_onto_app_real_yaml
+  fi
+
 
   create_nginx_ctmpl
 
@@ -375,9 +376,9 @@ _main() {
   if [[ ${app_env} == 'local' ]]; then
 
       give_host_group_id_full_permissions
-  else
+  #else
 
-      create_host_folders_if_not_exists
+     # create_host_folders_if_not_exists
   fi
 
   #docker system prune -f
@@ -394,10 +395,6 @@ _main() {
 
   load_nginx_docker_image
 
-  if [[ ${app_env} == 'real' ]]; then
-    inject_env_real
-    sleep 2
-  fi
 
   load_all_containers
 

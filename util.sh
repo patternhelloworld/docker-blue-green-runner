@@ -55,9 +55,7 @@ cache_global_vars() {
   fi
 
   if [[ ${app_env} == 'real' ]]; then
-    host_shared_path=$(get_value_from_env "HOST_SHARED_PATH")
-    host_system_log_path=$(get_value_from_env "HOST_SYSTEM_LOG_PATH")
-    host_error_log_path=$(get_value_from_env "HOST_ERROR_LOG_PATH")
+    docker_compose_real_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES")
   fi
 
   docker_layer_corruption_recovery=$(get_value_from_env "DOCKER_LAYER_CORRUPTION_RECOVERY")
@@ -67,7 +65,6 @@ cache_global_vars() {
   if [[ ${protocol} = 'https' ]]; then
     use_commercial_ssl=$(get_value_from_env "USE_COMMERCIAL_SSL")
     commercial_ssl_name=$(get_value_from_env "COMMERCIAL_SSL_NAME")
-    container_ssl_volume_path=$(get_value_from_env "CONTAINER_SSL_VOLUME_PATH")
   fi
 
   nginx_restart=$(get_value_from_env "NGINX_RESTART")
@@ -100,7 +97,7 @@ cache_global_vars() {
   git_token_image_load_from_username=$(get_value_from_env "GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME")
   git_token_image_load_from_password=$(get_value_from_env "GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD")
 
-  sync_app_version_real
+  # sync_app_version_real
 
 }
 
@@ -164,6 +161,26 @@ apply_docker_compose_environment_onto_app_yaml(){
         do
            yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].value')'"' docker-compose-app-${app_env}.yml
         done
+   done
+
+}
+
+apply_docker_compose_volumes_onto_app_real_yaml(){
+
+   check_yq_installed
+
+   echo "[NOTICE] DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-app-real.yml."
+
+   local states=("blue" "green")
+
+   for state in "${states[@]}"
+   do
+       yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-compose-app-real.yml
+
+      for volume in "${docker_compose_real_selective_volumes[@]}"
+      do
+          yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-compose-app-real.yml
+      done
    done
 
 }
@@ -268,16 +285,12 @@ EOF
     cat > .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
 server {
 
-    if (\$http_host != "###APP_HOST###") {
-        return 301 ###APP_URL###\$request_uri;
-    }
-
     listen ###PROJECT_PORT### default_server ssl http2;
     server_name localhost;
 
     client_max_body_size 50M;
 
-    ssl on;
+
     ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
     ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
     ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
@@ -321,7 +334,7 @@ server {
 
     client_max_body_size 50M;
 
-    ssl on;
+
     ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
     ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
     ssl_protocols TLSv1 TLSv1.1 TLSv1.2;

@@ -16,7 +16,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 |         | Local (Development) | Real (Production) |
 |---------|---------------------|-------------------|
 | Node.js | O                   | not yet           |
-| PHP     | O                   | not yet           |
+| PHP     | O                   | O                 |
 | Java    | not yet             | not yet           |
 
 In case you are using WSL2 on Win, I strongly recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
@@ -45,7 +45,7 @@ bash run.sh
 
 ## How to Start with a PHP Sample (Local, PORT: 8080).
 
-A Node.js sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
+A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
 ```shell
 # First, as the sample project requires MariaDB, run it separately.
@@ -64,6 +64,36 @@ cp -f .env.php.local .env
 bash run.sh
 ```
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
+
+## How to Start with a PHP Sample (Real, PORT: 8080).
+
+Differences between ``./samples/laravel-crud-boilerplate/Dockerfile.local`` and ``./samples/laravel-crud-boilerplate/Dockerfile.real``
+
+1) Staging build : (Local - no, Real - yes to reduce the size of the image)
+2) Volume for the whole project : (Local - yes, Real - no. copy the whole project only one time)
+3) SSL : (Local - not required, Real - yes, you can. as long as you set APP_URL on .env starting with 'https')
+
+A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
+
+```shell
+# First, as the sample project requires MariaDB, run it separately.
+cd samples/laravel-crud-boilerplate
+docker-compose build
+docker-compose up -d 
+# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'HOST_IP' to your host IP in the ./samples/laravel-crud-boilerplate/.env
+```
+
+```shell
+# Go back to the root
+cd ../../
+cp -f .env.php.real .env
+# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
+# [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
+bash run.sh
+```
+and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
+
+
 
 ## Consul
 `` http://localhost:8500 ``

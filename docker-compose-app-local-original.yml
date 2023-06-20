@@ -17,7 +17,6 @@ services:
       - .env
     volumes:
       - ${HOST_ROOT_LOCATION}:${PROJECT_LOCATION}:rw
-      - ./.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}
   ${PROJECT_NAME}-green:
     container_name: ${PROJECT_NAME}-green
     stdin_open: true
@@ -35,7 +34,6 @@ services:
       - .env
     volumes:
       - ${HOST_ROOT_LOCATION}:${PROJECT_LOCATION}:rw
-      - ./.docker/ssl:${CONTAINER_SSL_VOLUME_PATH:-/.devnull}
 networks:
   app:
   consul:
