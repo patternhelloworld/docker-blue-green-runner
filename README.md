@@ -139,10 +139,16 @@ _main() {
   check_env_integrity
 
   # These are all about passing variables from the .env to the docker-compose-app-local.yml
+  initiate_docker_compose
   apply_env_service_name_onto_app_yaml
   apply_ports_onto_nginx_yaml
   apply_docker_compose_environment_onto_app_yaml
-  make_docker_build_arg_strings
+
+  # Refer to .env.*.real
+  if [[ ${app_env} == 'real' ]]; then
+    apply_docker_compose_volumes_onto_app_real_yaml
+  fi
+
 
   create_nginx_ctmpl
 
@@ -150,14 +156,9 @@ _main() {
   backup_nginx_to_previous_images
 
   if [[ ${app_env} == 'local' ]]; then
-
       give_host_group_id_full_permissions
-  else
-
-      create_host_folders_if_not_exists
   fi
 
-  #docker system prune -f
   if [[ ${docker_layer_corruption_recovery} == true ]]; then
     terminate_whole_system
   fi
@@ -171,10 +172,6 @@ _main() {
 
   load_nginx_docker_image
 
-  if [[ ${app_env} == 'real' ]]; then
-    inject_env_real
-    sleep 2
-  fi
 
   load_all_containers
 
@@ -196,7 +193,6 @@ _main() {
 
   echo "[NOTICE] Delete <none>:<none> images."
   docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] If any images are in use, they will not be deleted."
-
 }
 
 ```
