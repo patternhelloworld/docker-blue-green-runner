@@ -18,8 +18,8 @@ cache_global_vars
 state_a=${state}
 state_b=${state}
 if [[ ! -z ${1:-} ]] && ([[ ${1} == "blue" ]] || [[ ${1} == "green" ]]); then
-    echo "[DEBUG] state_b : ${1}"
-    state_b=${1}
+    echo "[DEBUG] state_a : ${1}"
+    state_a=${1}
 fi
 
 nginx_restart(){

@@ -24,7 +24,7 @@ cache_all_states() {
     new_upstream=${blue_upstream}
   fi
 
-  echo "[NOTICE] ${new_state} (${new_upstream}) is now going to run."
+  echo "[NOTICE] ${state} is currently running."
 }
 
 cache_global_vars() {
