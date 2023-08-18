@@ -17,7 +17,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 |---------|---------------------|-------------------|
 | Node.js | O                   | not yet           |
 | PHP     | O                   | O                 |
-| Java    | not yet             | not yet           |
+| Java    | O                   | not yet           |
 
 In case you are using WSL2 on Win, I strongly recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
 
@@ -93,6 +93,20 @@ bash run.sh
 ```
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
+## How to Start with a Java Sample (Local, PORT: 8200).
+```shell
+# First, as the sample project requires MySQL8, run it separately.
+# You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
+# and then, run ./sample/spring-sample-h-auth/.mysql/schema_all.sql
+# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'application-local.properties' to your host IP in the ./samples/spring-sample-h-auth/src/main/resources/application-local.properties
+```
+
+```shell
+# In the ROOT folder,
+cp -f .env.java.local .env
+# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
+bash run.sh
+```
 
 
 ## Consul
@@ -115,6 +129,10 @@ DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/
 1) Nginx (like when Nginx is NOT booted OR 502 error...)
 ```shell
 bash emergency-nginx-restart.sh
+# In case you need to manually set the Nginx to point to 'blue' or 'green'
+bash emergency-nginx-restart.sh blue
+## OR
+bash emergency-nginx-restart.sh green
 
 # If the script above fails, set NGINX_RESTART to be true on .env. and..
 bash run.sh

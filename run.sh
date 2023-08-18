@@ -262,6 +262,7 @@ consul_restart(){
     docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
 
     echo "[NOTICE] Run CONSUL container"
+    # https://github.com/hashicorp/consul/issues/17973
     docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
     sleep 10
 }

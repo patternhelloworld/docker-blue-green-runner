@@ -499,7 +499,7 @@ sync_app_version_real() {
     if [[ -z $app_version ]]; then
        echo "[ERROR] app_version NOT confirmed" && exit 1
     else
-       bash -c "echo '${app_version}' > appVersion.txt"
+       sh -c "echo '${app_version}' > appVersion.txt"
     fi
   fi
 }
@@ -560,7 +560,7 @@ check_availability_inside_container(){
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
         echo "[NOTICE] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
-        response=$(docker exec ${project_name}-${check_state} bash -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
+        response=$(docker exec ${project_name}-${check_state} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
 
         down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
         up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)

@@ -1,0 +1,36 @@
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+#/src/main/resources/*.properties
+#/src/main/resources/logback-spring.xml
+
+# docker
+/.docker/env/*
+!/.docker/env/.gitkeep
+/.docker/ssh/*
+!/.docker/ssh/.gitkeep
+
+### STS ###
+/.apt_generated
+/.classpath
+/.factorypath
+/.project
+/.settings
+/.springBeans
+/.sts4-cache
+
+### IntelliJ IDEA ###
+/.idea
+/*.iws
+/*.iml
+/*.ipr
+
+hb-auth-log
+/logs/
+/apis/
+/hb-auth-log*
+/.mysql/developers/
+
+# logs
+/logs/*
+!/logs/.gitkeep
+
