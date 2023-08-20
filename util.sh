@@ -207,7 +207,7 @@ create_nginx_ctmpl(){
 
     if [[ ${protocol} = 'http' ]]; then
 
-    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is not being created."
+    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) will be created."
 
     cat > .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
 server {
@@ -280,7 +280,7 @@ EOF
 
    else
 
-    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
+    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) will be created."
 
     cat > .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
 server {
@@ -568,7 +568,7 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response : ${response}), (${project_name}-${check_state}, Log (print max 5 lines) : $(docker logs --tail 5 ${project_name}-${check_state})"  >&2
+            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response : ${response}), (${project_name}-${check_state}, Log (print max 5 lines) : $(docker logs --tail 25 ${project_name}-${check_state})"  >&2
 
         else
              echo "[NOTICE] Internal health check of the application succeeded. (Response: ${response})"  >&2
