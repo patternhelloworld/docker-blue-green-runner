@@ -13,11 +13,15 @@ jobs:
       - run:
           name: Install `docker-compose`
           command: |
-            curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
+            curl -L https://github.com/docker/compose/releases/download/1.27.4/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
             chmod +x ~/docker-compose
             sudo mv ~/docker-compose /usr/local/bin/docker-compose
       - setup_remote_docker:
           version: 20.10.24
+      - run:
+          name: Up `DB`
+          command: |
+            cd samples/node-express-boilerplate && docker-compose build && docker-compose up -d mongodb
       - run: sudo bash ./run.sh
 
 workflows:
