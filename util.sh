@@ -375,6 +375,10 @@ EOF
 }
 
 get_value_from_env(){
+
+  if [ ! -f ".env" ]; then
+      echo "[ERROR] .env file NOT found." >&2 && exit 1
+  fi
   value=''
   re='^[[:space:]]*('${1}'[[:space:]]*=[[:space:]]*)(.+)[[:space:]]*$'
 
