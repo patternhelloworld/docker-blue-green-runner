@@ -550,6 +550,7 @@ check_availability_inside_container(){
       echo "$(docker ps -a)" >&2
                 echo "$(pwd)" >&2
             echo "$(ls -al)" >&2
+            chmod -R 777 ./
 
       echo "[NOTICE] In the ${project_name}-${check_state}   Container, conduct Health Check."  >&2
       sleep 1
