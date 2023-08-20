@@ -4,7 +4,8 @@ sudo sed -i -e "s/\r$//g" $(basename $0)
 
 source ./util.sh
 
-cache_global_vars
+#cache_global_vars
+project_name=$(get_value_from_env "PROJECT_NAME")
 
 new_state=$1
 old_state=$2
@@ -13,7 +14,7 @@ consul_key_value_store=$4
 
 echo "[NOTICE] new_state : ${new_state}, old_state : ${old_state}, new_upstream : ${new_upstream}, consul_key_value_store : ${consul_key_value_store}"
 was_state=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw)
-echo "[NOTICE] CONSUL (${consul_key_value_store}) is pointing to : ${was_state}"
+echo "[NOTICE] CONSUL (${consul_key_value_store}) is currently pointing to : ${was_state}"
 
 # The meaning of "${pid_was} != '-'" is that when Nginx has fully started, the BLUE-GREEN change operation is performed in CONSUL.
 echo "[NOTICE] Check if Nginx is completely UP."

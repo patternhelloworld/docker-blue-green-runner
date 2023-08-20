@@ -7,10 +7,25 @@ git config core.filemode false
 
 cache_all_states() {
 
-  echo '[NOTICE] Check which container, blue or green, is currently running.'
+  echo '[NOTICE] Decide which container, blue or green, will be running.'
 
   blue_is_run=$(docker exec ${project_name}-blue echo 'yes' 2>/dev/null || echo 'no')
+  if [[ ${blue_is_run} == 'yes' ]]; then
+      if [[ $(check_availability_inside_container_speed_mode 'blue' 10 5 | tail -n 1) == 'true' ]]; then
+        blue_is_run='yes'
+      else
+        blue_is_run='no'
+      fi
+  fi
+
   green_is_run=$(docker exec ${project_name}-green echo 'yes' 2>/dev/null || echo 'no')
+  if [[ ${green_is_run} == 'yes' ]]; then
+      if [[ $(check_availability_inside_container_speed_mode 'green' 10 5 | tail -n 1) == 'true' ]]; then
+        green_is_run='yes'
+      else
+        green_is_run='no'
+      fi
+  fi
 
   state='blue'
   new_state='green'
@@ -598,6 +613,97 @@ check_availability_inside_container(){
         fi
 
         echo "[NOTICE] ${retry_count}/${total_cnt} round Health Check failure. Retrying in ${interval_sec} secs..."  >&2
+        for (( i = 1; i <= ${interval_sec}; i++ ));do echo -n "$i." >&2 && sleep 1; done
+        echo "\n"  >&2
+
+      done
+
+     echo "true"
+     return
+ fi
+}
+
+check_availability_inside_container_speed_mode(){
+
+  if [[ -z ${1} ]]
+    then
+      echo "[ERROR] the 'state' NOT indicated on check_availability_inside_container "  >&2
+      echo "false"
+      return
+  fi
+
+  if [[ -z ${2} ]]
+    then
+      echo "[ERROR] there is no wait-for-it.sh timeout parameter."  >&2
+      echo "false"
+      return
+  fi
+
+  if [[ -z ${3} ]]
+    then
+      echo "[ERROR] there is no Health Check timeout parameter."  >&2
+      echo "false"
+      return
+  fi
+
+  check_state=${1}
+
+
+  docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh || (echo "false" && return)
+
+
+  #echo "[NOTICE] ${project_name}-${check_state} Check if the web server is responding by making a request inside the node-express-boilerplate-green container. If library folders such as node_modules (Node.js), vendor (PHP) folders are NOT yet installed, the execution time of the ENTRYSCRIPT of your Dockerfile may be longer than usual (timeout: ${2} seconds)"  >&2
+  #sleep 3
+
+  # 1) APP is ON
+
+  container_load_timeout=${2}
+
+  #echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check. (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
+  #echo "[NOTICE] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
+  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2})
+  if [[ $? != 0 ]]; then
+      #echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2
+      echo "false"
+      return
+  else
+      # 2) APP's health check
+      #echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Health Check."  >&2
+      sleep 1
+
+      local interval_sec=5
+
+      local total_cnt=$((${container_load_timeout}/${interval_sec}))
+
+      if [[ $((container_load_timeout%interval_sec)) != 0 ]]; then
+        total_cnt=$((${total_cnt}+1))
+      fi
+
+      for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
+      do
+       # echo "[NOTICE] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
+        response=$(docker exec ${project_name}-${check_state} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
+
+        down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
+        up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
+
+        if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
+        then
+
+            echo ""  >&2
+
+        else
+             echo ""  >&2
+             break
+        fi
+
+        if [[ ${retry_count} -eq ${total_cnt} ]]
+        then
+          echo "false"
+          return
+        fi
+
+        #echo "[NOTICE] ${retry_count}/${total_cnt} round Health Check failure. Retrying in ${interval_sec} secs..."  >&2
         for (( i = 1; i <= ${interval_sec}; i++ ));do echo -n "$i." >&2 && sleep 1; done
         echo "\n"  >&2
 

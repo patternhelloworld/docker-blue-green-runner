@@ -31,7 +31,7 @@ backup_app_to_previous_images(){
   if [[ $(docker exec ${project_name}-blue printenv SERVICE_NAME 2> /dev/null) == 'blue' ]]
   then
       echo "[NOTICE] Checking if the blue container is running..."
-      if [[ $(check_availability_inside_container 'blue' 10 5 | tail -n 1) == 'true' ]]; then
+      if [[ $(check_availability_inside_container_speed_mode 'blue' 10 5 | tail -n 1) == 'true' ]]; then
           echo "[NOTICE] Docker tag 'blue' 'previous'"
           docker tag ${project_name}:blue ${project_name}:previous && return || echo "[NOTICE] No 'blue' tagged image."
       fi
@@ -40,7 +40,7 @@ backup_app_to_previous_images(){
   if [[ $(docker exec ${project_name}-green printenv SERVICE_NAME 2> /dev/null) == 'green' ]]
   then
       echo "[NOTICE] Checking if the green container is running..."
-      if [[ $(check_availability_inside_container 'green' 10 5 | tail -n 1) == 'true' ]]; then
+      if [[ $(check_availability_inside_container_speed_mode 'green' 10 5 | tail -n 1) == 'true' ]]; then
         echo "[NOTICE] Docker tag 'green' 'previous'"
         docker tag ${project_name}:green ${project_name}:previous && return || echo "[NOTICE] No 'green' tagged image."
       fi
@@ -267,6 +267,21 @@ consul_restart(){
     sleep 10
 }
 
+check_one_container_loaded(){
+    if [ "$(docker ps -q -f name=${1})" ]; then
+      echo "[NOTICE] Supporting container ( ${1} ) running checked."
+    else
+      echo "[ERROR] Supporting container ( ${1} ) running not found." && exit 1
+    fi
+}
+
+check_supporting_containers_loaded(){
+  all_container_names=("consul" "registrator" "${project_name}-nginx")
+  for name in "${all_container_names[@]}"; do
+    check_one_container_loaded ${name}
+  done
+}
+
 
 load_all_containers(){
 
@@ -301,6 +316,8 @@ load_all_containers(){
       nginx_restart
 
   fi
+
+  check_supporting_containers_loaded || (echo "[ERROR] Fail in loading supporting containers." && exit 1)
 
 }
 
@@ -401,10 +418,15 @@ _main() {
 
   ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
-
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
-    echo "[ERROR] Failed to call app_url outside container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
+    echo "[WARNING] a ${new_state}'s availabilty issue found. Now we are going to run 'emergency-nginx-restart.sh' immediately."
+    bash emergency-nginx-restart.sh
+
+    re=$(check_availability_out_of_container | tail -n 1);
+    if [[ ${re} != 'true' ]]; then
+      echo "[ERROR] Failed to call app_url outside container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
+    fi
   fi
 
   ## From this point on, regarded as "success"
