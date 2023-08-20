@@ -21,8 +21,8 @@ jobs:
       - run:
           name: Up `DB`
           command: |
-            cd samples/node-express-boilerplate && docker-compose build && docker-compose up -d mongodb
-      - run: sudo bash ./run.sh
+            cd samples/node-express-boilerplate && docker-compose build && docker-compose up -d mongodb && cd ../../
+      - run: pwd && sudo bash ./run.sh
 
 workflows:
   version: 2
