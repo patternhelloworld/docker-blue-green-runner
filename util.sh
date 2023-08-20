@@ -24,7 +24,7 @@ cache_all_states() {
     new_upstream=${blue_upstream}
   fi
 
-  echo "[NOTICE] ${state} is currently running."
+  echo "[NOTICE] ${new_state} will be running."
 }
 
 cache_global_vars() {
@@ -485,8 +485,13 @@ check_necessary_commands(){
   }
 
   if ! docker info > /dev/null 2>&1; then
-    echo "[ERROR] docker NOT being run. Exiting..."
+    echo "[ERROR] docker is NOT installed. Exiting..."
     exit 1
+  fi
+
+  if ! docker-compose --version > /dev/null 2>&1; then
+      echo "[ERROR] docker-compose is NOT installed. Exiting..."
+      exit 1
   fi
 }
 
@@ -529,8 +534,12 @@ check_availability_inside_container(){
       return
   fi
 
-
   check_state=${1}
+  
+  echo "[NOTICE] Copy wait-for-it.sh into ${project_name}-${check_state}:${project_location}/wait-for-it.sh."  >&2
+  docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh || (echo "[ERROR] Failed." >&2 &&  echo "false" && return)
+
+
 
   echo "[NOTICE] ${project_name}-${check_state} Check if the web server is responding by making a request inside the node-express-boilerplate-green container. If library folders such as node_modules (Node.js), vendor (PHP) folders are NOT yet installed, the execution time of the ENTRYSCRIPT of your Dockerfile may be longer than usual (timeout: ${2} seconds)"  >&2
   sleep 10
@@ -539,14 +548,16 @@ check_availability_inside_container(){
 
   container_load_timeout=${2}
 
-  local wait_for_it_re=$(docker exec -w ${project_location}/${project_name} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2})
+  echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check. (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
+  echo "[NOTICE] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
+  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2})
   if [[ $? != 0 ]]; then
       echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2
       echo "false"
       return
   else
       # 2) APP's health check
-      echo "[NOTICE] In the ${project_name}-${check_state}   Container, conduct Health Check."  >&2
+      echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Health Check."  >&2
       sleep 1
 
       local interval_sec=5
@@ -568,7 +579,7 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response : ${response}), (${project_name}-${check_state}, Log (print max 5 lines) : $(docker logs --tail 5 ${project_name}-${check_state})"  >&2
+            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response : ${response}), (${project_name}-${check_state}, Log (print max 25 lines) : $(docker logs --tail 25 ${project_name}-${check_state})"  >&2
 
         else
              echo "[NOTICE] Internal health check of the application succeeded. (Response: ${response})"  >&2

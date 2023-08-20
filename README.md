@@ -19,7 +19,13 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 | PHP     | O                   | O                 |
 | Java    | O                   | not yet           |
 
-In case you are using WSL2 on Win, I strongly recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
+## Requirements
+
+- Mainly tested on WSL2, Docker (24.0), Docker-Compose (2.18)
+
+- In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
+
+- >Do not use Docker-Blue-Green-Runner with containers when building on cloud systems like CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
 
 ## How to Start with a Node Sample (Local, PORT: 3000).
 
@@ -136,6 +142,9 @@ bash emergency-nginx-restart.sh green
 
 # If the script above fails, set NGINX_RESTART to be true on .env. and..
 bash run.sh
+
+# This fully restarts the whole system.
+bash stop-all-containers.sh && bash run.sh
 
 # Ways to check logs
 docker logs -f ${project_name}-nginx   # e.g. node-express-boilerplate-nginx
