@@ -3,15 +3,22 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: cimg/base:2023.08
+      - image: cimg/deploy:2023.08
     steps:
       - run:
           name: Docker Login
           command: echo "$DOCKERHUB_PASS" | docker login -u $DOCKERHUB_USER --password-stdin
       - checkout
+      - run: sudo cp -f .env.node.local .env
       - run:
-          name: Execute run.sh
-          command: sudo bash ./run.sh
+          name: Install `docker-compose`
+          command: |
+            curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
+            chmod +x ~/docker-compose
+            sudo mv ~/docker-compose /usr/local/bin/docker-compose
+      - setup_remote_docker:
+          version: 20.10.24
+      - run: sudo bash ./run.sh
 
 workflows:
   version: 2
