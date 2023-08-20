@@ -15,6 +15,8 @@ source ./util.sh
 
 cache_global_vars
 
+# Eventually, it will be activated as 'state_a' in ./activate.sh, and unless specifically specified parameters as below,
+# Nginx should be reconfigured with the existing state.
 state_a=${state}
 state_b=${state}
 if [[ ! -z ${1:-} ]] && ([[ ${1} == "blue" ]] || [[ ${1} == "green" ]]); then

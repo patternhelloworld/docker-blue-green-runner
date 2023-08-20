@@ -10,19 +10,6 @@ source ./util.sh
 
 cache_global_vars
 
-echo '[NOTICE] Initiating a rollback. Checking the current state.'
-blue_is_run=$(docker exec ${project_name}-blue echo 'yes' 2> /dev/null || echo 'no')
-
-state='blue'
-new_state='green'
-new_upstream=${green_upstream}
-if [[ ${blue_is_run} != 'yes' ]]
-then
-    state='green'
-    new_state='blue'
-    new_upstream=${blue_upstream}
-fi
-
 # 1) Nginx rollback
 
 if [ ${nginx_restart} = "true" ]; then
