@@ -17,4 +17,4 @@ RUN chown -R node:node ./
 EXPOSE 3000
 
 WORKDIR /usr/src/node-app
-ENTRYPOINT ["bash", "-c", "if [ ! -d 'node_modules' ]; then npm install; fi && npm run dev && /bin/bash"]
+#ENTRYPOINT ["bash", "-c", "if [ ! -d 'node_modules' ]; then npm install; fi && npm run dev && /bin/bash"]
