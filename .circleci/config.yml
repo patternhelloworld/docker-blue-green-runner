@@ -9,7 +9,7 @@ jobs:
           name: Docker Login
           command: echo "$DOCKERHUB_PASS" | docker login -u $DOCKERHUB_USER --password-stdin
       - checkout
-      - run: sudo cp -f .env.node.local .env && chown -R root:root ./
+      - run: sudo cp -f .env.node.local .env && sudo chown -R root:root ./
       - run:
           name: Install `docker-compose`
           command: |
