@@ -546,8 +546,8 @@ check_availability_inside_container(){
       return
   else
       # 2) APP's health check
-      echo "[xxxx]"
-      echo "$(docker ps -a)"
+      echo "[xxxx]" >&2
+      echo "$(docker ps -a)" >&2
 
       echo "[NOTICE] In the ${project_name}-${check_state}   Container, conduct Health Check."  >&2
       sleep 1
