@@ -25,7 +25,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 
 - In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
 
-- >Do not use Docker-Blue-Green-Runner with containers when building on cloud systems like CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
+- >Do not use Docker-Blue-Green-Runner in cloud-based containers such as CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
 
 ## How to Start with a Node Sample (Local, PORT: 3000).
 
@@ -158,9 +158,13 @@ In run.sh
 
 _main() {
 
+  # Check necessary commands such as git, docker and docker-compose
   check_necessary_commands
-
+  
+  # Load the environment variables on .env and container-state-related variables
   cache_global_vars
+  # Once you run 'cache_global_vars' at different stages, the values of the container-state-related variables can differ.
+  # The container with 'safe_old_state' will be killed after 'new_state' is successfully deployed.
   local safe_old_state=${state}
 
   check_env_integrity
@@ -183,9 +187,14 @@ _main() {
   backup_nginx_to_previous_images
 
   if [[ ${app_env} == 'local' ]]; then
+
       give_host_group_id_full_permissions
+  #else
+
+     # create_host_folders_if_not_exists
   fi
 
+  #docker system prune -f
   if [[ ${docker_layer_corruption_recovery} == true ]]; then
     terminate_whole_system
   fi
@@ -199,15 +208,21 @@ _main() {
 
   load_nginx_docker_image
 
-
+  # Run 'docker-compose up' for 'App', 'Consul (Service Mesh)' and 'Nginx' and
+  # Check if the App is properly working from the inside of the App's container using 'wait-for-it.sh ( https://github.com/vishnubob/wait-for-it )' and conducting a health check with settings defined on .env.
   load_all_containers
 
   ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
-
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
-    echo "[ERROR] Failed to call app_url outside container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
+    echo "[WARNING] a ${new_state}'s availabilty issue found. Now we are going to run 'emergency-nginx-restart.sh' immediately."
+    bash emergency-nginx-restart.sh
+
+    re=$(check_availability_out_of_container | tail -n 1);
+    if [[ ${re} != 'true' ]]; then
+      echo "[ERROR] Failed to call app_url outside container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
+    fi
   fi
 
   ## From this point on, regarded as "success"
