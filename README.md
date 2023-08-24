@@ -1,14 +1,17 @@
 # Docker-Blue-Green-Runner
 
-> Zero-downtime Nginx Blue-Green deployment on a service layer
+> Zero-downtime Nginx Blue-Green deployment on a service layer with Consul
 
 To deploy web projects must be [simple](https://github.com/Andrew-Kang-G/docker-blue-green-runner).
 
 ## Introduction
 
-With your project and its only Dockerfile (docker-compose.yml in the 'samples' folder is ignored), Docker-Blue-Green-Runner handles the rest of the Continuous Deployment (CD) process. Nginx allows your project to be deployed without experiencing any downtime.
+With your project and its only Dockerfile (docker-compose.yml in the 'samples' folder is ignored), Docker-Blue-Green-Runner handles the rest of the Continuous Deployment (CD) process with Consul. Nginx allows your project to be deployed without experiencing any downtime.
 
-![img.png](/documents/images/img.png)
+![img.png](/documents/images/img.png )
+
+
+![img2.png](/documents/images/img2.png)
 
 
 Let me continually explain how to use Docker-Blue-Green-Runner with the following samples.
