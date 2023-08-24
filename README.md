@@ -238,3 +238,9 @@ _main() {
 }
 
 ```
+
+## Advanced
+
+- Docker-Blue-Green-Runner uses your App's only '```Dockerfile.local``` or ```Dockerfile.real```', not ```docker-compose.yml```.
+- You can set 'DOCKER_COMPOSE_ENVIRONMENT' on .env to change environments when your container is up.
+- **In case you need more to set, correct the file ```docker-compose-app-${app_env}-original.yml``` directly.**
