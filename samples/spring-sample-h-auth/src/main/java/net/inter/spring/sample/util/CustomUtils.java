@@ -88,10 +88,7 @@ public class CustomUtils {
         return getAllCauses(e.getCause(), causes);
     }
 
-    /*Descriptions: 현재 날짜와 시간을 timestamp형태로 가져오다.
-     * Author: 남효선
-     * Date: 2020.12.29
-     * */
+
     public static Timestamp getCurrentDateTime(){
         //오늘날짜 가져온다.
         Calendar cal = new GregorianCalendar();

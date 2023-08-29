@@ -1,7 +1,7 @@
 package net.inter.spring.sample.config.logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Joiner;
+
 
 import net.inter.spring.sample.exception.handler.GlobalExceptionHandler;
 import net.inter.spring.sample.config.logger.dto.ErrorDetails;
@@ -176,7 +176,7 @@ public class LogConfig {
     private String paramMapToString(Map<String, String[]> paramMap) {
         return paramMap.entrySet().stream()
                 .map(entry -> !checkIfNoLogginParam(entry.getKey()) ? String.format("%s -> (%s)",
-                        entry.getKey(), Joiner.on(",").join(entry.getValue())) : "")
+                        entry.getKey(), String.join(",", entry.getValue())) : "")
                 .collect(Collectors.joining(", "));
     }
 

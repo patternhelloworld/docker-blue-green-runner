@@ -1,31 +1,35 @@
 package net.inter.spring.sample.microservice.auth.user.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-
+import com.querydsl.core.BooleanBuilder;
 import net.inter.spring.sample.microservice.auth.user.dao.UserRepository;
 import net.inter.spring.sample.microservice.auth.user.dao.UserService;
 import net.inter.spring.sample.microservice.auth.user.dto.UserDTO;
 
+import net.inter.spring.sample.microservice.auth.user.entity.QUser;
+import net.inter.spring.sample.microservice.auth.user.entity.User;
+import net.inter.spring.sample.exception.auth.UnauthorizedException;
 import net.inter.spring.sample.exception.data.ResourceNotFoundException;
 
 import net.inter.spring.sample.config.security.bean.AccessTokenUserInfo;
 import net.inter.spring.sample.config.security.bean.AccessTokenUserInfoValidator;
 
+
 import net.inter.spring.sample.util.CommonConstant;
 import net.inter.spring.sample.util.CustomUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-
+import javax.validation.Valid;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,7 +55,7 @@ public class UserApi {
         return new UserDTO.Res(userRepository.save(dto.toEntity()));
     }
 
-    @GetMapping("/user")
+    @GetMapping("/users/current")
     @AccessTokenUserInfoValidator
     public UserDTO.Res getUserSelf(@AuthenticationPrincipal AccessTokenUserInfo accessTokenUserInfo) throws ResourceNotFoundException {
 
@@ -72,6 +76,21 @@ public class UserApi {
 
         return userService.findUsersByPageRequest(skipPagination, pageNum, pageSize, userSearchFilter, sorterValueFilter, accessTokenUserInfo).map(UserDTO.Res::new);
     }
+
+    @GetMapping("/users/current-list")
+    @AccessTokenUserInfoValidator
+    public Iterable<User> getUserListForCurrentUser(@AuthenticationPrincipal AccessTokenUserInfo accessTokenUserInfo)
+            throws JsonProcessingException, ResourceNotFoundException {
+
+        BooleanBuilder builder = new BooleanBuilder();
+        QUser qUser = QUser.user;
+
+        builder.and(qUser.organization.id.eq(accessTokenUserInfo.getOrganization().getId()));
+
+        return userRepository.findAll(builder);
+
+    }
+
 
     @GetMapping("/user/logout")
     public Map<String, Boolean> logoutUser(HttpServletRequest request) {

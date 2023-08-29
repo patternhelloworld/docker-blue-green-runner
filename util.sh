@@ -528,6 +528,26 @@ sync_app_version_real() {
   fi
 }
 
+check_command_in_container_or_fail(){
+  # 컨테이너 이름 또는 ID
+  CONTAINER_NAME=${1}
+
+  # 확인하고 싶은 명령어
+  COMMAND_TO_CHECK=${2}
+
+  # 명령어 존재 여부 확인
+  if docker exec $CONTAINER_NAME bash -c "command -v $COMMAND_TO_CHECK" &> /dev/null; then
+      echo "[NOTICE] $COMMAND_TO_CHECK exists in $CONTAINER_NAME" >&2
+     echo "true"
+     return
+  else
+      echo "[ERROR] $COMMAND_TO_CHECK does not exist in $CONTAINER_NAME" >&2
+      echo "false"
+      return
+  fi
+}
+
+
 
 # shellcheck disable=SC2120
 check_availability_inside_container(){
@@ -554,6 +574,16 @@ check_availability_inside_container(){
   fi
 
   check_state=${1}
+
+   if [[ $(check_command_in_container_or_fail ${project_name}-${check_state} "curl") != "true" ]]; then
+         echo "false"
+         return
+   fi
+    if [[ $(check_command_in_container_or_fail ${project_name}-${check_state} "bash") != "true" ]]; then
+          echo "false"
+          return
+    fi
+
   
   echo "[NOTICE] Copy wait-for-it.sh into ${project_name}-${check_state}:${project_location}/wait-for-it.sh."  >&2
   docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh || (echo "[ERROR] Failed." >&2 &&  echo "false" && return)
@@ -622,6 +652,7 @@ check_availability_inside_container(){
      return
  fi
 }
+
 
 check_availability_inside_container_speed_mode(){
 

@@ -6,6 +6,7 @@ import net.inter.spring.sample.exception.auth.AccessTokenUserInfoUnauthorizedExc
 import net.inter.spring.sample.exception.auth.UnauthorizedException;
 import net.inter.spring.sample.exception.auth.UserNoPasswordException;
 import net.inter.spring.sample.exception.data.*;
+import net.inter.spring.sample.exception.error.ErrorCode;
 import net.inter.spring.sample.exception.payload.SearchFilterException;
 import net.inter.spring.sample.config.logger.dto.ErrorDetails;
 import org.apache.commons.lang3.StringUtils;
@@ -24,7 +25,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.WebRequest;
 
 import javax.naming.AuthenticationException;
+import javax.servlet.http.HttpServletRequest;
+import java.io.BufferedReader;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice
@@ -123,41 +128,48 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
     }
 
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> methodArgumentNotValidException(MethodArgumentNotValidException ex, WebRequest request) {
-        ErrorDetails errorDetails = new ErrorDetails(new Date(), ex.getMessage(), request.getDescription(false),
-                ex.getBindingResult().getAllErrors().get(0).getDefaultMessage(), CustomExceptionUtils.getAllStackTraces(ex),
-                CustomExceptionUtils.getAllCauses(ex));
-        return new ResponseEntity<>(errorDetails, HttpStatus.UNPROCESSABLE_ENTITY);
-    }
-
     // JPA 오류
     @ExceptionHandler(HeuristicCompletionException.class)
     public ResponseEntity<?> heuristicCompletionException(HeuristicCompletionException ex, WebRequest request) {
 
-        // JPA - Unique key 오류
-        if (ex.getCause().getClass().equals(DataIntegrityViolationException.class)) {
-            ErrorDetails errorDetails = new ErrorDetails(new Date(), ex.getMessage(), request.getDescription(false),
-                    "중복되는 값이 있습니다.", CustomExceptionUtils.getAllStackTraces(ex), CustomExceptionUtils.getAllCauses(ex));
-            return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
-        } else {
-            ErrorDetails errorDetails = new ErrorDetails(new Date(), ex.getMessage(), request.getDescription(false),
-                    "JPA 처리되지 않은 오류입니다.", CustomExceptionUtils.getAllStackTraces(ex), CustomExceptionUtils.getAllCauses(ex));
-            return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
-        }
-
+        ErrorDetails errorDetails = new ErrorDetails(new Date(), ex.getMessage(), request.getDescription(false),
+                "JPA 처리되지 않은 오류입니다.", CustomExceptionUtils.getAllStackTraces(ex), CustomExceptionUtils.getAllCauses(ex));
+        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
     }
 
-    // JPA - Unique key 오류
+    /* Contoller 의 @Valid 에서 Throw 되는 오류 */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> methodArgumentNotValidException(MethodArgumentNotValidException ex, WebRequest request, HttpServletRequest h) {
+
+        Map<String, String> userValidationMessages = CustomExceptionUtils.extractMethodArgumentNotValidErrors(ex);
+
+        ErrorDetails errorDetails = new ErrorDetails(new Date(), ex.getMessage(), request.getDescription(false),
+                null,
+                userValidationMessages,
+                CustomExceptionUtils.getAllStackTraces(ex), CustomExceptionUtils.getAllCauses(ex));
+        return new ResponseEntity<>(errorDetails, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    /*
+    *   DB 레이어에서 발생하는 오류로써, 현재까지, NULL, UNIQUE 의 오류가 Throw 됨을 확인하였다.
+    * */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<?> dataIntegrityViolationException(DataIntegrityViolationException ex, WebRequest request) {
         //DataIntegrityViolationException - 데이터의 삽입/수정이 무결성 제약 조건을 위반할 때 발생하는 예외이다.
         //logger.error(ex.getMessage());
+        String userMessage = null;
+        Map<String, String> userValidationMessages = CustomExceptionUtils.convertDataIntegrityExceptionMessageToObj(ex.getMessage(), ErrorCode.DUPLICATE_VALUE_FOUND.getMessage());
+        if(userValidationMessages.get("null") != null){
+            userMessage = ErrorCode.EMPTY_VALUE_FOUND.getMessage();
+            userValidationMessages = null;
+        }
 
-        ErrorDetails errorDetails = new ErrorDetails(new Date(), "DataIntegrityViolationException: could not execute statement.", request.getDescription(false),
-                "중복되는 값이 있습니다.", CustomExceptionUtils.getAllStackTraces(ex), CustomExceptionUtils.getAllCauses(ex));
-        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
+        ErrorDetails errorDetails = new ErrorDetails(new Date(), ex.getMessage(), request.getDescription(false),
+                userMessage,
+                userValidationMessages,
+                CustomExceptionUtils.getAllStackTraces(ex), CustomExceptionUtils.getAllCauses(ex));
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
 
 
@@ -169,7 +181,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(value = BadRequestException.class)
+/*    @ExceptionHandler(value = BadRequestException.class)
     public @ResponseBody
     ResponseEntity<?> validationRuntimeExceptionHandler(WebRequest request, Exception ex) {
         ex.printStackTrace();
@@ -180,6 +192,6 @@ public class GlobalExceptionHandler {
         ErrorDetails errorDetails = new ErrorDetails(new Date(), message, request.getDescription(false), message,
                 CustomExceptionUtils.getAllStackTraces(ex), CustomExceptionUtils.getAllCauses(ex));
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
-    }
+    }*/
 
 }

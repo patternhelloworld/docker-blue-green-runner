@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.inter.spring.sample.microservice.auth.user.entity.Password;
 import net.inter.spring.sample.microservice.auth.user.entity.User;
-
+import net.inter.spring.sample.microservice.auth.role.entity.Role;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -55,15 +55,15 @@ public class UserDTO {
         @NotBlank(message = "이름은 비어있으면 안됩니다.")
         public String name;
 
-
+        private Set<Role> roles;
         private String active;
 
 
         @Builder
-        public UserUpdateReq(String email, String name, String active) {
+        public UserUpdateReq(String email, String name, Set<Role> roles, String active) {
             this.email = email;
             this.name = name;
-
+            this.roles = roles;
             this.active = active;
         }
 

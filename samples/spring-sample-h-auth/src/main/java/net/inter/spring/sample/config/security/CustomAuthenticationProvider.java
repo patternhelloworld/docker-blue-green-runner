@@ -32,6 +32,9 @@ public class CustomAuthenticationProvider implements AuthenticationProvider, Ser
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Value("${oauth2.samplewave.front.clientId}")
+    private String WebClientId;
+
     @SneakyThrows
     public Authentication authenticate(Authentication authentication)
             throws AuthenticationException {
@@ -46,6 +49,24 @@ public class CustomAuthenticationProvider implements AuthenticationProvider, Ser
         if (user == null || !user.getUsername().equalsIgnoreCase(username)) {
             throw new BadCredentialsException("Username not found.");
         } else {
+            // pc App client는 2차 인증을 하지 않는다. web client일 때 2차 인증을 하도록 한다.
+/*            if (userClientId.equals(WebClientId)) {
+                LinkedHashMap<String, String> detailsProperties = (LinkedHashMap<String, String>) authentication.getDetails();
+                Integer verificationCode = null;
+                String totpKeyString = AES256.decrypt(detailsProperties.get("totp-verification-code"));
+                if (StringUtils.hasText(totpKeyString)) {
+                    try {
+                        verificationCode = Integer.valueOf(totpKeyString);
+                    } catch (NumberFormatException e) {
+                        verificationCode = null;
+                    }
+                }
+                Boolean IsWrong2FA = userService.handleIsUsing2FA(username, verificationCode);
+                if(IsWrong2FA){
+                    userService.handleFailCnt(user.getUsername());
+                    throw new BadCredentialsException("Wrong 2FA code.");
+                }
+            }*/
 
             if (!passwordEncoder.matches(password, user.getPassword())) {
 
@@ -53,9 +74,9 @@ public class CustomAuthenticationProvider implements AuthenticationProvider, Ser
                 throw new BadCredentialsException("Wrong password.");
 
             }
-
+            //로그인 성공 시 fail_cnt 를 0으로 리셋
             userService.resetFailCnt(user.getUsername());
-
+            //authentication객체의 authenticated의 값을 setAuthenticated(true)로 해주기 위해 UsernamePasswordAuthenticationToken(user, password, Authorities)을 사용한다.
             return new UsernamePasswordAuthenticationToken(user, password, user.getAuthorities());
         }
     }

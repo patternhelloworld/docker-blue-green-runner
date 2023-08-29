@@ -23,4 +23,6 @@ RUN cp $PROJECT_ROOT_IN_CONTAINER/target/*.jar  /app.jar
 
 RUN ln -s $PROJECT_ROOT_IN_CONTAINER/.docker/entrypoint/$APP_ENV.sh /run-app.sh
 
+RUN apk --no-cache add curl bash
+
 ENTRYPOINT sh /run-app.sh && /bin/sh

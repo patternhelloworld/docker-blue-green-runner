@@ -2,9 +2,11 @@ package net.inter.spring.sample.microservice.auth.user.entity;
 
 import com.fasterxml.jackson.annotation.*;
 import lombok.*;
+import net.inter.spring.sample.microservice.auth.organization.entity.Organization;
 
 import org.hibernate.annotations.CreationTimestamp;
-
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -12,10 +14,12 @@ import javax.persistence.*;
 import javax.validation.constraints.*;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @Entity
-@Table(name="sample_h_auth.users")
+@Table(name="sample_h_auth.user")
 @Getter
 @Setter
 //@NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -33,12 +37,17 @@ public class User
 	@Embedded
 	private Password password;
 
-	@Column(length = 20, columnDefinition ="bigint")
-	private Long organization_id;
 
 	@Column(length = 11, columnDefinition = "int")
 	private Integer fail_cnt;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "organization_id")
+	private Organization organization;
+
+
+	@OneToMany(mappedBy = "user")
+	private List<UserRole> userRoles = new ArrayList<>();
 
 
 	@Column(length = 1, columnDefinition ="char")
@@ -61,7 +70,6 @@ public class User
 	private LocalDateTime passwordChangedAt;
 
 
-
 	@Column(name="created_at", updatable = false, insertable = false)
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")
 	@CreationTimestamp
@@ -74,10 +82,12 @@ public class User
 
 
 	@Builder
-	public User(String name, String email, Password password, String active) {
+	public User(String name, String email, Password password, Organization organization, List<UserRole> userRoles, String active) {
 		this.name = name;
 		this.email = email;
 		this.password = password;
+		this.organization = organization;
+		this.userRoles = userRoles;
 		this.active = active;
 	}
 

@@ -13,17 +13,9 @@ public class QueryDslConfig {
     @PersistenceContext(unitName = "authEntityManager")
     private EntityManager authEntityManager;
 
-    @PersistenceContext(unitName = "resourceEntityManager")
-    private EntityManager resourceEntityManager;
-
     @Bean
     public JPAQueryFactory authJpaQueryFactory() {
         return new JPAQueryFactory(authEntityManager);
-    }
-
-    @Bean
-    public JPAQueryFactory resourceJpaQueryFactory() {
-        return new JPAQueryFactory(resourceEntityManager);
     }
 
     @Bean

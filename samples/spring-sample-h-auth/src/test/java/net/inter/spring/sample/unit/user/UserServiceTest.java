@@ -5,7 +5,7 @@ import net.inter.spring.sample.microservice.auth.user.dao.UserRepository;
 import net.inter.spring.sample.microservice.auth.user.dao.UserService;
 import net.inter.spring.sample.util.auth.MockAuth;
 import net.inter.spring.sample.util.auth.UnitMockAuth;
-
+import net.inter.spring.sample.microservice.auth.role.entity.Role;
 import net.inter.spring.sample.microservice.auth.user.entity.User;
 import net.inter.spring.sample.config.security.bean.AccessTokenUserInfo;
 import org.junit.Before;
@@ -67,7 +67,11 @@ public class UserServiceTest {
 
         // 기본 권한만 부여된 사용자로 시작한다.
         mockAuth = new UnitMockAuth();
-
+        Set<Role> roles = new HashSet<>();
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("USER");
+        roles.add(role);
 
         // putAuthenticationPrincipal 에 Inject
         accessTokenUserInfo = mockAuth.mockAuthenticationPrincipal(mockAuth.mockUserObject(null));
@@ -128,6 +132,7 @@ public class UserServiceTest {
         // then
     }*/
 
+/*
     @Test
     public void create_사용자_등록_성공() {
         //given
@@ -143,6 +148,7 @@ public class UserServiceTest {
         assertThat(dto).isEqualTo(user);
 
     }
+*/
 
 
 

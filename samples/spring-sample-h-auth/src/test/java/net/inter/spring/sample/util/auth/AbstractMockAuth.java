@@ -1,6 +1,6 @@
 package net.inter.spring.sample.util.auth;
 
-
+import net.inter.spring.sample.microservice.auth.role.entity.Role;
 import net.inter.spring.sample.microservice.auth.user.entity.Password;
 import net.inter.spring.sample.microservice.auth.user.entity.User;
 import net.inter.spring.sample.config.security.bean.AccessTokenUserInfo;
@@ -40,19 +40,23 @@ public abstract class AbstractMockAuth implements MockAuth {
                 accountNonLocked, getAuthorities(user));
 
         authUser.setId(user.getId());
-        authUser.setOrganization_id(user.getOrganization_id());
+       // authUser.setOrganization_id(user.getOrganization_id());
 
         return authUser;
     }
-    private Collection<? extends GrantedAuthority> getAuthorities(User user) {
-        String[] userRoles = new String[]{};
+    private static Collection<? extends GrantedAuthority> getAuthorities(User user) {
+        String[] userRoles = user.getUserRoles().stream().map((userRole) -> userRole.getRole().getName()).toArray(String[]::new);
         Collection<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(userRoles);
         return authorities;
     }
 
     @Override
-    public User mockUserObject(String dynamicRoles) {
+    public User mockUserObject(List<Role> dynamicRoles) {
 
+        // Null exception 방지
+        if(dynamicRoles == null){
+            dynamicRoles = new ArrayList<>();
+        }
 
         User user = new User();
 
@@ -61,11 +65,14 @@ public abstract class AbstractMockAuth implements MockAuth {
         user.setName("tester");
         user.setPassword(new Password("1113333ddd1"));
         user.setActive("1");
-        user.setOrganization_id(MOCKED_USER_ACCESS_TOKEN_ORGANIZATION_ID);
+        //user.setOrganization_id(MOCKED_USER_ACCESS_TOKEN_ORGANIZATION_ID);
+        user.setOrganization(null);
         user.setResetToken("555555");
         user.setResetTokenTime(null);
         user.setCreatedAt(null);
         user.setUpdatedAt(null);
+
+        //user.setRoles(dynamicRoles);
 
         return user;
     }

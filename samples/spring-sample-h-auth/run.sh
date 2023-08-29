@@ -32,10 +32,6 @@ cache_global_vars() {
 
 cache_global_vars
 
-#if [[ ! -d ../../files ]]; then
- # mkdir ../../files
- # echo "[NOTICE] 상위 폴더의 상위 폴더 그 아래 files ('../../files') 디렉토리를 생성하였습니다. (컨테이너와 호스트의 공유 폴더)"
-#fi
 if [[ ${APP_ENV} == 'local' ]]; then
   bash properties-for-docker.sh ${CONTAINER_TO_DB_HOSTNAME} || exit 1
 fi

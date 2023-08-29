@@ -2,7 +2,9 @@ package net.inter.spring.sample.config.database;
 
 import com.zaxxer.hikari.HikariDataSource;
 
-
+import net.inter.spring.sample.microservice.auth.organization.dao.OrganizationRepository;
+import net.inter.spring.sample.microservice.auth.user.dao.UserRepository;
+import net.inter.spring.sample.microservice.auth.user.dao.UserService;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;

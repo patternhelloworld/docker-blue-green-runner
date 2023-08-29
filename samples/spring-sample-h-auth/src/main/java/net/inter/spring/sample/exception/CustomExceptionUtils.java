@@ -6,8 +6,12 @@ import net.inter.spring.sample.config.logger.dto.ErrorDetails;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CustomExceptionUtils {
 
@@ -60,5 +64,37 @@ public class CustomExceptionUtils {
 
     public static String getAllStackTraces(Throwable e) {
         return ExceptionUtils.getStackTrace(e);
+    }
+
+    /*
+    *   message 예시
+    *   // could not execute statement; SQL [n/a]; constraint [car.chassis_number]
+        // could not execute statement; SQL [n/a]; constraint [null]
+    * */
+    public static Map<String, String> convertDataIntegrityExceptionMessageToObj(String message, String fieldUserMessage){
+        Map<String, String> map = new HashMap<>();
+        map.put(parseKeyFromDataIntegrityExceptionMessage(message), fieldUserMessage);
+        return map;
+    }
+
+    public static String parseKeyFromDataIntegrityExceptionMessage(String message){
+        Pattern pattern = Pattern.compile("constraint \\[([^\\u005D]+)\\]");
+        Matcher matcher = pattern.matcher(message);
+
+        if (matcher.find()) {
+            return matcher.group(1).replaceAll("^[^\\.]+\\.", "");
+        } else {
+            return "";
+        }
+    }
+
+    public static Map<String, String> extractMethodArgumentNotValidErrors(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+
+        return errors;
     }
 }

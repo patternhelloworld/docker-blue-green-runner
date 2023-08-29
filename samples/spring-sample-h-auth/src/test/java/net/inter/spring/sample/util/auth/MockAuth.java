@@ -1,9 +1,10 @@
 package net.inter.spring.sample.util.auth;
 
-
+import net.inter.spring.sample.microservice.auth.role.entity.Role;
 import net.inter.spring.sample.microservice.auth.user.entity.User;
 import net.inter.spring.sample.config.security.bean.AccessTokenUserInfo;
 
+import java.util.List;
 import java.util.Set;
 
 public interface MockAuth {
@@ -16,7 +17,7 @@ public interface MockAuth {
     /**
      * Mock User
      */
-    User mockUserObject(String dynamicRoles) throws Exception;
+    User mockUserObject(List<Role> dynamicRoles) throws Exception;
 
     /**
      * Mock AccessToken

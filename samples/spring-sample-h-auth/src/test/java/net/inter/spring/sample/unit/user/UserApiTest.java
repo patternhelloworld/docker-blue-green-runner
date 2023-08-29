@@ -106,7 +106,7 @@ public class UserApiTest {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
 
         // when, then
-        mockMvc.perform(get("/api/v1/user"))
+        mockMvc.perform(get("/api/v1/users/current"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(userEmail));
 

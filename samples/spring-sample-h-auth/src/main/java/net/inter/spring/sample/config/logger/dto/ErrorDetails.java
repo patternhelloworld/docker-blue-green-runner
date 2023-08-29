@@ -11,6 +11,8 @@ import org.springframework.lang.Nullable;
 
 import javax.persistence.Entity;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @ToString
 public class ErrorDetails {
@@ -21,6 +23,9 @@ public class ErrorDetails {
 	private String message;
 	private String details;
 	private String userMessage;
+	private Map<String, String> userValidationMessage;
+
+
 	@JsonIgnore
 	private String stackTrace;
 	@JsonIgnore
@@ -32,6 +37,7 @@ public class ErrorDetails {
 		this.message = message;
 		this.details = details;
 	}
+
 
 	public ErrorDetails(Date timestamp, String message, String details, String userMessage, String stackTrace) {
 		super();
@@ -48,6 +54,18 @@ public class ErrorDetails {
 		this.message = message;
 		this.details = details;
 		this.userMessage = userMessage;
+		this.stackTrace = stackTrace;
+		this.cause = cause;
+	}
+
+	public ErrorDetails(Date timestamp, String message, String details, String userMessage, Map<String, String> userValidationMessage,
+							String stackTrace, String cause) {
+		super();
+		this.timestamp = timestamp;
+		this.message = message;
+		this.details = details;
+		this.userMessage = userMessage;
+		this.userValidationMessage = userValidationMessage;
 		this.stackTrace = stackTrace;
 		this.cause = cause;
 	}
@@ -76,4 +94,7 @@ public class ErrorDetails {
 		return cause;
 	}
 
+	public Map<String, String> getUserValidationMessage() {
+		return userValidationMessage;
+	}
 }

@@ -9,9 +9,19 @@ public class BaseApi {
     @Value("${spring.profiles.active}")
     private String activeProfile;
 
+/*    @Autowired
+    private ServletWebServerApplicationContext server;*/
+
     @GetMapping("/systemProfile")
     public String getProfile () {
         return activeProfile;
     }
-    
+
+/*
+    @GetMapping("/localPort")
+    public int getPort () {
+        return server.getWebServer().getPort();
+    }
+*/
+
 }

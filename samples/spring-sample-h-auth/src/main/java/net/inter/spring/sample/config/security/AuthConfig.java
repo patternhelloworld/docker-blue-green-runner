@@ -52,7 +52,7 @@ public class AuthConfig {
         for (Object object : joinPoint.getArgs()) {
             if(object != null && object.getClass().equals(AccessTokenUserInfo.class)){
                  AccessTokenUserInfo accessTokenUserInfo = (AccessTokenUserInfo) object;
-                if(accessTokenUserInfo.getOrganization_id() == null){
+                if(accessTokenUserInfo.getOrganization().getId() == null){
 //                    throw new AccessTokenUserInfoUnauthorizedException("organization_id 가 null 입니다. (해당 사용자의 조직이 설정되지 않았습니다.)");
                 }
             }

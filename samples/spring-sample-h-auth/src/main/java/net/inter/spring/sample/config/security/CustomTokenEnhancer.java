@@ -23,9 +23,14 @@ public class CustomTokenEnhancer implements TokenEnhancer {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private CustomOauthClientDetailsRepository customOauthClientDetailsRepository;
+
     // CSAP 기준 : 90 일 (7,776,000 초) / 테스트 용 : 30 초
     private final long passwordExpirationsSec = 7776000;
 
+    @Value("${oauth2.samplewave.pcApp.clientId}")
+    private String pcAppClientId;
 
     @Override
     public OAuth2AccessToken enhance(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
@@ -56,6 +61,21 @@ public class CustomTokenEnhancer implements TokenEnhancer {
                 additionalInfo.put("password_invalid_for_the_previous", diffSecFromPasswordChangedAtToNow - passwordExpirationsSec);
                 additionalInfo.put("password_valid_for_the_next", 0);
 
+                LinkedHashMap<String, String> detailsProperties = (LinkedHashMap<String, String>) authentication.getUserAuthentication().getDetails();
+
+
+
+                Optional<CustomOAuthClientDetails> customOAuthClientDetails = customOauthClientDetailsRepository.findById(detailsProperties.get("client_id"));
+                if (customOAuthClientDetails.isPresent()){
+                    if(customOAuthClientDetails.get().getPasswordForceChange() != null &&
+                            customOAuthClientDetails.get().getPasswordForceChange().equals("1")){
+                        additionalInfo.put("password_force_change_client", true);
+                    }else{
+                        additionalInfo.put("password_force_change_client", false);
+                    }
+                }else{
+                    additionalInfo.put("password_force_change_client", false);
+                }
 
                 //((DefaultOAuth2AccessToken) accessToken).setExpiration(new Date());
             }

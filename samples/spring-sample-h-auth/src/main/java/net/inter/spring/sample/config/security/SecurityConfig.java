@@ -132,6 +132,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 //http.formLogin()은 form 태그 기반의 로그인을 지원하겠다는 설정입니다.
                 //- 이를 이용하면 별도의 로그인 페이지를 제작하지 않아도 됩니다.
                 .formLogin()
+                .authenticationDetailsSource(new TOTPWebAuthenticationDetailsSource())
                 .loginPage("/login")
                 .usernameParameter("email")
                 .defaultSuccessUrl("/home")

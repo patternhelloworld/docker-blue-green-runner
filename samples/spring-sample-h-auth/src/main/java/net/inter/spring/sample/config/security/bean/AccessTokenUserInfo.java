@@ -2,6 +2,7 @@ package net.inter.spring.sample.config.security.bean;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import net.inter.spring.sample.microservice.auth.organization.entity.Organization;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 
@@ -35,14 +36,13 @@ public class AccessTokenUserInfo extends User
 		this.id = id;
 	}
 
-	//@NotNull(message = "organization_id 값이 없습니다")
-	private Long organization_id;
+	private Organization organization;
 
-	public Long getOrganization_id() {
-		return organization_id;
+	public Organization getOrganization() {
+		return organization;
 	}
 
-	public void setOrganization_id(Long organization_id) {
-		this.organization_id = organization_id;
+	public void setOrganization(Organization organization) {
+		this.organization = organization;
 	}
 }

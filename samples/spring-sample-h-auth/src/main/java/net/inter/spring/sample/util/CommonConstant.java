@@ -15,7 +15,7 @@ public class CommonConstant {
 
     public static final String[] DYNAMIC_USER_RELATION_TABLES = {"user_binder", "user_template", "user_workspace"};
 
-    public static final String SUPER_ADMIN_ROLE_NAME = "AKUO_ADMIN";
+    public static final String SUPER_ADMIN_ROLE_NAME = "AUTO_ADMIN";
     public static final String ADMIN_ROLE_NAME = "REGISTERED_ADMIN";
     public static final String[] BASIC_ROLE_NAMES = {"WORKSPACE_READ", "BINDER_READ"};
 

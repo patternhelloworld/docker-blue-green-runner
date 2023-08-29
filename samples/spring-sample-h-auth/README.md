@@ -8,5 +8,5 @@
 |-------------------|-------------------------------------|
 | Backend-Language  | Java 1.8                            |
 | Backend-Framework | Spring                              |
-| Package-Manager   | Maven 3.6.3 (mvnw, Dockerfile 동일)  |
+| Package-Manager   | Maven 3.6.3 (mvnw, Dockerfile)  |
 | RDBMS             | Mysql 8.0.17                        |
