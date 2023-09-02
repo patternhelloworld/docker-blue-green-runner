@@ -7,7 +7,7 @@ git config core.filemode false
 
 cache_all_states() {
 
-  echo '[NOTICE] Decide which container, blue or green, will be running.'
+  echo '[NOTICE] Setting which container, blue or green, will be running.'
 
   blue_is_run=$(docker exec ${project_name}-blue echo 'yes' 2>/dev/null || echo 'no')
   if [[ ${blue_is_run} == 'yes' ]]; then
@@ -586,7 +586,7 @@ check_availability_inside_container(){
 
   
   echo "[NOTICE] Copy wait-for-it.sh into ${project_name}-${check_state}:${project_location}/wait-for-it.sh."  >&2
-  docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh || (echo "[ERROR] Failed." >&2 &&  echo "false" && return)
+  docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh || (echo "[ERROR] Failed in copying (HOST : ./wait-for-it.sh) to (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
 
 
 
@@ -599,9 +599,9 @@ check_availability_inside_container(){
 
   echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check. (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
   echo "[NOTICE] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
-  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2})
+  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
   if [[ $? != 0 ]]; then
-      echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2
+      echo "[ERROR] Failed in getting the correct return from wait-for-it.sh. (${wait_for_it_re})" >&2
       echo "false"
       return
   else
@@ -680,7 +680,7 @@ check_availability_inside_container_speed_mode(){
   check_state=${1}
 
 
-  docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh || (echo "false" && return)
+  docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh
 
 
   #echo "[NOTICE] ${project_name}-${check_state} Check if the web server is responding by making a request inside the node-express-boilerplate-green container. If library folders such as node_modules (Node.js), vendor (PHP) folders are NOT yet installed, the execution time of the ENTRYSCRIPT of your Dockerfile may be longer than usual (timeout: ${2} seconds)"  >&2
@@ -692,7 +692,7 @@ check_availability_inside_container_speed_mode(){
 
   #echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check. (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
   #echo "[NOTICE] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
-  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2})
+  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2}) || echo "[WARNING] Failed in Connection Check (running wait_for_it.sh). But, this function is for checking which container is running. we don't exit."   >&2
   if [[ $? != 0 ]]; then
       #echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2
       echo "false"
@@ -713,7 +713,7 @@ check_availability_inside_container_speed_mode(){
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
        # echo "[NOTICE] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
-        response=$(docker exec ${project_name}-${check_state} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
+        response=$(docker exec ${project_name}-${check_state} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}") || echo "[WARNING] Failed in Health Check. But, this function is for checking which container is running. we don't exit."   >&2
 
         down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
         up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)

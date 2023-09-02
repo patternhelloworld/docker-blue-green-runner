@@ -14,6 +14,8 @@
 
 .idea
 /.env
+/.env.ready.*
+
 /docker-compose-app-local.yml
 /docker-compose-app-real.yml
 /docker-compose-nginx.yml

@@ -28,7 +28,11 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 
 - In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
 
-- >Do not use Docker-Blue-Green-Runner in cloud-based containers such as CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
+- No Container in Container
+  - >Do not use Docker-Blue-Green-Runner in containers such as CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
+  - Dockerized Jenkins as well
+
+- The image or Dockerfile in your app must contain "bash" & "curl" 
 
 ## How to Start with a Node Sample (Local, PORT: 3000).
 
