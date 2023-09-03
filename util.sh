@@ -69,6 +69,18 @@ cache_global_vars() {
      echo "[ERROR] app_env is only local or real." && exit 1
   fi
 
+  docker_file_name="Dockerfile.${app_env}"
+
+  if [ -f "${docker_file_location}/${docker_file_name}" ]; then
+      docker_file_name="Dockerfile.${app_env}"
+  else
+      if [ -f "${docker_file_location}/Dockerfile" ]; then
+        docker_file_name="Dockerfile"
+      else
+         echo "[ERROR] Couldn't find any of 'Dockerfile.${app_env} and Dockerfile' in ${docker_file_location}" && exit 1
+      fi
+  fi
+
   if [[ ${app_env} == 'real' ]]; then
     docker_compose_real_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES")
   fi
@@ -552,7 +564,9 @@ check_command_in_container_or_fail(){
 # shellcheck disable=SC2120
 check_availability_inside_container(){
 
-  if [[ -z ${1} ]]
+  check_state=${1}
+
+  if [[ -z ${check_state} ]]
     then
       echo "[ERROR] the 'state' NOT indicated on check_availability_inside_container "  >&2
       echo "false"
@@ -573,7 +587,7 @@ check_availability_inside_container(){
       return
   fi
 
-  check_state=${1}
+
 
    if [[ $(check_command_in_container_or_fail ${project_name}-${check_state} "curl") != "true" ]]; then
          echo "false"
@@ -597,7 +611,7 @@ check_availability_inside_container(){
 
   container_load_timeout=${2}
 
-  echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check. (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
+  echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check (localhost:${project_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
   echo "[NOTICE] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
   local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
   if [[ $? != 0 ]]; then
@@ -692,6 +706,7 @@ check_availability_inside_container_speed_mode(){
 
   #echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check. (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
   #echo "[NOTICE] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
+  #echo "${project_location} ${project_name}-${check_state} localhost:${project_port} --timeout=${2}" >&2
   local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2}) || echo "[WARNING] Failed in Connection Check (running wait_for_it.sh). But, this function is for checking which container is running. we don't exit."   >&2
   if [[ $? != 0 ]]; then
       #echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2

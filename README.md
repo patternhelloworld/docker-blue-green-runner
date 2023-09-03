@@ -20,7 +20,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 |---------|---------------------|-------------------|
 | Node.js | O                   | not yet           |
 | PHP     | O                   | O                 |
-| Java    | O                   | not yet           |
+| Java    | O                   | O                 |
 
 ## Requirements
 

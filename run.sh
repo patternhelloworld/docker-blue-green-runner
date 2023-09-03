@@ -210,17 +210,17 @@ load_app_docker_image() {
   else
 
 
-    echo "[NOTICE] Build the image with ${docker_file_location}/Dockerfile.${app_env} (using cache)"
+    echo "[NOTICE] Build the image with ${docker_file_location}/${docker_file_name} (using cache)"
     local env_build_args=$(make_docker_build_arg_strings)
     echo "[NOTICE] DOCKER_BUILD_ARGS on the .env : ${env_build_args}"
 
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
-       echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f Dockerfile.${app_env} ."
-       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f Dockerfile.${app_env} . || exit 1
+       echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} ."
+       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} . || exit 1
        cd -
     else
-       echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f Dockerfile.${app_env} ."
-       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f Dockerfile.${app_env} . || exit 1
+       echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} ."
+       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} . || exit 1
        cd -
     fi
 
