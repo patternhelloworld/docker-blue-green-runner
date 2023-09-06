@@ -1,0 +1,16 @@
+/var/log/nginx/access.log {
+    daily
+    rotate 7
+    size 10M
+    missingok
+    notifempty
+    create 0640 root www-data
+}
+/var/log/nginx/error.log {
+    daily
+    rotate 7
+    size 10M
+    missingok
+    notifempty
+    create 0640 root www-data
+}

@@ -289,9 +289,16 @@ load_all_containers(){
   # Therefore, it is safer to restart the containers in the order of App -> Consul -> Nginx.
   echo "[NOTICE] Run the app as a ${new_state} container. (This doesn't stop the running container since this is a BLUE-GREEN deployment.)"
 
+  echo "[NOTICE] Creating consul network..."
   docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
-  docker-compose -f docker-compose-app-${app_env}.yml up -d ${project_name}-${new_state} || echo "[ERROR] Critical - App ${new_state} UP failure"
 
+  echo "[NOTICE] Load '${project_name}-${new_state} container'."
+  docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
+  docker-compose -f docker-compose-app-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
+  docker-compose -f docker-compose-app-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] Critical - App ${new_state} UP failure" && exit 1)
+  echo "[NOTICE] '${project_name}-${new_state} container' : successfully loaded."
+
+  echo "[NOTICE] Check the status inside of the container."
   if [[ ${app_env} == 'local' ]]; then
      re=$(check_availability_inside_container ${new_state} 600 30 | tail -n 1) || exit 1;
   else
@@ -385,6 +392,7 @@ _main() {
     apply_docker_compose_volumes_onto_app_real_yaml
   fi
 
+  apply_docker_compose_volumes_onto_app_nginx_yaml
 
   create_nginx_ctmpl
 
@@ -438,7 +446,7 @@ _main() {
   docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${safe_old_state}
 
   echo "[NOTICE] Delete <none>:<none> images."
-  docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] If any images are in use, they will not be deleted."
+  docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
 }
 
 _main

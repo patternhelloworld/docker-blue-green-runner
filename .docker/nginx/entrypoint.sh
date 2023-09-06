@@ -4,6 +4,13 @@ project_port=$(printenv PROJECT_PORT)
 app_url=$(printenv APP_URL)
 protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
 consul_key=$(echo $(printenv CONSUL_KEY_VALUE_STORE) | cut -d "/" -f6)\\/$(echo $(printenv CONSUL_KEY_VALUE_STORE) | cut -d "/" -f7)
+nginx_client_max_body_size=$(printenv NGINX_CLIENT_MAX_BODY_SIZE)
+
+echo "[NOTICE] In case the original file './docker/nginx/logrotate' has CRLF. That causes errors to Logrotate. So replacing CRLF to LF"
+sed -i -e 's/\r$//' /etc/logrotate.d/nginx || echo "[NOTICE] Failed in replacing CRLF to LF, but it is a minor error, we continue the process."
+
+#echo "[NOTICE] Start Logrotate for logging Nginx (Access, Error) logs"
+#echo "59 23 * * * /usr/sbin/logrotate /etc/logrotate.conf" >> /etc/crontab
 
 if [[ ! -d /etc/consul-templates ]]; then
     echo "[NOTICE] As the directory name '/etc/consul-templates' does NOT exist, it has been created."
@@ -17,6 +24,7 @@ mv /ctmpl/${protocol}/nginx.conf.ctmpl /etc/consul-templates
 sed -i -e "s/###PROJECT_PORT###/${project_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_port (${project_port}) replacement failure." && exit 1)
 sed -i -e "s/###PROJECT_NAME###/${project_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_name (${project_name}) replacement failure." && exit 1)
 sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "consul_key (${consul_key}) replacement failure." && exit 1)
+sed -i -e "s/###NGINX_CLIENT_MAX_BODY_SIZE###/${nginx_client_max_body_size}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "nginx_client_max_body_size (${nginx_client_max_body_size}) replacement failure." && exit 1)
 
 if [[ ${protocol} = 'https' ]]; then
 

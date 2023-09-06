@@ -9,6 +9,9 @@
 /shared/app-error-logs/*
 !/shared/app-error-logs/.gitkeep
 
+/shared/nginx-error-logs/*
+!/shared/nginx-error-logs/.gitkeep
+
 /shared/system-logs/*
 !/shared/system-logs/.gitkeep
 

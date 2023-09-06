@@ -1,6 +1,6 @@
 # Docker-Blue-Green-Runner
 
-> Zero-downtime Nginx Blue-Green deployment on a service layer with Consul
+> Zero-downtime Docker-Compose Blue-Green deployment on a service layer with Consul & Registrator
 
 To deploy web projects must be [simple](https://github.com/Andrew-Kang-G/docker-blue-green-runner).
 
@@ -24,7 +24,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 
 ## Requirements
 
-- Mainly tested on WSL2, Docker (24.0), Docker-Compose (2.18)
+- Mainly tested on WSL2 & Ubuntu 22.04.3 LTS, Docker (24.0), Docker-Compose (2.18)
 
 - In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
 
@@ -104,9 +104,9 @@ cp -f .env.php.real .env
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
 bash run.sh
 ```
-and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
+Open https://localhost:8080 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
-## How to Start with a Java Sample (Local, PORT: 8200).
+## How to Start with a Java Sample (Local & Real, PORT: 8200).
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
@@ -116,14 +116,10 @@ and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/
 
 ```shell
 # In the ROOT folder,
-cp -f .env.java.local .env
+cp -f .env.java.local .env # or cp -f .env.java.real .env
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 bash run.sh
 ```
-
-
-## Consul
-`` http://localhost:8500 ``
 
 ## Environment Variables
 ```shell
@@ -139,7 +135,7 @@ CONSUL_RESTART=false
 DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
 ```
 ## Emergency
-1) Nginx (like when Nginx is NOT booted OR 502 error...)
+- Nginx (like when Nginx is NOT booted OR 502 error...)
 ```shell
 bash emergency-nginx-restart.sh
 # In case you need to manually set the Nginx to point to 'blue' or 'green'
@@ -147,7 +143,7 @@ bash emergency-nginx-restart.sh blue
 ## OR
 bash emergency-nginx-restart.sh green
 
-# If the script above fails, set NGINX_RESTART to be true on .env. and..
+# If the script above fails, set *NGINX_RESTART to be true on .env. and..
 bash run.sh
 
 # This fully restarts the whole system.
@@ -158,6 +154,23 @@ docker logs -f ${project_name}-nginx   # e.g. node-express-boilerplate-nginx
 # Ways to check Nginx error logs
 docker exec -it ${project_name}-nginx bash # now you're in the container. Check '/var/log/error.log'
 ```
+
+## Upgrade
+- As you wish to use an upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env only one time, then, as always run
+```shell
+bash run.sh
+```
+- However, as you know, ```NGINX_RESTART=true``` causes a short downtime. Make sure ```NGINX_RESTART=false``` at all times.
+## Consul
+`` http://localhost:8500 ``
+
+
+## Advanced
+
+- Docker-Blue-Green-Runner uses your App's only '```Dockerfile.local``` or ```Dockerfile.real```', not ```docker-compose.yml```.
+- You can set 'DOCKER_COMPOSE_ENVIRONMENT' on .env to change environments when your container is up.
+- **In case you need more to set, correct the file ```docker-compose-app-${app_env}-original.yml``` directly.**
+
 
 ## Structure
 ```shell
@@ -245,9 +258,3 @@ _main() {
 }
 
 ```
-
-## Advanced
-
-- Docker-Blue-Green-Runner uses your App's only '```Dockerfile.local``` or ```Dockerfile.real```', not ```docker-compose.yml```.
-- You can set 'DOCKER_COMPOSE_ENVIRONMENT' on .env to change environments when your container is up.
-- **In case you need more to set, correct the file ```docker-compose-app-${app_env}-original.yml``` directly.**

@@ -1,6 +1,6 @@
 FROM nginx:latest
 
-RUN apt-get update -qqy && apt-get -qqy --force-yes install curl runit wget unzip vim && \
+RUN apt-get update -qqy && apt-get -qqy --force-yes install curl runit wget unzip vim logrotate && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 ARG DISABLE_CACHE
@@ -14,6 +14,8 @@ COPY ./.docker/nginx/entrypoint.sh /
 COPY ./.docker/nginx/nginx.service /etc/service/nginx/run/
 COPY ./.docker/nginx/consul-template.service /etc/service/consul-template/run/
 COPY ./.docker/nginx/ctmpl/ /ctmpl
+COPY ./.docker/nginx/logrotate /etc/logrotate.d/nginx
+
 RUN chmod +x /etc/service/nginx/run && chmod +x /etc/service/consul-template/run
 RUN sed -i -e 's/\r$//' /etc/service/consul-template/run/consul-template.service
 RUN sed -i -e 's/\r$//' /etc/service/nginx/run/nginx.service

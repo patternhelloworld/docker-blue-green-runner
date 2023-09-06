@@ -85,6 +85,8 @@ cache_global_vars() {
     docker_compose_real_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES")
   fi
 
+  docker_compose_nginx_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES")
+
   docker_layer_corruption_recovery=$(get_value_from_env "DOCKER_LAYER_CORRUPTION_RECOVERY")
   app_url=$(get_value_from_env "APP_URL")
   protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
@@ -212,6 +214,20 @@ apply_docker_compose_volumes_onto_app_real_yaml(){
 
 }
 
+apply_docker_compose_volumes_onto_app_nginx_yaml(){
+
+   check_yq_installed
+
+   echo "[NOTICE] DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-nginx.yml."
+
+    for volume in "${docker_compose_nginx_selective_volumes[@]}"
+    do
+        yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-nginx.yml
+    done
+
+}
+
+
 
 make_docker_build_arg_strings(){
 
@@ -241,7 +257,7 @@ server {
      listen ###PROJECT_PORT### default_server;
      server_name localhost;
 
-     client_max_body_size 50M;
+     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
 
      location / {
          add_header Pragma no-cache;
@@ -264,8 +280,8 @@ server {
      }
 
 
-     access_log /var/log/access.log;
-     error_log /var/log/error.log;
+     access_log /var/log/nginx/access.log combined;
+     error_log /var/log/nginx/error.log notice;
 }
 EOF
 
@@ -277,7 +293,7 @@ server {
      listen $i default_server;
      server_name localhost;
 
-     client_max_body_size 50M;
+     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
 
      location / {
          add_header Pragma no-cache;
@@ -299,8 +315,8 @@ server {
          proxy_connect_timeout 75s;
     }
 
-     access_log /var/log/access.log;
-     error_log /var/log/error.log;
+     access_log /var/log/nginx/access.log combined;
+     error_log /var/log/nginx/error.log notice;
 }
 EOF
    done
@@ -315,7 +331,7 @@ server {
     listen ###PROJECT_PORT### default_server ssl http2;
     server_name localhost;
 
-    client_max_body_size 50M;
+    client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
 
 
     ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
@@ -346,8 +362,8 @@ server {
     }
 
 
-    access_log /var/log/access.log;
-    error_log /var/log/error.log;
+    access_log /var/log/nginx/access.log combined;
+    error_log /var/log/nginx/error.log notice;
 }
 EOF
 
@@ -359,7 +375,7 @@ server {
     listen $i default_server ssl http2;
     server_name localhost;
 
-    client_max_body_size 50M;
+    client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
 
 
     ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
@@ -389,8 +405,8 @@ server {
     }
 
 
-    access_log /var/log/access.log;
-    error_log /var/log/error.log;
+    access_log /var/log/nginx/access.log combined;
+    error_log /var/log/nginx/error.log notice;
 }
 EOF
    done
@@ -642,16 +658,16 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (Response : ${response}), (${project_name}-${check_state}, Log (print max 25 lines) : $(docker logs --tail 25 ${project_name}-${check_state})"  >&2
+            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (*Response : ${response}), (${project_name}-${check_state}, *Log (print max 25 lines) : $(docker logs --tail 25 ${project_name}-${check_state})"  >&2
 
         else
-             echo "[NOTICE] Internal health check of the application succeeded. (Response: ${response})"  >&2
+             echo "[NOTICE] Internal health check of the application succeeded. (*Response: ${response})"  >&2
              break
         fi
 
         if [[ ${retry_count} -eq ${total_cnt} ]]
         then
-          echo "[FAILURE] Health check failed in the end. (Response:  ${response})" >&2
+          echo "[FAILURE] Health check failed in the end. (*Response:  ${response})" >&2
           echo "false"
           return
         fi
