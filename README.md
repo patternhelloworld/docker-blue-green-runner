@@ -157,8 +157,9 @@ docker exec -it ${project_name}-nginx bash # now you're in the container. Check 
 ```
 
 ## Upgrade
-- As you wish to use an upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env only one time, then, as always run
+- You would like to use the latest version, so you use an upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env only one time, then, run
 ```shell
+git pull origin main
 bash run.sh
 ```
 - However, as you know, ```NGINX_RESTART=true``` causes a short downtime. Make sure ```NGINX_RESTART=false``` at all times.
