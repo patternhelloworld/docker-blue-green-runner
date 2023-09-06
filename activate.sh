@@ -5,7 +5,7 @@ sudo sed -i -e "s/\r$//g" $(basename $0)
 source ./util.sh
 
 #cache_global_vars
-project_name=$(get_value_from_env "PROJECT_NAME")
+cache_non_dependent_global_vars
 
 new_state=$1
 old_state=$2
@@ -52,7 +52,21 @@ while [ 1 ]; do
     count=$((count + 1))
     if [[ ${count} -eq 10 ]]; then
       echo "[WARNING] Since ${new_upstream} string is not found in the NGINX configuration file, we will revert CONSUL to ${old_state} (although it should already be ${old_state}, we will save it again to ensure)"
-        ./reset.sh ${consul_key_value_store} ${old_state} ${new_state}
+          is_run=$(docker exec ${project_name}-${old_state}  echo 'yes' 2>/dev/null || echo 'no')
+          if [[ ${is_run} == 'yes' ]]; then
+              if [[ $(check_availability_inside_container_speed_mode 'blue' 10 5 | tail -n 1) == 'true' ]]; then
+                is_run='yes'
+              else
+                is_run='no'
+              fi
+          fi
+
+          if [[ ${is_run} == 'yes' ]]; then
+            ./reset.sh ${consul_key_value_store} ${old_state} ${new_state}
+          else
+            echo "[WARNING] We won't revert, as ${old_state} is NOT running as well."
+          fi
+
       exit 1
     fi
     echo 'Wait for the new configuration'

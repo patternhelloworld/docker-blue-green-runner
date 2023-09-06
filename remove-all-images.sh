@@ -13,7 +13,7 @@ git config core.filemode false
 sleep 3
 source ./util.sh
 
-cache_project_info
+cache_non_dependent_global_vars
 
 echo "[NOTICE] Delete all containers and networks related to the project. Ignore any error messages that may appear if the items do not exist."
 
