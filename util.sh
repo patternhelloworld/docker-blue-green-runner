@@ -42,9 +42,16 @@ cache_all_states() {
   echo "[NOTICE] ${new_state} will be running."
 }
 
-cache_project_info() {
+cache_non_dependent_global_vars() {
    project_name=$(get_value_from_env "PROJECT_NAME")
    app_env=$(get_value_from_env "APP_ENV")
+   project_location=$(get_value_from_env "PROJECT_LOCATION")
+   project_port=$(get_value_from_env "PROJECT_PORT")
+     app_url=$(get_value_from_env "APP_URL")
+    protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
+  app_health_check_path=$(get_value_from_env "APP_HEALTH_CHECK_PATH")
+  bad_app_health_check_pattern=$(get_value_from_env "BAD_APP_HEALTH_CHECK_PATTERN")
+  good_app_health_check_pattern=$(get_value_from_env "GOOD_APP_HEALTH_CHECK_PATTERN")
 }
 
 cache_global_vars() {
@@ -285,8 +292,8 @@ server {
      }
 
 
-     access_log /var/log/nginx/access.log combined;
-     error_log /var/log/nginx/error.log notice;
+     access_log /var/log/nginx/access.log;
+     error_log /var/log/nginx/error.log;
 }
 EOF
 
@@ -320,8 +327,8 @@ server {
          proxy_connect_timeout 75s;
     }
 
-     access_log /var/log/nginx/access.log combined;
-     error_log /var/log/nginx/error.log notice;
+     access_log /var/log/nginx/access.log;
+     error_log /var/log/nginx/error.log;
 }
 EOF
    done
@@ -367,8 +374,8 @@ server {
     }
 
 
-    access_log /var/log/nginx/access.log combined;
-    error_log /var/log/nginx/error.log notice;
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
 }
 EOF
 
@@ -410,8 +417,8 @@ server {
     }
 
 
-    access_log /var/log/nginx/access.log combined;
-    error_log /var/log/nginx/error.log notice;
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
 }
 EOF
    done
