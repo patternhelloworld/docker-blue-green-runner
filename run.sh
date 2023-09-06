@@ -119,10 +119,10 @@ terminate_whole_system(){
     docker rmi -f ${project_name}:blue
     docker rmi -f ${project_name}:green
 
-    docker-compose -f docker-compose-app-local.yml down || echo "[NOTICE] docker-compose-app-local.yml down failure"
-    docker-compose -f docker-compose-app-real.yml down || echo "[NOTICE] docker-compose-app-real.yml down failure"
-    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] docker-compose-app-consul.yml down failure"
-    docker-compose -f docker-compose-nginx.yml down || echo "[NOTICE] docker-compose-app-nginx.yml down failure"
+    docker-compose -f docker-compose-${project_name}-local.yml down || echo "[NOTICE] docker-compose-${project_name}-local.yml down failure"
+    docker-compose -f docker-compose-${project_name}-real.yml down || echo "[NOTICE] docker-compose-${project_name}-real.yml down failure"
+    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] docker-compose-${project_name}-consul.yml down failure"
+    docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] docker-compose-${project_name}-nginx.yml down failure"
     docker-compose down || echo "[NOTICE] docker-compose.yml down failure"
     docker system prune -f
   fi
@@ -240,21 +240,21 @@ nginx_restart(){
 
    echo "[NOTICE] Terminate NGINX container and network."
 
-   # docker-compose -f docker-compose-app-${app_env}.yml down || echo "[DEBUG] A1"
-   docker-compose -f docker-compose-nginx.yml down || echo "[DEBUG] N1"
+   # docker-compose -f docker-compose-${project_name}-${app_env}.yml down || echo "[DEBUG] A1"
+   docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[DEBUG] N1"
 
    docker network rm ${project_name}_app || echo "[DEBUG] NA"
 
    echo "[NOTICE] Run NGINX as a container."
-   PROJECT_NAME=${project_name} docker-compose -f docker-compose-nginx.yml up -d ${project_name}-nginx || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
+   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d ${project_name}-nginx || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 }
 
 consul_restart(){
 
     echo "[NOTICE] Terminate CONSUL container and network."
 
-    #docker-compose -f docker-compose-app-${app_env}.yml down || echo "[DEBUG] C-A1"
-    #docker-compose -f docker-compose-nginx.yml down || echo "[DEBUG] C-N1"
+    #docker-compose -f docker-compose-${project_name}-${app_env}.yml down || echo "[DEBUG] C-A1"
+    #docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[DEBUG] C-N1"
     docker-compose -f docker-compose-consul.yml down || echo "[DEBUG] C-1"
 
     docker network rm consul || echo "[DEBUG] CA"
@@ -293,9 +293,9 @@ load_all_containers(){
   docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
 
   echo "[NOTICE] Load '${project_name}-${new_state} container'."
-  docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
-  docker-compose -f docker-compose-app-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
-  docker-compose -f docker-compose-app-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] Critical - App ${new_state} UP failure" && exit 1)
+  docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
+  docker-compose -f docker-compose-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
+  docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] Critical - App ${new_state} UP failure" && exit 1)
   echo "[NOTICE] '${project_name}-${new_state} container' : successfully loaded."
 
   echo "[NOTICE] Check the status inside of the container."
@@ -379,9 +379,11 @@ _main() {
   cache_global_vars
   local safe_old_state=${state}
 
+  echo "[NOTICE] We will now deploy '${project_name}' in a way of 'Blue-Green'"
+
   check_env_integrity
 
-  # These are all about passing variables from the .env to the docker-compose-app-local.yml
+  # These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
   initiate_docker_compose
   apply_env_service_name_onto_app_yaml
   apply_ports_onto_nginx_yaml
@@ -443,7 +445,7 @@ _main() {
 
   echo "[DEBUG] state : ${state}, new_state : ${new_state}, safe_old_state : ${safe_old_state}"
   echo "[NOTICE] The previous (${safe_old_state}) container (safe_old_state) exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
-  docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${safe_old_state}
+  docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${safe_old_state}
 
   echo "[NOTICE] Delete <none>:<none> images."
   docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
