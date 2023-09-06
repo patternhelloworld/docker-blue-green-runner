@@ -9,6 +9,10 @@ nginx_client_max_body_size=$(printenv NGINX_CLIENT_MAX_BODY_SIZE)
 echo "[NOTICE] In case the original file './docker/nginx/logrotate' has CRLF. That causes errors to Logrotate. So replacing CRLF to LF"
 sed -i -e 's/\r$//' /etc/logrotate.d/nginx || echo "[NOTICE] Failed in replacing CRLF to LF, but it is a minor error, we continue the process."
 
+echo "[NOTICE] Create base log files."
+touch /var/log/nginx/access.log
+touch /var/log/nginx/error.log
+
 #echo "[NOTICE] Start Logrotate for logging Nginx (Access, Error) logs"
 #echo "59 23 * * * /usr/sbin/logrotate /etc/logrotate.conf" >> /etc/crontab
 

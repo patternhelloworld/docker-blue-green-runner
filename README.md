@@ -148,7 +148,7 @@ bash emergency-nginx-restart.sh green
 bash run.sh
 
 # This fully restarts the whole system.
-bash stop-all-containers.sh && bash run.sh
+bash stop-all-containers.sh && bash remove-all-images.sh && bash run.sh
 
 # Ways to check logs
 docker logs -f ${project_name}-nginx   # e.g. node-express-boilerplate-nginx
