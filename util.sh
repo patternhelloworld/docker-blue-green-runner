@@ -42,6 +42,11 @@ cache_all_states() {
   echo "[NOTICE] ${new_state} will be running."
 }
 
+cache_project_info() {
+   project_name=$(get_value_from_env "PROJECT_NAME")
+   app_env=$(get_value_from_env "APP_ENV")
+}
+
 cache_global_vars() {
   
   HOST_IP=$(get_value_from_env "HOST_IP")
@@ -140,8 +145,8 @@ check_yq_installed(){
 }
 
 initiate_docker_compose(){
-    cp -f docker-compose-app-${app_env}-original.yml -f docker-compose-app-${app_env}.yml || exit 1
-    cp -f docker-compose-nginx-original.yml -f docker-compose-nginx.yml || exit 1
+    cp -f docker-compose-app-${app_env}-original.yml -f docker-compose-${project_name}-${app_env}.yml || exit 1
+    cp -f docker-compose-app-nginx-original.yml -f docker-compose-${project_name}-nginx.yml || exit 1
 
     sleep 1
 }
@@ -150,26 +155,26 @@ apply_env_service_name_onto_app_yaml(){
 
   check_yq_installed
 
-  echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-compose-app-${app_env}.yml."
-  yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
+  echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-compose-${project_name}-${app_env}.yml."
+  yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-compose-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
   sleep 2
-  yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-compose-app-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+  yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-compose-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
 
-  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YAML as ${project_name}." && exit 1)
+  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YAML as ${project_name}." && exit 1)
 }
 
 apply_ports_onto_nginx_yaml(){
 
    check_yq_installed
 
-   echo "[NOTICE] PORTS on .env is now being applied to docker-compose-nginx.yml."
-   yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-nginx.yml
-   yq -i '.services.'${project_name}'-nginx.ports += "${PROJECT_PORT}:${PROJECT_PORT}"' docker-compose-nginx.yml
+   echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
+   yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
+   yq -i '.services.'${project_name}'-nginx.ports += "${PROJECT_PORT}:${PROJECT_PORT}"' docker-compose-${project_name}-nginx.yml
 
    for i in "${additional_ports[@]}"
    do
       [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
-      yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-nginx.yml
+      yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
    done
 }
 
@@ -177,18 +182,18 @@ apply_docker_compose_environment_onto_app_yaml(){
 
    check_yq_installed
 
-   echo "[NOTICE] DOCKER_COMPOSE_ENVIRONMENT on .env is now being applied to docker-compose-app-${app_env}.yml."
+   echo "[NOTICE] DOCKER_COMPOSE_ENVIRONMENT on .env is now being applied to docker-compose-${project_name}-${app_env}.yml."
 
    local states=("blue" "green")
 
    for state in "${states[@]}"
    do
-       yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-compose-app-${app_env}.yml
-       yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-compose-app-${app_env}.yml
+       yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-compose-${project_name}-${app_env}.yml
+       yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-compose-${project_name}-${app_env}.yml
 
        for ((i=1; i<=$(echo ${docker_compose_environment} | yq eval 'length'); i++))
         do
-           yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].value')'"' docker-compose-app-${app_env}.yml
+           yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].value')'"' docker-compose-${project_name}-${app_env}.yml
         done
    done
 
@@ -198,17 +203,17 @@ apply_docker_compose_volumes_onto_app_real_yaml(){
 
    check_yq_installed
 
-   echo "[NOTICE] DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-app-real.yml."
+   echo "[NOTICE] DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-${project_name}-real.yml."
 
    local states=("blue" "green")
 
    for state in "${states[@]}"
    do
-       yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-compose-app-real.yml
+       yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-compose-${project_name}-real.yml
 
       for volume in "${docker_compose_real_selective_volumes[@]}"
       do
-          yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-compose-app-real.yml
+          yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-compose-${project_name}-real.yml
       done
    done
 
@@ -218,11 +223,11 @@ apply_docker_compose_volumes_onto_app_nginx_yaml(){
 
    check_yq_installed
 
-   echo "[NOTICE] DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-nginx.yml."
+   echo "[NOTICE] DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-${project_name}-nginx.yml."
 
     for volume in "${docker_compose_nginx_selective_volumes[@]}"
     do
-        yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-nginx.yml
+        yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-${project_name}-nginx.yml
     done
 
 }

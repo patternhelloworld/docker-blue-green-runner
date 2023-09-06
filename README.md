@@ -33,6 +33,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
   - Dockerized Jenkins as well
 
 - The image or Dockerfile in your app must contain "bash" & "curl" 
+- Do NOT use local & real at the same time (There's no reason to do so, but just in case...)
 
 ## How to Start with a Node Sample (Local, PORT: 3000).
 
@@ -161,6 +162,13 @@ docker exec -it ${project_name}-nginx bash # now you're in the container. Check 
 bash run.sh
 ```
 - However, as you know, ```NGINX_RESTART=true``` causes a short downtime. Make sure ```NGINX_RESTART=false``` at all times.
+
+## Managing Multiple Projects
+- Store your .env as ```.env.ready.*``` (for me, like ```.env.ready.client```, ```.env.ready.server```)
+- When deploying ```.env.ready.client```, simply run ```cp -f .env.ready.client .env```
+- ```bash run.sh```
+- If you wish to terminate a project, run ```bash stop-all-containers.sh```
+
 ## Consul
 `` http://localhost:8500 ``
 
@@ -189,7 +197,7 @@ _main() {
 
   check_env_integrity
 
-  # These are all about passing variables from the .env to the docker-compose-app-local.yml
+  # These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
   initiate_docker_compose
   apply_env_service_name_onto_app_yaml
   apply_ports_onto_nginx_yaml
