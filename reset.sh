@@ -19,6 +19,6 @@ echo "[NOTICE] Be stored as ${state} in Consul."
 docker exec ${project_name}-nginx curl -X PUT -d ${state} ${consul_key_value_store} > /dev/null
 
 echo "[NOTICE] Stopping the ${new_state} container"
-docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${new_state}
+docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state}
 
 exit 1

@@ -19,9 +19,13 @@
 /.env
 /.env.ready.*
 
-/docker-compose-app-local.yml
-/docker-compose-app-real.yml
-/docker-compose-nginx.yml
+/docker-compose-*-nginx.yml
+/docker-compose-*-local.yml
+/docker-compose-*-real.yml
+/!docker-compose-app-local-original.yml
+/!docker-compose-app-real-original.yml
+/!docker-compose-app-nginx-original.yml
+/!docker-compose-consul.yml
 
 /.docker/nginx/ctmpl/http/*
 !/.docker/nginx/ctmpl/http/.gitkeep

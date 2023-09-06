@@ -19,7 +19,7 @@ if [ ${nginx_restart} = "true" ]; then
   sleep 2
 
   echo "[NOTICE]  Start the Nginx latest tagged container"
-  docker-compose -f docker-compose-nginx.yml up -d ${project_name}-nginx
+  docker-compose -f docker-compose-${project_name}-nginx.yml up -d ${project_name}-nginx
 fi
 
 # 2) App rollback
@@ -30,7 +30,7 @@ docker tag ${project_name}:previous ${project_name}:${new_state} || echo "[NOTIC
 sleep 2
 
 echo "[NOTICE] Start the ${new_state} container."
-docker-compose -f docker-compose-app-${app_env}.yml up -d ${project_name}-${new_state}
+docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state}
 
 
 #if [[ ${app_env} == 'local' ]]; then
@@ -47,4 +47,4 @@ fi
 ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
 echo "[NOTICE] Shut down the existing ${state} container."
-docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${state}
+docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${state}

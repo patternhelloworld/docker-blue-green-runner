@@ -33,7 +33,7 @@ fi
 nginx_restart(){
 
    echo "[NOTICE] Re-Run NGINX as a container."
-   PROJECT_NAME=${project_name} docker-compose -f docker-compose-nginx.yml up -d ${project_name}-nginx || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
+   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d ${project_name}-nginx || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 
    ./activate.sh ${state_a} ${state_b} ${state_a_upstream} ${consul_key_value_store}
 }
