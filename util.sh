@@ -169,6 +169,8 @@ cache_non_dependent_global_vars() {
 
   nginx_restart=$(get_value_from_env "NGINX_RESTART")
   consul_restart=$(get_value_from_env "CONSUL_RESTART")
+
+  use_my_own_app_yml=$(get_value_from_env "USE_MY_OWN_APP_YML")
 }
 
 cache_global_vars() {
@@ -216,8 +218,17 @@ check_yq_installed(){
 }
 
 initiate_docker_compose(){
-    cp -f docker-compose-app-${app_env}-original.yml -f docker-compose-${project_name}-${app_env}.yml || exit 1
-    cp -f docker-compose-app-nginx-original.yml -f docker-compose-${project_name}-nginx.yml || exit 1
+
+    if [[ ${use_my_own_app_yml} == true ]]; then
+      cp -f docker-compose-${project_name}-${app_env}-original-ready.yml docker-compose-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-compose-${project_name}-${app_env}-original-ready.yml" && exit 1)
+      echo "[DEBUG] successfully copied docker-compose-${project_name}-${app_env}-original-ready.yml"
+      echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-compose-${project_name}-${app_env}-original-ready.yml'"
+    else
+      cp -f docker-compose-app-${app_env}-original.yml docker-compose-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-compose-app-${app_env}-original.yml" && exit 1)
+      echo "[DEBUG] successfully copied docker-compose-app-${app_env}-original.yml"
+    fi
+    cp -f docker-compose-app-nginx-original.yml docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-compose-app-nginx-original.yml" && exit 1)
+    echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
 
     sleep 1
 }
@@ -705,7 +716,7 @@ check_availability_inside_container(){
   container_load_timeout=${2}
 
   echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
-  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
+  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Current status (inside Container) : \n $(docker logs ${project_name}-${check_state})"   >&2
   local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
   if [[ $? != 0 ]]; then
       echo "[ERROR] Failed in getting the correct return from wait-for-it.sh. (${wait_for_it_re})" >&2
@@ -798,7 +809,7 @@ check_availability_inside_container_speed_mode(){
   container_load_timeout=${2}
 
   echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
-  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
+  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] Current status (inside Container) : \n $(docker logs ${project_name}-${check_state})"   >&2
   local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || echo "[WARNING] Failed in Connection Check (running wait_for_it.sh). But, this function is for checking which container is running. we don't exit."   >&2
   if [[ $? != 0 ]]; then
       #echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2

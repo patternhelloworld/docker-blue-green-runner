@@ -35,6 +35,17 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 - The image or Dockerfile in your app must contain "bash" & "curl" 
 - Do NOT use local & real at the same time (There's no reason to do so, but just in case...)
 
+## Recommend to Use the Latest Version
+- You would like to use the latest version, so you use an upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
+- Otherwise, your server will load the previously built Nginx Image and cause errors.
+- then, just one time, run
+```shell
+git pull origin main
+bash run.sh
+```
+- However, as you know, ```NGINX_RESTART=true``` causes a short downtime. After that, make sure ```NGINX_RESTART=false``` at all times.
+
+
 ## How to Start with a Node Sample (Local).
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
@@ -155,14 +166,10 @@ docker logs -f ${project_name}-nginx   # e.g. node-express-boilerplate-nginx
 # Ways to check Nginx error logs
 docker exec -it ${project_name}-nginx bash # now you're in the container. Check '/var/log/error.log'
 ```
-
-## Upgrade
-- You would like to use the latest version, so you use an upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env only one time, then, run
+- Rollback your App to the previous Docker Image
 ```shell
-git pull origin main
-bash run.sh
+bash ./rollback.sh
 ```
-- However, as you know, ```NGINX_RESTART=true``` causes a short downtime. Make sure ```NGINX_RESTART=false``` at all times.
 
 ## Managing Multiple Projects
 - Store your .env as ```.env.ready.*``` (for me, like ```.env.ready.client```, ```.env.ready.server```)
@@ -175,17 +182,19 @@ bash run.sh
 
 
 ## Advanced
-
-- Docker-Blue-Green-Runner uses your App's only '```Dockerfile.local``` or ```Dockerfile.real```', not ```docker-compose.yml```.
-- You can set 'DOCKER_COMPOSE_ENVIRONMENT' on .env to change environments when your container is up.
-- **In case you need more to set, correct the file ```docker-compose-app-${app_env}-original.yml``` directly.**
-
+- Customizing ```docker-compose.yml```
+  - Docker-Blue-Green-Runner uses your App's only ```Dockerfile```, NOT ```docker-compose```.
+  - You can set 'DOCKER_COMPOSE_ENVIRONMENT' on .env to change environments when your container is up.
+  - **However, in case you need more to set, follow this step.** 
+    - ```cp -f docker-compose-app-${app_env}-original.yml docker-compose-${project_name}-${app_env}-original-ready.yml```
+    - Add variables you would like to ```docker-compose-${project_name}-${app_env}-original-ready.yml```
+    - **For the properties of 'environment, volumes', use .env instead of setting them on the yml.**
+    - Set ```USE_MY_OWN_APP_YML=true``` on .env
+    - ```bash run.sh```
 
 ## Structure
 ```shell
-In run.sh
 
-_main() {
 
   # Check necessary commands such as git, docker and docker-compose
   check_necessary_commands
@@ -239,6 +248,19 @@ _main() {
 
   # Run 'docker-compose up' for 'App', 'Consul (Service Mesh)' and 'Nginx' and
   # Check if the App is properly working from the inside of the App's container using 'wait-for-it.sh ( https://github.com/vishnubob/wait-for-it )' and conducting a health check with settings defined on .env.
+  ```
+### Integrity Check
+
+- **Internal Integrity Check** ( in the function 'load_all_containers')
+  - Internal Connection Check
+    - Use the open-source ./wait-for-it.sh
+  - Internal Health Check
+    - Use your App's health check URL (Check, on .env, HEALTH_CHECK related variables)
+- **External Integrity Check**  ( in the function 'check_availability_out_of_container')
+  - External HttpStatus Check
+
+```shell
+
   load_all_containers
 
   ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
@@ -264,6 +286,5 @@ _main() {
 
   echo "[NOTICE] Delete <none>:<none> images."
   docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] If any images are in use, they will not be deleted."
-}
 
 ```

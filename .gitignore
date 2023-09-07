@@ -22,6 +22,7 @@
 /docker-compose-*-nginx.yml
 /docker-compose-*-local.yml
 /docker-compose-*-real.yml
+/docker-compose-*-ready.yml
 /!docker-compose-app-local-original.yml
 /!docker-compose-app-real-original.yml
 /!docker-compose-app-nginx-original.yml

@@ -330,19 +330,19 @@ load_all_containers(){
 
 check_availability_out_of_container(){
 
-  echo "[NOTICE] Check the status from the outside of the container."  >&2
+  echo "[NOTICE] Check the http status code from the outside of the container."  >&2
   sleep 1
 
-  for retry_count in {1..6}
+  for retry_count in {1..8}
   do
     status=$(curl ${app_url}/${app_health_check_path} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
     available_status_cnt=$(echo ${status} | egrep -i '^2[0-9]+|3[0-9]+$' | wc -l)
 
-    if [[ ${available_status_cnt} < 1 ]]; then
+    if [[ ${available_status_cnt} -lt 1 ]]; then
 
       echo "Bad HTTP response in the ${new_state} app: ${status}"  >&2
 
-      if [[ ${retry_count} -eq 5 ]]
+      if [[ ${retry_count} -eq 7 ]]
       then
          echo "[ERROR] Health Check Failed. (If you are not accessing an external domain (=closed network setting environment), you need to check if APP_URL is the value retrieved by ifconfig on the Ubuntu host. Access to the ip output by the WIN ipconfig command may fail. Or you need to check the network firewall."  >&2
          echo "false"
@@ -354,7 +354,7 @@ check_availability_out_of_container(){
       break
     fi
 
-    echo "[NOTICE] Retry once every 3 seconds for a total of 5 times..."  >&2
+    echo "[NOTICE] Retry once every 3 seconds for a total of 8 times..."  >&2
     sleep 3
   done
 
@@ -430,7 +430,7 @@ _main() {
 
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
-    echo "[WARNING] a ${new_state}'s availabilty issue found. Now we are going to run 'emergency-nginx-restart.sh' immediately."
+    echo "[WARNING] ! ${new_state}'s availabilty issue found. Now we are going to run 'emergency-nginx-restart.sh' immediately."
     bash emergency-nginx-restart.sh
 
     re=$(check_availability_out_of_container | tail -n 1);
