@@ -35,7 +35,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 - The image or Dockerfile in your app must contain "bash" & "curl" 
 - Do NOT use local & real at the same time (There's no reason to do so, but just in case...)
 
-## How to Start with a Node Sample (Local, PORT: 3000).
+## How to Start with a Node Sample (Local).
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
@@ -57,7 +57,7 @@ cp -f .env.node.local .env
 bash run.sh
 ```
 
-## How to Start with a PHP Sample (Local, PORT: 8080).
+## How to Start with a PHP Sample (Local).
 
 A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
@@ -79,7 +79,7 @@ bash run.sh
 ```
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
-## How to Start with a PHP Sample (Real, PORT: 8080).
+## How to Start with a PHP Sample (Real).
 
 Differences between ``./samples/laravel-crud-boilerplate/Dockerfile.local`` and ``./samples/laravel-crud-boilerplate/Dockerfile.real``
 
@@ -107,7 +107,7 @@ bash run.sh
 ```
 Open https://localhost:8080 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
-## How to Start with a Java Sample (Local & Real, PORT: 8200).
+## How to Start with a Java Sample (Local & Real).
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"

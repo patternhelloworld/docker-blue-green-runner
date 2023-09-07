@@ -1,6 +1,32 @@
 #!/bin/bash
+
+set_expose_and_app_port(){
+
+  if [[ -z ${1} ]]
+    then
+      echo "[ERROR] The 'project_port' has not been passed. Terminate the entire process to prevent potential errors." && exit 1
+  fi
+
+  if echo "${1}" | grep -Eq '^\[[0-9]+,[0-9]+\]$'; then
+      IFS=',' read -ra values <<< "${project_port//[^0-9,]}"
+      expose_port=${values[0]}
+      app_port=${values[1]}
+  else
+      expose_port="$project_port"
+      app_port="$project_port"
+  fi
+}
+
 project_name=$(printenv PROJECT_NAME)
 project_port=$(printenv PROJECT_PORT)
+
+if ! echo "$project_port" | grep -Eq '^\[[0-9]+,[0-9]+\]$|^[0-9]+$'; then
+  echo "[ERROR] project_port on .env is a wrong type. (ex. [30000,3000] or 8888 formats are available). Correct .env, and re-run ./run.sh." && exit 1
+fi
+set_expose_and_app_port ${project_port}
+
+echo "[DEBUG] expose_port : ${expose_port} , app_port : ${app_port}"
+
 app_url=$(printenv APP_URL)
 protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
 consul_key=$(echo $(printenv CONSUL_KEY_VALUE_STORE) | cut -d "/" -f6)\\/$(echo $(printenv CONSUL_KEY_VALUE_STORE) | cut -d "/" -f7)
@@ -25,7 +51,9 @@ echo "[NOTICE] Locate the template file for ${protocol}."
 sleep 3
 mv /ctmpl/${protocol}/nginx.conf.ctmpl /etc/consul-templates
 
-sed -i -e "s/###PROJECT_PORT###/${project_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_port (${project_port}) replacement failure." && exit 1)
+sed -i -e "s/###EXPOSE_PORT###/${expose_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "expose_port (${expose_port}) replacement failure." && exit 1)
+sed -i -e "s/###APP_PORT###/${app_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "app_port (${app_port}) replacement failure." && exit 1)
+
 sed -i -e "s/###PROJECT_NAME###/${project_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_name (${project_name}) replacement failure." && exit 1)
 sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "consul_key (${consul_key}) replacement failure." && exit 1)
 sed -i -e "s/###NGINX_CLIENT_MAX_BODY_SIZE###/${nginx_client_max_body_size}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "nginx_client_max_body_size (${nginx_client_max_body_size}) replacement failure." && exit 1)
@@ -69,13 +97,15 @@ if [[ ${protocol} = 'https' ]]; then
 
 
     app_host=$(echo ${app_url} | awk -F[/:] '{print $4}')
+    echo "[DEBUG] app_host : ${app_host}"
 
-    escaped_app_url=$(echo ${app_url} | sed 's/\//\\\//g')
+    #escaped_app_url=$(echo ${app_url} | sed 's/\//\\\//g')
+    #echo "[DEBUG] escaped_app_url : ${escaped_app_url}"
 
-    sed -i -e "s/###APP_URL###/${escaped_app_url}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "APP_URL on .env failed to be applied." && exit 1)
-    sleep 1
-    sed -i -e "s/###APP_HOST###/${app_host}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "APP_HOST on .env failed to be applied." && exit 1)
-    sleep 1
+    #sed -i -e "s/###APP_URL###/${escaped_app_url}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "APP_URL on .env failed to be applied." && exit 1)
+    # sleep 1
+    #sed -i -e "s/###APP_HOST###/${app_host}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "APP_HOST on .env failed to be applied." && exit 1)
+    #sleep 1
     sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied." && exit 1)
 fi
 

@@ -187,7 +187,7 @@ load_nginx_docker_image(){
       docker rmi -f ${load_from_registry_image_with_env}-nginx-${app_version}|| exit 1
     else
 
-      echo "[NOTICE] Build the ${project_name}-nginx image (using cache)."
+      echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, build the ${project_name}-nginx image (using cache)."
       docker build --build-arg DISABLE_CACHE=${CUR_TIME}  --build-arg protocol="${protocol}" --tag ${project_name}-nginx -f ./.docker/nginx/Dockerfile . || exit 1
 
     fi
@@ -238,7 +238,7 @@ load_app_docker_image() {
 
 nginx_restart(){
 
-   echo "[NOTICE] Terminate NGINX container and network."
+   echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, terminate Nginx container and network."
 
    # docker-compose -f docker-compose-${project_name}-${app_env}.yml down || echo "[DEBUG] A1"
    docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[DEBUG] N1"
@@ -251,7 +251,7 @@ nginx_restart(){
 
 consul_restart(){
 
-    echo "[NOTICE] Terminate CONSUL container and network."
+    echo "[NOTICE] As !CONSUL_RESTART is true, which means there will be a short-downtime for CONSUL, terminate CONSUL container and network."
 
     #docker-compose -f docker-compose-${project_name}-${app_env}.yml down || echo "[DEBUG] C-A1"
     #docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[DEBUG] C-N1"
@@ -295,7 +295,7 @@ load_all_containers(){
   echo "[NOTICE] Load '${project_name}-${new_state} container'."
   docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
   docker-compose -f docker-compose-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
-  docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] Critical - App ${new_state} UP failure" && exit 1)
+  docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] App ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment." && exit 1)
   echo "[NOTICE] '${project_name}-${new_state} container' : successfully loaded."
 
   echo "[NOTICE] Check the status inside of the container."

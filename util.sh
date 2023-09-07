@@ -7,55 +7,100 @@ git config core.filemode false
 
 cache_all_states() {
 
-  echo '[NOTICE] Setting which container, blue or green, will be running.'
+  echo '[NOTICE] Checking which container, blue or green, is running.'
 
-  blue_is_run=$(docker exec ${project_name}-blue echo 'yes' 2>/dev/null || echo 'no')
-  if [[ ${blue_is_run} == 'yes' ]]; then
+  blue_is_up=$(docker exec ${project_name}-blue echo 'yes' 2>/dev/null || echo 'no')
+  if [[ ${blue_is_up} == 'yes' ]]; then
       if [[ $(check_availability_inside_container_speed_mode 'blue' 10 5 | tail -n 1) == 'true' ]]; then
-        blue_is_run='yes'
+
+        echo '[DEBUG] Checking State : A (Blue is currently running)'
+
+        state='blue'
+        new_state='green'
+        new_upstream=${green_upstream}
+
       else
-        blue_is_run='no'
-      fi
-  fi
 
-  green_is_run=$(docker exec ${project_name}-green echo 'yes' 2>/dev/null || echo 'no')
-  if [[ ${green_is_run} == 'yes' ]]; then
-      if [[ $(check_availability_inside_container_speed_mode 'green' 10 5 | tail -n 1) == 'true' ]]; then
-        green_is_run='yes'
+        green_is_up=$(docker exec ${project_name}-green echo 'yes' 2>/dev/null || echo 'no')
+        if [[ ${green_is_up} == 'yes' ]]; then
+            if [[ $(check_availability_inside_container_speed_mode 'green' 10 5 | tail -n 1) == 'true' ]]; then
+
+              echo '[DEBUG] Checking State : B (Green is currently running)'
+
+              state='green'
+              new_state='blue'
+              new_upstream=${blue_upstream}
+            else
+
+              echo '[DEBUG] Checking State : C (Blue and Green are up but both failed in the Internal Integrity Check. Whichever is OK to be deployed.)'
+
+              state='blue'
+              new_state='green'
+              new_upstream=${green_upstream}
+
+            fi
+        else
+              echo '[DEBUG] Checking State : D (Both failed in the Internal Integrity Check, but Blue is currently only up.)'
+
+              state='blue'
+              new_state='green'
+              new_upstream=${green_upstream}
+        fi
+
+      fi
+  else
+
+      green_is_up=$(docker exec ${project_name}-green echo 'yes' 2>/dev/null || echo 'no')
+      if [[ ${green_is_up} == 'yes' ]]; then
+          if [[ $(check_availability_inside_container_speed_mode 'green' 10 5 | tail -n 1) == 'true' ]]; then
+
+            echo '[DEBUG] Checking State : E (Green is currently running)'
+
+            state='green'
+            new_state='blue'
+            new_upstream=${blue_upstream}
+          else
+
+            echo '[DEBUG] cache_all_states : F (Both failed in the Internal Integrity Check, but Green is currently only up.)'
+
+            state='green'
+            new_state='blue'
+            new_upstream=${blue_upstream}
+          fi
       else
-        green_is_run='no'
+          echo '[DEBUG] cache_all_states : G (Both failed in the Internal Integrity Check and are down. Whichever is OK to be deployed.)'
+
+          state='green'
+          new_state='blue'
+          new_upstream=${blue_upstream}
+
       fi
+
   fi
 
-  state='blue'
-  new_state='green'
-  new_upstream=${green_upstream}
-  if [[ ${blue_is_run} != 'yes' ]]; then
-    if [[ ${green_is_run} != 'yes' ]]; then
-      echo "[WARNING] Currently, neither the blue nor green container is running, deploy the blue container. "
-    fi
-    state='green'
-    new_state='blue'
-    new_upstream=${blue_upstream}
+  echo "[NOTICE] Finally, ! ${new_state} will be deployed."
+}
+
+set_expose_and_app_port(){
+
+  if [[ -z ${1} ]]
+    then
+      echo "[ERROR] The 'project_port' has not been passed. Terminate the entire process to prevent potential errors." && exit 1
   fi
 
-  echo "[NOTICE] ${new_state} will be running."
+  if echo "${1}" | grep -Eq '^\[[0-9]+,[0-9]+\]$'; then
+      expose_port=$(echo "$project_port" | yq e '.[0]' -)
+      app_port=$(echo "$project_port" | yq e '.[1]' -)
+  else
+      expose_port="$project_port"
+      app_port="$project_port"
+  fi
 }
 
 cache_non_dependent_global_vars() {
-   project_name=$(get_value_from_env "PROJECT_NAME")
-   app_env=$(get_value_from_env "APP_ENV")
-   project_location=$(get_value_from_env "PROJECT_LOCATION")
-   project_port=$(get_value_from_env "PROJECT_PORT")
-     app_url=$(get_value_from_env "APP_URL")
-    protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
-  app_health_check_path=$(get_value_from_env "APP_HEALTH_CHECK_PATH")
-  bad_app_health_check_pattern=$(get_value_from_env "BAD_APP_HEALTH_CHECK_PATTERN")
-  good_app_health_check_pattern=$(get_value_from_env "GOOD_APP_HEALTH_CHECK_PATTERN")
-}
 
-cache_global_vars() {
-  
+  check_necessary_commands
+
   HOST_IP=$(get_value_from_env "HOST_IP")
 
   host_root_location=$(get_value_from_env "HOST_ROOT_LOCATION")
@@ -63,7 +108,22 @@ cache_global_vars() {
 
   project_name=$(get_value_from_env "PROJECT_NAME")
   project_location=$(get_value_from_env "PROJECT_LOCATION")
-  project_port=$(get_value_from_env "PROJECT_PORT")
+  project_port=$(echo "$(get_value_from_env "PROJECT_PORT")" | tr -d '[:space:]')
+  if ! echo "$project_port" | grep -Eq '^\[[0-9]+,[0-9]+\]$|^[0-9]+$'; then
+    echo "[ERROR] project_port on .env is a wrong type. (ex. [30000,3000] or 8888 formats are available)" && exit 1
+  fi
+
+  app_url=$(get_value_from_env "APP_URL")
+  protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
+  port_extracted_from_app_url=$(echo "$app_url" | awk -F':' '{print $NF}')
+
+  set_expose_and_app_port ${project_port}
+  echo "[DEBUG] app_port : ${app_port}, expose_port : ${expose_port}"
+
+  if [ "$port_extracted_from_app_url" != "$expose_port" ]; then
+     echo "[ERROR] The extracted port ($port_extracted_from_app_url) for APP_URL and PROJECT_PORT ($expose_port) must be the same." && exit 1
+  fi
+
   additional_ports=(`echo $(get_value_from_env "ADDITIONAL_PORTS") | cut -d ","  --output-delimiter=" " -f 1-`)
   echo "[DEBUG] ADDITIONAL_PORTS : ${additional_ports[@]}"
 
@@ -100,8 +160,7 @@ cache_global_vars() {
   docker_compose_nginx_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES")
 
   docker_layer_corruption_recovery=$(get_value_from_env "DOCKER_LAYER_CORRUPTION_RECOVERY")
-  app_url=$(get_value_from_env "APP_URL")
-  protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
+
 
   if [[ ${protocol} = 'https' ]]; then
     use_commercial_ssl=$(get_value_from_env "USE_COMMERCIAL_SSL")
@@ -110,6 +169,11 @@ cache_global_vars() {
 
   nginx_restart=$(get_value_from_env "NGINX_RESTART")
   consul_restart=$(get_value_from_env "CONSUL_RESTART")
+}
+
+cache_global_vars() {
+  
+  cache_non_dependent_global_vars
 
   host_root_uid=$(id -u)
   host_root_gid=$(id -g)
@@ -176,7 +240,7 @@ apply_ports_onto_nginx_yaml(){
 
    echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
    yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
-   yq -i '.services.'${project_name}'-nginx.ports += "${PROJECT_PORT}:${PROJECT_PORT}"' docker-compose-${project_name}-nginx.yml
+   yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
 
    for i in "${additional_ports[@]}"
    do
@@ -216,7 +280,7 @@ apply_docker_compose_volumes_onto_app_real_yaml(){
 
    for state in "${states[@]}"
    do
-       yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-compose-${project_name}-real.yml
+       #yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-compose-${project_name}-real.yml
 
       for volume in "${docker_compose_real_selective_volumes[@]}"
       do
@@ -266,7 +330,7 @@ create_nginx_ctmpl(){
 
     cat > .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
 server {
-     listen ###PROJECT_PORT### default_server;
+     listen ###EXPOSE_PORT### default_server;
      server_name localhost;
 
      client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
@@ -276,9 +340,9 @@ server {
          add_header Cache-Control no-cache;
          {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
              {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                 proxy_pass http://###PROJECT_NAME###-{{ \$key_value }}:###PROJECT_PORT###;
+                 proxy_pass http://###PROJECT_NAME###-{{ \$key_value }}:###APP_PORT###;
              {{ else }}
-                 proxy_pass http://###PROJECT_NAME###-blue:###PROJECT_PORT###;
+                 proxy_pass http://###PROJECT_NAME###-blue:###APP_PORT###;
              {{ end }}
          {{ end }}
          proxy_set_header Host \$http_host;
@@ -340,7 +404,7 @@ EOF
     cat > .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
 server {
 
-    listen ###PROJECT_PORT### default_server ssl http2;
+    listen ###EXPOSE_PORT### default_server ssl http2;
     server_name localhost;
 
     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
@@ -358,9 +422,9 @@ server {
         add_header Cache-Control no-cache;
         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                proxy_pass https://###PROJECT_NAME###-{{ \$key_value }}:###PROJECT_PORT###;
+                proxy_pass https://###PROJECT_NAME###-{{ \$key_value }}:###APP_PORT###;
             {{ else }}
-                proxy_pass https://###PROJECT_NAME###-blue:###PROJECT_PORT###;
+                proxy_pass https://###PROJECT_NAME###-blue:###APP_PORT###;
             {{ end }}
         {{ end }}
         proxy_set_header Host \$http_host;
@@ -518,10 +582,10 @@ check_env_integrity(){
 }
 
 concat_safe_port() {
- if [[ -z ${project_port} || ${project_port} == '80' || ${project_port} == '443' ]]; then
+ if [[ -z ${app_port} || ${app_port} == '80' || ${app_port} == '443' ]]; then
     echo "${1}"
  else
-    echo "${1}:${project_port}"
+    echo "${1}:${app_port}"
  fi
 }
 
@@ -538,6 +602,7 @@ docker_login_with_params() {
 }
 
 check_necessary_commands(){
+
   command -v git >/dev/null 2>&1 ||
   { echo >&2 "[ERROR] git NOT installed. Exiting...";
     exit 1
@@ -627,7 +692,7 @@ check_availability_inside_container(){
     fi
 
   
-  echo "[NOTICE] Copy wait-for-it.sh into ${project_name}-${check_state}:${project_location}/wait-for-it.sh."  >&2
+  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Copy wait-for-it.sh into ${project_name}-${check_state}:${project_location}/wait-for-it.sh."  >&2
   docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh || (echo "[ERROR] Failed in copying (HOST : ./wait-for-it.sh) to (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
 
 
@@ -639,16 +704,16 @@ check_availability_inside_container(){
 
   container_load_timeout=${2}
 
-  echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check (localhost:${project_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
-  echo "[NOTICE] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
-  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
+  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
+  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
+  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
   if [[ $? != 0 ]]; then
       echo "[ERROR] Failed in getting the correct return from wait-for-it.sh. (${wait_for_it_re})" >&2
       echo "false"
       return
   else
       # 2) APP's health check
-      echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Health Check."  >&2
+      echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Health Check."  >&2
       sleep 1
 
       local interval_sec=5
@@ -700,28 +765,28 @@ check_availability_inside_container_speed_mode(){
 
   if [[ -z ${1} ]]
     then
-      echo "[ERROR] the 'state' NOT indicated on check_availability_inside_container "  >&2
+      echo "[ERROR] [Blue OR Green Alive Check : Currently ${check_state}] the 'state' NOT indicated on check_availability_inside_container "  >&2
       echo "false"
       return
   fi
 
   if [[ -z ${2} ]]
     then
-      echo "[ERROR] there is no wait-for-it.sh timeout parameter."  >&2
+      echo "[ERROR] [Blue OR Green Alive Check : Currently ${check_state}] there is no wait-for-it.sh timeout parameter."  >&2
       echo "false"
       return
   fi
 
   if [[ -z ${3} ]]
     then
-      echo "[ERROR] there is no Health Check timeout parameter."  >&2
+      echo "[ERROR] [Blue OR Green Alive Check : Currently ${check_state}] there is no Health Check timeout parameter."  >&2
       echo "false"
       return
   fi
 
   check_state=${1}
 
-
+  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] Copy wait-for-it.sh into ${project_name}-${check_state}:${project_location}/wait-for-it.sh."  >&2
   docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh
 
 
@@ -732,17 +797,16 @@ check_availability_inside_container_speed_mode(){
 
   container_load_timeout=${2}
 
-  #echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Connection Check. (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
-  #echo "[NOTICE] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
-  #echo "${project_location} ${project_name}-${check_state} localhost:${project_port} --timeout=${2}" >&2
-  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${project_port} --timeout=${2}) || echo "[WARNING] Failed in Connection Check (running wait_for_it.sh). But, this function is for checking which container is running. we don't exit."   >&2
+  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
+  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] Current status : \n $(docker logs ${project_name}-${check_state})"   >&2
+  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || echo "[WARNING] Failed in Connection Check (running wait_for_it.sh). But, this function is for checking which container is running. we don't exit."   >&2
   if [[ $? != 0 ]]; then
       #echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2
       echo "false"
       return
   else
       # 2) APP's health check
-      #echo "[NOTICE] In the ${project_name}-${check_state}  Container, conduct the Health Check."  >&2
+      echo "[NOTICE] [Blue OR Green Alive Check : Currently ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Health Check."  >&2
       sleep 1
 
       local interval_sec=5
@@ -755,8 +819,8 @@ check_availability_inside_container_speed_mode(){
 
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
-       # echo "[NOTICE] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
-        response=$(docker exec ${project_name}-${check_state} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}") || echo "[WARNING] Failed in Health Check. But, this function is for checking which container is running. we don't exit."   >&2
+        echo "[NOTICE] [Blue OR Green Alive Check : Currently ${check_state}] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
+        response=$(docker exec ${project_name}-${check_state} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}") || echo "[WARNING] [Blue OR Green Alive Check : Currently ${check_state}] Failed in Health Check. But, this function is for checking which container is running. we don't exit."   >&2
 
         down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
         up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
