@@ -34,6 +34,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 
 - The image or Dockerfile in your app must contain "bash" & "curl" 
 - Do NOT use local & real at the same time (There's no reason to do so, but just in case...)
+  - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
 
 ## Recommend to Use the Latest Version
 - You would like to use the latest version, so you use an upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
@@ -41,7 +42,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 - then, just one time, run
 ```shell
 git pull origin main
-bash run.sh
+sudo bash run.sh
 ```
 - However, as you know, ```NGINX_RESTART=true``` causes a short downtime. After that, make sure ```NGINX_RESTART=false``` at all times.
 
@@ -65,7 +66,7 @@ cd ../../
 cp -f .env.node.local .env
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 # [NOTE] Initially, since the sample project does not have the "node_modules" installed, the Health Check stage may take longer.
-bash run.sh
+sudo bash run.sh
 ```
 
 ## How to Start with a PHP Sample (Local).
@@ -86,7 +87,7 @@ cd ../../
 cp -f .env.php.local .env
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
-bash run.sh
+sudo bash run.sh
 ```
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
@@ -114,7 +115,7 @@ cd ../../
 cp -f .env.php.real .env
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
-bash run.sh
+sudo bash run.sh
 ```
 Open https://localhost:8080 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
@@ -130,7 +131,7 @@ Open https://localhost:8080 (NO http. see .env. if you'd like http, change APP_U
 # In the ROOT folder,
 cp -f .env.java.local .env # or cp -f .env.java.real .env
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
-bash run.sh
+sudo bash run.sh
 ```
 
 ## Environment Variables
@@ -156,7 +157,7 @@ bash emergency-nginx-restart.sh blue
 bash emergency-nginx-restart.sh green
 
 # If the script above fails, set *NGINX_RESTART to be true on .env. and..
-bash run.sh
+sudo bash run.sh
 
 # This fully restarts the whole system.
 bash stop-all-containers.sh && bash remove-all-images.sh && bash run.sh
