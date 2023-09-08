@@ -26,27 +26,10 @@ backup_app_to_previous_images(){
       docker tag ${project_name}:new ${project_name}:previous && return  || echo "[NOTICE] There is no 'new' tag image to backup the app."
   fi
 
+  echo "[NOTICE] Since there is no 'new' tag image for the app, depending on 'cache_all_states' previously run in the 'cache_global_vars' stage, we will back ${state} up."
+  docker tag ${project_name}:${state} ${project_name}:previous && return || echo "[NOTICE] No ${state} tagged image."
 
-  echo "[NOTICE] Since there is no 'new' tag image for the app, we will check the blue or green container and use the image of the container that is running properly as the backup image."
-  if [[ $(docker exec ${project_name}-blue printenv SERVICE_NAME 2> /dev/null) == 'blue' ]]
-  then
-      echo "[NOTICE] Checking if the blue container is running..."
-      if [[ $(check_availability_inside_container_speed_mode 'blue' 10 5 | tail -n 1) == 'true' ]]; then
-          echo "[NOTICE] Docker tag 'blue' 'previous'"
-          docker tag ${project_name}:blue ${project_name}:previous && return || echo "[NOTICE] No 'blue' tagged image."
-      fi
-  fi
-
-  if [[ $(docker exec ${project_name}-green printenv SERVICE_NAME 2> /dev/null) == 'green' ]]
-  then
-      echo "[NOTICE] Checking if the green container is running..."
-      if [[ $(check_availability_inside_container_speed_mode 'green' 10 5 | tail -n 1) == 'true' ]]; then
-        echo "[NOTICE] Docker tag 'green' 'previous'"
-        docker tag ${project_name}:green ${project_name}:previous && return || echo "[NOTICE] No 'green' tagged image."
-      fi
-  fi
-
-  echo "[NOTICE] Since there are no 'new', 'blue', and 'green' images, we will attempt to back up the latest image as previous"
+  echo "[NOTICE] Since there is no ${state} images, we will attempt to back up the latest image as previous"
   docker tag ${project_name}:latest ${project_name}:previous || echo "[NOTICE] No 'latest' tagged image."
 
 }
@@ -246,7 +229,8 @@ nginx_restart(){
    docker network rm ${project_name}_app || echo "[DEBUG] NA"
 
    echo "[NOTICE] Run NGINX as a container."
-   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d ${project_name}-nginx || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
+   docker-compose -f docker-compose-${project_name}-nginx.yml down
+   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 }
 
 consul_restart(){
@@ -261,7 +245,8 @@ consul_restart(){
 
     docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
 
-    echo "[NOTICE] Run CONSUL container"
+    echo "[NOTICE] Re-run CONSUL container"
+    docker-compose -f docker-compose-consul.yml down
     # https://github.com/hashicorp/consul/issues/17973
     docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
     sleep 10

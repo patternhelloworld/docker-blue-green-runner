@@ -7,78 +7,133 @@ git config core.filemode false
 
 cache_all_states() {
 
-  echo '[NOTICE] Checking which container, blue or green, is running.'
+  echo '[NOTICE] Checking which container, blue or green, is running. (Priority :  Where Consul Pointing > Which Container Running > Which Container Restarting)'
 
-  blue_is_up=$(docker exec ${project_name}-blue echo 'yes' 2>/dev/null || echo 'no')
-  if [[ ${blue_is_up} == 'yes' ]]; then
-      if [[ $(check_availability_inside_container_speed_mode 'blue' 10 5 | tail -n 1) == 'true' ]]; then
+  local consul_pointing
+  consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
+  local blue_status
+  blue_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-blue 2>/dev/null || echo "unknown")
+  local green_status
+  green_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-green 2>/dev/null || echo "unknown")
 
-        echo '[DEBUG] Checking State : A (Blue is currently running)'
+  echo "[NOTICE] ! Base Check : consul_pointing(${consul_pointing}), blue_status(${blue_status}), green_status(${green_status})"
 
-        state='blue'
-        new_state='green'
-        new_upstream=${green_upstream}
+  if [[ ${consul_pointing} == 'blue' ]]; then
+
+      if [[ ${blue_status} == 'running' ]]; then
+
+            echo '[DEBUG] Checking State : Blue-A (Blue is pointed & currently running)'
+
+            state='blue'
+            new_state='green'
+            new_upstream=${green_upstream}
 
       else
 
-        green_is_up=$(docker exec ${project_name}-green echo 'yes' 2>/dev/null || echo 'no')
-        if [[ ${green_is_up} == 'yes' ]]; then
-            if [[ $(check_availability_inside_container_speed_mode 'green' 10 5 | tail -n 1) == 'true' ]]; then
+          if [[ ${consul_pointing} == 'green' ]]; then
 
-              echo '[DEBUG] Checking State : B (Green is currently running)'
+                if [[ ${green_status} == 'running' ]]; then
 
-              state='green'
-              new_state='blue'
-              new_upstream=${blue_upstream}
-            else
+                    echo '[DEBUG] Checking State : Green-A (Green is pointed & currently running)'
 
-              echo '[DEBUG] Checking State : C (Blue and Green are up but both failed in the Internal Integrity Check. Whichever is OK to be deployed.)'
+                    state='green'
+                    new_state='blue'
+                    new_upstream=${blue_upstream}
 
-              state='blue'
-              new_state='green'
-              new_upstream=${green_upstream}
+                else
 
-            fi
-        else
-              echo '[DEBUG] Checking State : D (Both failed in the Internal Integrity Check, but Blue is currently only up.)'
+                    if [[ ${green_status} == 'restarting' ]]; then
 
-              state='blue'
-              new_state='green'
-              new_upstream=${green_upstream}
-        fi
+                        echo '[DEBUG] Checking State : Green-B (Green is pointed & currently restarting)'
 
-      fi
-  else
+                        state='green'
+                        new_state='blue'
+                        new_upstream=${blue_upstream}
 
-      green_is_up=$(docker exec ${project_name}-green echo 'yes' 2>/dev/null || echo 'no')
-      if [[ ${green_is_up} == 'yes' ]]; then
-          if [[ $(check_availability_inside_container_speed_mode 'green' 10 5 | tail -n 1) == 'true' ]]; then
+                    else
 
-            echo '[DEBUG] Checking State : E (Green is currently running)'
+                        echo "[DEBUG] Checking State : Green-C (Green is pointed & Green is currently ${green_status})"
 
-            state='green'
-            new_state='blue'
-            new_upstream=${blue_upstream}
+                        state='green'
+                        new_state='blue'
+                        new_upstream=${blue_upstream}
+
+                    fi
+
+                fi
+
           else
 
-            echo '[DEBUG] cache_all_states : F (Both failed in the Internal Integrity Check, but Green is currently only up.)'
+                if [[ ${blue_status} == 'restarting' ]]; then
 
-            state='green'
-            new_state='blue'
-            new_upstream=${blue_upstream}
+                    echo '[DEBUG] Checking State : Blue-B (Blue is pointed & currently restarting)'
+
+                    state='blue'
+                    new_state='green'
+                    new_upstream=${green_upstream}
+
+                else
+
+                    echo "[DEBUG] Checking State : Blue-C (Blue is pointed & Blue is currently ${blue_status})"
+
+                    state='blue'
+                    new_state='green'
+                    new_upstream=${green_upstream}
+
+                fi
+
+
           fi
-      else
-          echo '[DEBUG] cache_all_states : G (Both failed in the Internal Integrity Check and are down. Whichever is OK to be deployed.)'
 
-          state='green'
-          new_state='blue'
-          new_upstream=${blue_upstream}
+      fi
+
+  else
+
+      if [[ ${consul_pointing} == 'green' ]]; then
+
+            if [[ ${green_status} == 'running' ]]; then
+
+                echo '[DEBUG] Checking State : Green-A (Green is pointed & currently running)'
+
+                state='green'
+                new_state='blue'
+                new_upstream=${blue_upstream}
+
+            else
+
+                if [[ ${green_status} == 'restarting' ]]; then
+
+                    echo '[DEBUG] Checking State : Green-B (Green is pointed & currently restarting)'
+
+                    state='green'
+                    new_state='blue'
+                    new_upstream=${blue_upstream}
+
+                else
+
+                    echo "[DEBUG] Checking State : Green-C (Green is pointed & currently ${green_status})"
+
+                    state='green'
+                    new_state='blue'
+                    new_upstream=${blue_upstream}
+
+                fi
+
+            fi
+
+      else
+
+            echo "[DEBUG] Checking State : Undefined"
+
+            state='blue'
+            new_state='green'
+            new_upstream=${green_upstream}
 
       fi
 
   fi
 
-  echo "[NOTICE] Finally, ! ${new_state} will be deployed."
+  echo "[NOTICE] Finally, ! will be deployed to ${new_state}."
 }
 
 set_expose_and_app_port(){
