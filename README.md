@@ -289,3 +289,10 @@ bash ./rollback.sh
   docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] If any images are in use, they will not be deleted."
 
 ```
+
+## Test
+```shell
+# Tests should be conducted in the folder
+cd tests/spring-sample-h-auth
+sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
+```
