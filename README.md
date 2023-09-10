@@ -1,8 +1,8 @@
 # Docker-Blue-Green-Runner
 
-> Zero-downtime Docker-Compose Blue-Green deployment on a service layer with Consul & Registrator
+> Zero-downtime Docker-Compose Blue-Green deployment on one service layer with Consul & Registrator
 
-To deploy web projects must be [simple](https://github.com/Andrew-Kang-G/docker-blue-green-runner).
+To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
 ## Introduction
 
@@ -33,18 +33,19 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
   - Dockerized Jenkins as well
 
 - The image or Dockerfile in your app must contain "bash" & "curl" 
-- Do NOT use local & real at the same time (There's no reason to do so, but just in case...)
-  - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
+- Do NOT build or run 'local' & 'real' at the same time (There's no reason to do so, but just in case... They have the same name of the image and container)
+- You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
 
 ## Recommend to Use the Latest Version
-- You would like to use the latest version, so you use an upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
-- Otherwise, your server will load the previously built Nginx Image and cause errors.
+- When you use any upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
+- Otherwise, your server will load the previously built Nginx Image and can cause errors.
 - then, just one time, run
 ```shell
 git pull origin main
+# set NGINX_RESTART=true on your .env, after that,
 sudo bash run.sh
 ```
-- However, as you know, ```NGINX_RESTART=true``` causes a short downtime. After that, make sure ```NGINX_RESTART=false``` at all times.
+- However, as you are aware, ```NGINX_RESTART=true``` causes a short downtime. **Make sure ```NGINX_RESTART=false``` at all times**.
 
 
 ## How to Start with a Node Sample (Local).
@@ -167,16 +168,17 @@ docker logs -f ${project_name}-nginx   # e.g. node-express-boilerplate-nginx
 # Ways to check Nginx error logs
 docker exec -it ${project_name}-nginx bash # now you're in the container. Check '/var/log/error.log'
 ```
-- Rollback your App to the previous Docker Image
+- Rollback your App to the previous App
 ```shell
 bash ./rollback.sh
 ```
 
-## Managing Multiple Projects
+## Running & Stopping Multiple Projects
 - Store your .env as ```.env.ready.*``` (for me, like ```.env.ready.client```, ```.env.ready.server```)
 - When deploying ```.env.ready.client```, simply run ```cp -f .env.ready.client .env```
 - ```bash run.sh```
-- If you wish to terminate a project, run ```bash stop-all-containers.sh```
+- If you wish to terminate the project, which should be on your .env, run ```bash stop-all-containers.sh```
+- If you wish to remove the project's images, which should be on your .env, run ```bash remove-all-images.sh```
 
 ## Consul
 `` http://localhost:8500 ``
@@ -250,15 +252,14 @@ bash ./rollback.sh
   # Run 'docker-compose up' for 'App', 'Consul (Service Mesh)' and 'Nginx' and
   # Check if the App is properly working from the inside of the App's container using 'wait-for-it.sh ( https://github.com/vishnubob/wait-for-it )' and conducting a health check with settings defined on .env.
   ```
-### Integrity Check
-
-- **Internal Integrity Check** ( in the function 'load_all_containers')
-  - Internal Connection Check
-    - Use the open-source ./wait-for-it.sh
-  - Internal Health Check
-    - Use your App's health check URL (Check, on .env, HEALTH_CHECK related variables)
-- **External Integrity Check**  ( in the function 'check_availability_out_of_container')
-  - External HttpStatus Check
+- Integrity Check is conducted at this point.
+  - **Internal Integrity Check** ( in the function 'load_all_containers')
+    - Internal Connection Check
+      - Use the open-source ./wait-for-it.sh
+    - Internal Health Check
+      - Use your App's health check URL (Check, on .env, HEALTH_CHECK related variables)
+  - **External Integrity Check**  ( in the function 'check_availability_out_of_container')
+    - External HttpStatus Check
 
 ```shell
 

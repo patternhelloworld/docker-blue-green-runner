@@ -31,14 +31,10 @@ consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_stor
 
 echo "[TEST][NOTICE] ! Kill the jar in ${project_name}-${consul_pointing}"
 docker exec ${project_name}-${consul_pointing} kill 9 $(pgrep -f 'java')
+sleep 2
 
-# Print state checking process
-result=$(cache_all_states)
-
-if [[ $result == *"currently running"* ]]; then
-  echo "[TEST][NOTICE] : SUCCESS : running"
-elif [[ $result == *"currently restarting"* ]]; then
-  echo "[TEST][NOTICE] : SUCCESS : restarting"
-else
-  echo "[TEST][NOTICE] : FAILURE"
+if [[ $(check_availability_inside_container ${consul_pointing} 120 5 | tail -n 1) == 'true' ]]; then
+    echo "[TEST][NOTICE] : SUCCESS "
+   else
+    echo "[TEST][NOTICE] : FAILURE "
 fi
