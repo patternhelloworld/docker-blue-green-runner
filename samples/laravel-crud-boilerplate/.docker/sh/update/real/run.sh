@@ -4,8 +4,7 @@ echo "[DEBUG] Root Path : ${rootPath}"
 
 cd ${rootPath} || exit 1
 
-
-chown -R www-data:www-data storage bootstrap/cache shared public
+chown -R www-data:www-data storage bootstrap/cache public
 
 php artisan key:generate
 
@@ -37,11 +36,13 @@ if [[ ${protocol} = 'https' ]]; then
   use_commercial_ssl=$(echo $(printenv USE_COMMERCIAL_SSL))
   commercial_ssl_name=$(echo $(printenv COMMERCIAL_SSL_NAME))
 
+  echo "[DEBUG] USE_COMMERCIAL_SSL : ${use_commercial_ssl} , COMMERCIAL_SSL_NAME : ${commercial_ssl_name}"
+
   apache2SslRoot="/etc/apache2/ssl"
   apache2Crt="/etc/apache2/ssl/${commercial_ssl_name}.crt"
   apache2Key="/etc/apache2/ssl/${commercial_ssl_name}.key"
 
-  if [[ ${use_commercial_ssl} == false ]] && [[ ! -f ${nginxCrt} || ! -f ${nginxKey} || ! -s ${nginxCrt} || ! -s ${nginxKey} ]]; then
+  if [[ ${use_commercial_ssl} == false ]] && [[ ! -f ${apache2Crt} || ! -f ${apache2Key} || ! -s ${apache2Crt} || ! -s ${apache2Key} ]]; then
 
       echo "[NOTICE] Create a ssl certificate for the offline network."
 

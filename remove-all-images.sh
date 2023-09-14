@@ -20,6 +20,7 @@ echo "[NOTICE] Delete all containers and networks related to the project. Ignore
 docker rmi -f ${project_name}-nginx:latest
 docker rmi -f ${project_name}-nginx:new
 docker rmi -f ${project_name}-nginx:previous
+docker rmi -f ${project_name}-nginx:previous2
 
 docker rmi -f ${project_name}:latest
 docker rmi -f ${project_name}:new

@@ -25,6 +25,7 @@ cache_all_states() {
             echo '[DEBUG] Checking State : Blue-A (Blue is pointed & currently running)'
 
             state='blue'
+            state_for_emergency=${state}
             new_state='green'
             new_upstream=${green_upstream}
 
@@ -37,6 +38,7 @@ cache_all_states() {
                     echo '[DEBUG] Checking State : Green-A (Green is pointed & currently running)'
 
                     state='green'
+                    state_for_emergency=${state}
                     new_state='blue'
                     new_upstream=${blue_upstream}
 
@@ -47,6 +49,7 @@ cache_all_states() {
                         echo '[DEBUG] Checking State : Green-B (Green is pointed & currently restarting)'
 
                         state='green'
+                        state_for_emergency='blue'
                         new_state='blue'
                         new_upstream=${blue_upstream}
 
@@ -55,6 +58,7 @@ cache_all_states() {
                         echo "[DEBUG] Checking State : Green-C (Green is pointed & Green is currently ${green_status})"
 
                         state='green'
+                        state_for_emergency='blue'
                         new_state='blue'
                         new_upstream=${blue_upstream}
 
@@ -69,6 +73,7 @@ cache_all_states() {
                     echo '[DEBUG] Checking State : Blue-B (Blue is pointed & currently restarting)'
 
                     state='blue'
+                    state_for_emergency='green'
                     new_state='green'
                     new_upstream=${green_upstream}
 
@@ -77,6 +82,7 @@ cache_all_states() {
                     echo "[DEBUG] Checking State : Blue-C (Blue is pointed & Blue is currently ${blue_status})"
 
                     state='blue'
+                    state_for_emergency='green'
                     new_state='green'
                     new_upstream=${green_upstream}
 
@@ -96,6 +102,7 @@ cache_all_states() {
                 echo '[DEBUG] Checking State : Green-A (Green is pointed & currently running)'
 
                 state='green'
+                state_for_emergency=${state}
                 new_state='blue'
                 new_upstream=${blue_upstream}
 
@@ -106,6 +113,7 @@ cache_all_states() {
                     echo '[DEBUG] Checking State : Green-B (Green is pointed & currently restarting)'
 
                     state='green'
+                    state_for_emergency='blue'
                     new_state='blue'
                     new_upstream=${blue_upstream}
 
@@ -114,6 +122,7 @@ cache_all_states() {
                     echo "[DEBUG] Checking State : Green-C (Green is pointed & currently ${green_status})"
 
                     state='green'
+                    state_for_emergency='blue'
                     new_state='blue'
                     new_upstream=${blue_upstream}
 
@@ -126,6 +135,7 @@ cache_all_states() {
             echo "[DEBUG] Checking State : Undefined"
 
             state='blue'
+            state_for_emergency='blue'
             new_state='green'
             new_upstream=${green_upstream}
 
@@ -133,7 +143,7 @@ cache_all_states() {
 
   fi
 
-  echo "[NOTICE] Finally, ! will be deployed to ${new_state}."
+  echo "[DEBUG] state : ${state}, new_state : ${new_state}, state_for_emergency : ${state_for_emergency}."
 }
 
 set_expose_and_app_port(){
@@ -224,8 +234,17 @@ cache_non_dependent_global_vars() {
 
   nginx_restart=$(get_value_from_env "NGINX_RESTART")
   consul_restart=$(get_value_from_env "CONSUL_RESTART")
+  if [[ ${consul_restart} == 'true' && ${nginx_restart} == 'false' ]]; then
+      echo "[ERROR] On .env, consul_restart=true but nginx_restart=false. That does NOT make sense, as Nginx depends on Consul." && exit 1
+  fi
 
   use_my_own_app_yml=$(get_value_from_env "USE_MY_OWN_APP_YML")
+
+  skip_building_app_image=$(get_value_from_env "SKIP_BUILDING_APP_IMAGE")
+
+  if [[ ${docker_layer_corruption_recovery} == 'true' && ${skip_building_app_image} == 'true' ]]; then
+      echo "[ERROR] On .env, docker_layer_corruption_recovery=true and skip_building_app_image=true as well. That does NOT make sense, as 'docker_layer_corruption_recovery=true' removes all images first." && exit 1
+  fi
 }
 
 cache_global_vars() {
@@ -470,7 +489,8 @@ EOF
     cat > .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
 server {
 
-    listen ###EXPOSE_PORT### default_server ssl http2;
+    listen ###EXPOSE_PORT### default_server ssl;
+    http2 on;
     server_name localhost;
 
     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
@@ -514,7 +534,9 @@ EOF
         cat >> .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
 
 server {
-    listen $i default_server ssl http2;
+    listen $i default_server ssl;
+    http2 on;
+
     server_name localhost;
 
     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;

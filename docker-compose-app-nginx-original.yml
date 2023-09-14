@@ -11,6 +11,7 @@ services:
       - .env
     volumes:
       - ./.docker/ssl:/etc/nginx/ssl
+      - ./.docker/nginx/ctmpl:/ctmpl
     networks:
       - app
       - consul

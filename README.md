@@ -1,6 +1,6 @@
 # Docker-Blue-Green-Runner
 
-> Zero-downtime Docker-Compose Blue-Green deployment on one service layer with Consul & Registrator
+> Zero-downtime Blue-Green deployment with Docker-Compose, Consul, Integrity Checking
 
 To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
@@ -47,6 +47,13 @@ sudo bash run.sh
 ```
 - However, as you are aware, ```NGINX_RESTART=true``` causes a short downtime. **Make sure ```NGINX_RESTART=false``` at all times**.
 
+## Terms
+For all echo messages or properties .env, the following terms indicate...
+- BUILD (=LOAD IMAGE) : ```docker build```
+- UP (=LOAD CONTAINER) : ```docker-compose up```
+- DOWN : ```docker-compose down```
+- RESTART : ```docker build & docker-compose down & docker-compose up ```
+  - ex) NGINX_RESTART on .env means docker build & down & up for NGINX
 
 ## How to Start with a Node Sample (Local).
 
@@ -92,7 +99,7 @@ sudo bash run.sh
 ```
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
-## How to Start with a PHP Sample (Real).
+## How to Start with a PHP Sample (Real). - https
 
 Differences between ``./samples/laravel-crud-boilerplate/Dockerfile.local`` and ``./samples/laravel-crud-boilerplate/Dockerfile.real``
 
@@ -151,11 +158,11 @@ DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/
 ## Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
 ```shell
-bash emergency-nginx-restart.sh
+bash emergency-nginx-down-and-up.sh
 # In case you need to manually set the Nginx to point to 'blue' or 'green'
-bash emergency-nginx-restart.sh blue
+bash emergency-nginx-down-and-up.sh blue
 ## OR
-bash emergency-nginx-restart.sh green
+bash emergency-nginx-down-and-up.sh green
 
 # If the script above fails, set *NGINX_RESTART to be true on .env. and..
 sudo bash run.sh
@@ -170,6 +177,7 @@ docker exec -it ${project_name}-nginx bash # now you're in the container. Check 
 ```
 - Rollback your App to the previous App
 ```shell
+# Set NGINX_RESTART=false, otherwise, the Nginx Container is rollbacked as well.
 bash ./rollback.sh
 ```
 
@@ -197,19 +205,16 @@ bash ./rollback.sh
 
 ## Structure
 ```shell
-
-
-  # Check necessary commands such as git, docker and docker-compose
+  # [A] Get mandatory variables
   check_necessary_commands
-  
-  # Load the environment variables on .env and container-state-related variables
   cache_global_vars
-  # Once you run 'cache_global_vars' at different stages, the values of the container-state-related variables can differ.
-  # The container with 'safe_old_state' will be killed after 'new_state' is successfully deployed.
-  local safe_old_state=${state}
-
+  # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
+  local initially_cached_old_state=${state}
   check_env_integrity
 
+  echo "[NOTICE] We will now deploy '${project_name}' in a way of 'Blue-Green'"
+
+  # [B] Set mandatory files
   # These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
   initiate_docker_compose
   apply_env_service_name_onto_app_yaml
@@ -221,33 +226,29 @@ bash ./rollback.sh
     apply_docker_compose_volumes_onto_app_real_yaml
   fi
 
+  apply_docker_compose_volumes_onto_app_nginx_yaml
 
   create_nginx_ctmpl
 
-  backup_app_to_previous_images
-  backup_nginx_to_previous_images
-
-  if [[ ${app_env} == 'local' ]]; then
-
-      give_host_group_id_full_permissions
-  #else
-
-     # create_host_folders_if_not_exists
+  if [[ ${skip_building_app_image} != 'true' ]]; then
+    backup_app_to_previous_images
+    backup_nginx_to_previous_images
   fi
 
-  #docker system prune -f
-  if [[ ${docker_layer_corruption_recovery} == true ]]; then
+  if [[ ${app_env} == 'local' ]]; then
+      give_host_group_id_full_permissions
+  fi
+
+  if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
     terminate_whole_system
   fi
 
-
-  load_app_docker_image
-
-
-  load_consul_docker_image
-
-
-  load_nginx_docker_image
+  # [B] Build Docker images for the App, Nginx, Consul
+  if [[ ${skip_building_app_image} != 'true' ]]; then
+    load_app_docker_image
+    load_consul_docker_image
+    load_nginx_docker_image
+  fi
 
   # Run 'docker-compose up' for 'App', 'Consul (Service Mesh)' and 'Nginx' and
   # Check if the App is properly working from the inside of the App's container using 'wait-for-it.sh ( https://github.com/vishnubob/wait-for-it )' and conducting a health check with settings defined on .env.
@@ -263,31 +264,43 @@ bash ./rollback.sh
 
 ```shell
 
-  load_all_containers
+# [C] Docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
+load_all_containers
 
-  ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
+# [D] Set Consul
+./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
+
+# [E] External Integrity Check, if fails, 'emergency-nginx-down-and-up.sh' will be run.
+re=$(check_availability_out_of_container | tail -n 1);
+if [[ ${re} != 'true' ]]; then
+  echo "[WARNING] ! ${new_state}'s availability issue found. Now we are going to run 'emergency-nginx-down-and-up.sh' immediately."
+  bash emergency-nginx-down-and-up.sh
 
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
-    echo "[WARNING] a ${new_state}'s availabilty issue found. Now we are going to run 'emergency-nginx-restart.sh' immediately."
-    bash emergency-nginx-restart.sh
-
-    re=$(check_availability_out_of_container | tail -n 1);
-    if [[ ${re} != 'true' ]]; then
-      echo "[ERROR] Failed to call app_url outside container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
-    fi
+    echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
   fi
+fi
 
-  ## From this point on, regarded as "success"
 
+# [F] Finalizing the process : from this point on, regarded as "success".
+if [[ ${skip_building_app_image} != 'true' ]]; then
   backup_to_new_images
+fi
 
-  echo "[DEBUG] state : ${state}, new_state : ${new_state}, safe_old_state : ${safe_old_state}"
-  echo "[NOTICE] The previous (${safe_old_state}) container (safe_old_state) exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
-  docker-compose -f docker-compose-app-${app_env}.yml stop ${project_name}-${safe_old_state}
+echo "[DEBUG] state : ${state}, new_state : ${new_state}, initially_cached_old_state : ${initially_cached_old_state}"
 
-  echo "[NOTICE] Delete <none>:<none> images."
-  docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] If any images are in use, they will not be deleted."
+echo "[NOTICE] For safety, finally check Consul pointing before stopping the previous container (${initially_cached_old_state})."
+local consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
+if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
+  docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
+  echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+else
+  echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
+fi
+
+echo "[NOTICE] Delete <none>:<none> images."
+docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
 
 ```
 
@@ -297,3 +310,7 @@ bash ./rollback.sh
 cd tests/spring-sample-h-auth
 sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
 ```
+
+## Concurrent Running for this App
+- Running ```sudo bash *.sh``` concurrently for the **same** project at the same time, is NOT safe.
+- Running ```sudo bash *.sh``` concurrently for **different** projects at the same time, is safe.

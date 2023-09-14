@@ -85,7 +85,7 @@ give_host_group_id_full_permissions(){
   # volume folders may need to be modified by IDEs or other tools on the host,
   # so permissions are given to the host, and permissions are also required for the libraries to access each folder inside Docker
   # (permissions inside Docker are executed in the ENTRYPOINT script)
-  echo "[NOTICE] To facilitate access from an IDE to Docker's internal permissions, we grant host permissions locally and set them to 777."
+  echo "[NOTICE] !! APP_ENV=local Only : To facilitate access from an IDE to Docker's internal permissions, we grant host permissions locally and set them to 777."
   sudo chgrp -R ${host_root_gid} ${host_root_location}
   sudo chmod -R 777 ${host_root_location}
 }
@@ -95,10 +95,12 @@ terminate_whole_system(){
     docker rmi -f ${project_name}-nginx:latest
     docker rmi -f ${project_name}-nginx:new
     docker rmi -f ${project_name}-nginx:previous
+    docker rmi -f ${project_name}-nginx:previous2
 
     docker rmi -f ${project_name}:latest
     docker rmi -f ${project_name}:new
     docker rmi -f ${project_name}:previous
+    docker rmi -f ${project_name}:previous2
     docker rmi -f ${project_name}:blue
     docker rmi -f ${project_name}:green
 
@@ -106,7 +108,7 @@ terminate_whole_system(){
     docker-compose -f docker-compose-${project_name}-real.yml down || echo "[NOTICE] docker-compose-${project_name}-real.yml down failure"
     docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] docker-compose-${project_name}-consul.yml down failure"
     docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] docker-compose-${project_name}-nginx.yml down failure"
-    docker-compose down || echo "[NOTICE] docker-compose.yml down failure"
+
     docker system prune -f
   fi
 }
@@ -218,35 +220,40 @@ load_app_docker_image() {
   docker tag ${project_name}:latest ${project_name}:green
 }
 
+app_down_and_up(){
 
-nginx_restart(){
+    echo "[NOTICE] Down & Up '${project_name}-${new_state} container'."
+    docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
+    docker-compose -f docker-compose-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
+    docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] App ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment." && exit 1)
+    echo "[NOTICE] '${project_name}-${new_state} container' : successfully UP."
+
+}
+
+nginx_down_and_up(){
 
    echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, terminate Nginx container and network."
 
-   # docker-compose -f docker-compose-${project_name}-${app_env}.yml down || echo "[DEBUG] A1"
-   docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[DEBUG] N1"
-
    docker network rm ${project_name}_app || echo "[DEBUG] NA"
 
-   echo "[NOTICE] Run NGINX as a container."
-   docker-compose -f docker-compose-${project_name}-nginx.yml down
+   echo "[NOTICE] Stop & Remove NGINX Container."
+   docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] The previous Nginx Container has been stopped & removed, if exists."
+
+   echo "[NOTICE] Up NGINX Container."
    PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 }
 
-consul_restart(){
+consul_down_and_up(){
 
     echo "[NOTICE] As !CONSUL_RESTART is true, which means there will be a short-downtime for CONSUL, terminate CONSUL container and network."
 
-    #docker-compose -f docker-compose-${project_name}-${app_env}.yml down || echo "[DEBUG] C-A1"
-    #docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[DEBUG] C-N1"
-    docker-compose -f docker-compose-consul.yml down || echo "[DEBUG] C-1"
+    echo "[NOTICE] Stop & Remove CONSUL Container."
+    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] The previous Consul Container has been stopped & removed, if exists."
 
-    docker network rm consul || echo "[DEBUG] CA"
+    docker network rm consul || echo "[NOTICE] Failed to remove Consul Network. You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
+    docker network create consul || echo "[NOTICE] Failed to create Consul Network.  You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
 
-    docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
-
-    echo "[NOTICE] Re-run CONSUL container"
-    docker-compose -f docker-compose-consul.yml down
+    echo "[NOTICE] Up CONSUL container"
     # https://github.com/hashicorp/consul/issues/17973
     docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
     sleep 10
@@ -269,28 +276,21 @@ check_supporting_containers_loaded(){
 
 
 load_all_containers(){
-
+  # app, consul, nginx
   # In the past, restarting Nginx before App caused error messages like "upstream not found" in the Nginx configuration file. This seems to have caused a 502 error on the socket side.
   # Therefore, it is safer to restart the containers in the order of App -> Consul -> Nginx.
-  echo "[NOTICE] Run the app as a ${new_state} container. (This doesn't stop the running container since this is a BLUE-GREEN deployment.)"
+  echo "[NOTICE] Run the app as a ${new_state} container. (This won't stop the running container since this is a BLUE-GREEN deployment.)"
 
   echo "[NOTICE] Creating consul network..."
   docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
 
-  echo "[NOTICE] Load '${project_name}-${new_state} container'."
-  docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
-  docker-compose -f docker-compose-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
-  docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] App ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment." && exit 1)
-  echo "[NOTICE] '${project_name}-${new_state} container' : successfully loaded."
+  app_down_and_up
 
-  echo "[NOTICE] Check the status inside of the container."
+  echo "[NOTICE] Check the integrity inside the '${project_name}-${new_state} container'."
   if [[ ${app_env} == 'local' ]]; then
      re=$(check_availability_inside_container ${new_state} 600 30 | tail -n 1) || exit 1;
   else
      re=$(check_availability_inside_container ${new_state} 120 5 | tail -n 1) || exit 1;
-    #dynamic_timeout=5000
-    #sleep 5
-    #docker exec -it ${project_name}-${new_state}  bash -c 'bash '${project_location}'/'${project_name}'/.docker/sh/update/local/'${project_name}'.sh'
   fi
 
   if [[ ${re} != 'true' ]]; then
@@ -299,13 +299,13 @@ load_all_containers(){
 
   if [[ ${consul_restart} == 'true' ]]; then
 
-      consul_restart
+      consul_down_and_up
 
   fi
 
   if [[ ${nginx_restart} == 'true' ]]; then
 
-      nginx_restart
+      nginx_down_and_up
 
   fi
 
@@ -359,15 +359,16 @@ backup_to_new_images(){
 
 _main() {
 
+  # [A] Get mandatory variables
   check_necessary_commands
-
   cache_global_vars
-  local safe_old_state=${state}
-
-  echo "[NOTICE] We will now deploy '${project_name}' in a way of 'Blue-Green'"
-
+  # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
+  local initially_cached_old_state=${state}
   check_env_integrity
 
+  echo "[NOTICE] Finally, !! to ${new_state}, we will now deploy '${project_name}' in a way of 'Blue-Green'"
+
+  # [B] Set mandatory files
   # These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
   initiate_docker_compose
   apply_env_service_name_onto_app_yaml
@@ -383,7 +384,9 @@ _main() {
 
   create_nginx_ctmpl
 
-  backup_app_to_previous_images
+  if [[ ${skip_building_app_image} != 'true' ]]; then
+    backup_app_to_previous_images
+  fi
   backup_nginx_to_previous_images
 
   if [[ ${app_env} == 'local' ]]; then
@@ -394,43 +397,51 @@ _main() {
      # create_host_folders_if_not_exists
   fi
 
-  #docker system prune -f
-  if [[ ${docker_layer_corruption_recovery} == true ]]; then
+  if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
     terminate_whole_system
   fi
 
+  # [B] Build Docker images for the App, Nginx, Consul
+  if [[ ${skip_building_app_image} != 'true' ]]; then
+    load_app_docker_image
+  fi
+    load_consul_docker_image
+    load_nginx_docker_image
 
-  load_app_docker_image
-
-
-  load_consul_docker_image
-
-
-  load_nginx_docker_image
-
-
+  # [C] Docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
   load_all_containers
 
+  # [D] Set Consul
   ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
+  # [E] External Integrity Check, if fails, 'emergency-nginx-down-and-up.sh' will be run.
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
-    echo "[WARNING] ! ${new_state}'s availabilty issue found. Now we are going to run 'emergency-nginx-restart.sh' immediately."
-    bash emergency-nginx-restart.sh
+    echo "[WARNING] ! ${new_state}'s availability issue found. Now we are going to run 'emergency-nginx-down-and-up.sh' immediately."
+    bash emergency-nginx-down-and-up.sh
 
     re=$(check_availability_out_of_container | tail -n 1);
     if [[ ${re} != 'true' ]]; then
-      echo "[ERROR] Failed to call app_url outside container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
+      echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
     fi
   fi
 
-  ## From this point on, regarded as "success"
 
-  backup_to_new_images
+  # [F] Finalizing the process : from this point on, regarded as "success".
+  if [[ ${skip_building_app_image} != 'true' ]]; then
+    backup_to_new_images
+  fi
 
-  echo "[DEBUG] state : ${state}, new_state : ${new_state}, safe_old_state : ${safe_old_state}"
-  echo "[NOTICE] The previous (${safe_old_state}) container (safe_old_state) exits because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
-  docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${safe_old_state}
+  echo "[DEBUG] state : ${state}, new_state : ${new_state}, initially_cached_old_state : ${initially_cached_old_state}"
+
+  echo "[NOTICE] For safety, finally check Consul pointing before stopping the previous container (${initially_cached_old_state})."
+  local consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
+  if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
+    docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
+    echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+  else
+    echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
+  fi
 
   echo "[NOTICE] Delete <none>:<none> images."
   docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."

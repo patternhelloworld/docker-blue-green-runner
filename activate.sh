@@ -57,7 +57,7 @@ while [ 1 ]; do
       echo "[WARNING] Since ${new_upstream} string is not found in the NGINX configuration file, we will revert CONSUL to ${old_state} (although it should already be ${old_state}, we will save it again to ensure)"
           is_run=$(docker exec ${project_name}-${old_state}  echo 'yes' 2>/dev/null || echo 'no')
           if [[ ${is_run} == 'yes' ]]; then
-              if [[ $(check_availability_inside_container_speed_mode 'blue' 10 5 | tail -n 1) == 'true' ]]; then
+              if [[ $(check_availability_inside_container_speed_mode ${old_state} 10 5 | tail -n 1) == 'true' ]]; then
                 is_run='yes'
               else
                 is_run='no'

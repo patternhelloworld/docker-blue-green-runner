@@ -7,7 +7,6 @@ set -e
 
 source ./util.sh
 
-#cache_global_vars
 app_env=$(get_value_from_env "APP_ENV")
 project_name=$(get_value_from_env "PROJECT_NAME")
 
