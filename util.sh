@@ -16,134 +16,96 @@ cache_all_states() {
   local green_status
   green_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-green 2>/dev/null || echo "unknown")
 
-  echo "[NOTICE] ! Base Check : consul_pointing(${consul_pointing}), blue_status(${blue_status}), green_status(${green_status})"
+  echo "[DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Base Check) : consul_pointing(${consul_pointing}), blue_status(${blue_status}), green_status(${green_status})"
 
-  if [[ ${consul_pointing} == 'blue' ]]; then
+  local blue_score=0
+  local green_score=0
 
-      if [[ ${blue_status} == 'running' ]]; then
-
-            echo '[DEBUG] Checking State : Blue-A (Blue is pointed & currently running)'
-
-            state='blue'
-            state_for_emergency=${state}
-            new_state='green'
-            new_upstream=${green_upstream}
-
-      else
-
-          if [[ ${consul_pointing} == 'green' ]]; then
-
-                if [[ ${green_status} == 'running' ]]; then
-
-                    echo '[DEBUG] Checking State : Green-A (Green is pointed & currently running)'
-
-                    state='green'
-                    state_for_emergency=${state}
-                    new_state='blue'
-                    new_upstream=${blue_upstream}
-
-                else
-
-                    if [[ ${green_status} == 'restarting' ]]; then
-
-                        echo '[DEBUG] Checking State : Green-B (Green is pointed & currently restarting)'
-
-                        state='green'
-                        state_for_emergency='blue'
-                        new_state='blue'
-                        new_upstream=${blue_upstream}
-
-                    else
-
-                        echo "[DEBUG] Checking State : Green-C (Green is pointed & Green is currently ${green_status})"
-
-                        state='green'
-                        state_for_emergency='blue'
-                        new_state='blue'
-                        new_upstream=${blue_upstream}
-
-                    fi
-
-                fi
-
-          else
-
-                if [[ ${blue_status} == 'restarting' ]]; then
-
-                    echo '[DEBUG] Checking State : Blue-B (Blue is pointed & currently restarting)'
-
-                    state='blue'
-                    state_for_emergency='green'
-                    new_state='green'
-                    new_upstream=${green_upstream}
-
-                else
-
-                    echo "[DEBUG] Checking State : Blue-C (Blue is pointed & Blue is currently ${blue_status})"
-
-                    state='blue'
-                    state_for_emergency='green'
-                    new_state='green'
-                    new_upstream=${green_upstream}
-
-                fi
-
-
-          fi
-
-      fi
-
-  else
-
-      if [[ ${consul_pointing} == 'green' ]]; then
-
-            if [[ ${green_status} == 'running' ]]; then
-
-                echo '[DEBUG] Checking State : Green-A (Green is pointed & currently running)'
-
-                state='green'
-                state_for_emergency=${state}
-                new_state='blue'
-                new_upstream=${blue_upstream}
-
-            else
-
-                if [[ ${green_status} == 'restarting' ]]; then
-
-                    echo '[DEBUG] Checking State : Green-B (Green is pointed & currently restarting)'
-
-                    state='green'
-                    state_for_emergency='blue'
-                    new_state='blue'
-                    new_upstream=${blue_upstream}
-
-                else
-
-                    echo "[DEBUG] Checking State : Green-C (Green is pointed & currently ${green_status})"
-
-                    state='green'
-                    state_for_emergency='blue'
-                    new_state='blue'
-                    new_upstream=${blue_upstream}
-
-                fi
-
-            fi
-
-      else
-
-            echo "[DEBUG] Checking State : Undefined"
-
-            state='blue'
-            state_for_emergency='blue'
-            new_state='green'
-            new_upstream=${green_upstream}
-
-      fi
-
+  if [[ "$consul_pointing" == "blue" ]]; then
+      blue_score=$((blue_score + 50))
+  elif [[ "$consul_pointing" == "green" ]]; then
+      green_score=$((green_score + 50))
   fi
 
-  echo "[DEBUG] state : ${state}, new_state : ${new_state}, state_for_emergency : ${state_for_emergency}."
+
+  case "$blue_status" in
+      "running")
+          blue_score=$((blue_score + 30))
+          ;;
+      "restarting")
+          blue_score=$((blue_score + 29))
+          ;;
+      "created")
+          blue_score=$((blue_score + 28))
+          ;;
+      "exited")
+          blue_score=$((blue_score + 27))
+          ;;
+      "paused")
+          blue_score=$((blue_score + 26))
+          ;;
+      "dead")
+          blue_score=$((blue_score + 25))
+          ;;
+      *)
+          ;;
+  esac
+
+
+  case "$green_status" in
+      "running")
+          green_score=$((green_score + 30))
+          ;;
+      "restarting")
+          green_score=$((green_score + 29))
+          ;;
+      "created")
+          green_score=$((green_score + 28))
+          ;;
+      "exited")
+          green_score=$((green_score + 27))
+          ;;
+      "paused")
+          green_score=$((green_score + 26))
+          ;;
+      "dead")
+          green_score=$((green_score + 25))
+          ;;
+      *)
+          ;;
+  esac
+
+  # 최종 결과 출력
+  if [[ $blue_score -gt $green_score ]]; then
+
+         state='blue'
+         if [[ ("$blue_status" == "unknown" || "$blue_status" == "exited" || "$blue_status" == "paused" || "$blue_status" == "dead") && "$green_status" == "running" ]]; then
+           state_for_emergency='green'
+         else
+           state_for_emergency=${state}
+         fi
+         new_state='green'
+         new_upstream=${green_upstream}
+
+  elif [[ $green_score -gt $blue_score ]]; then
+
+         state='green'
+          if [[ ("$green_status" == "unknown" || "$green_status" == "exited" || "$green_status" == "paused" || "$green_status" == "dead") && "$blue_status" == "running" ]]; then
+            state_for_emergency='blue'
+          else
+            state_for_emergency=${state}
+          fi
+         new_state='blue'
+         new_upstream=${blue_upstream}
+
+  else
+        state='green'
+        state_for_emergency=${state}
+        new_state='blue'
+        new_upstream=${blue_upstream}
+  fi
+
+  echo "[DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Final Check) : blue_score : ${blue_score}, green_score : ${green_score}, state : ${state}, new_state : ${new_state}, state_for_emergency : ${state_for_emergency}, new_upstream : ${new_upstream}."
 }
 
 set_expose_and_app_port(){
@@ -938,4 +900,40 @@ check_availability_inside_container_speed_mode(){
      echo "true"
      return
  fi
+}
+
+
+check_availability_out_of_container(){
+
+  echo "[NOTICE] Check the http status code from the outside of the container."  >&2
+  sleep 1
+
+  for retry_count in {1..6}
+  do
+    status=$(curl ${app_url}/${app_health_check_path} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
+    available_status_cnt=$(echo ${status} | egrep -i '^2[0-9]+|3[0-9]+$' | wc -l)
+
+    if [[ ${available_status_cnt} -lt 1 ]]; then
+
+      echo "Bad HTTP response in the ${new_state} app: ${status}"  >&2
+
+      if [[ ${retry_count} -eq 5 ]]
+      then
+         echo "[ERROR] Health Check Failed. (If you are not accessing an external domain (=closed network setting environment), you need to check if APP_URL is the value retrieved by ifconfig on the Ubuntu host. Access to the ip output by the WIN ipconfig command may fail. Or you need to check the network firewall."  >&2
+         echo "false"
+         return
+      fi
+
+    else
+      echo "[NOTICE] Success. (Status (2xx, 3xx) : ${status})"  >&2
+      break
+    fi
+
+    echo "[NOTICE] Retry once every 3 seconds for a total of 8 times..."  >&2
+    sleep 3
+  done
+
+  echo 'true'
+  return
+
 }

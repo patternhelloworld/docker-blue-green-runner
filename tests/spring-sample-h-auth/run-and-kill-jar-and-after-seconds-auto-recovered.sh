@@ -2,8 +2,6 @@
 sed -i -e "s/\r$//g" $(basename $0)
 set -eu
 
-echo "[TEST][NOTICE] Check DB is connected (refer to Samples on README)."
-
 cd ../../
 
 sudo chmod a+x *.sh

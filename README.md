@@ -54,7 +54,7 @@ For all echo messages or properties .env, the following terms indicate...
 - DOWN : ```docker-compose down```
 - RESTART : ```docker build & docker-compose down & docker-compose up ```
   - ex) NGINX_RESTART on .env means docker build & down & up for NGINX
-
+- safe : set a new state(=blue or green) without stopping or causing errors on your web App.
 ## How to Start with a Node Sample (Local).
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
@@ -155,9 +155,21 @@ CONSUL_RESTART=false
 # The value must be json or yaml type, which is injected into docker-compose-app-${app_env}.yml
 DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
 ```
+
+## Check states
+```shell
+bash check-current-states.sh
+
+# an output sample below
+# [DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Final Check) : blue_score : 80, green_score : 0, state : blue, new_state : green, state_for_emergency : blue, new_upstream : https://laravel_crud_boilerplate-green:8080.
+# The higher the score a state receives, the more likely it is to be the currently running state. So the updated App should be deployed as the non-occupied state(=new_state).
+# For the emergency script, there is another safer priority added over the results of scores. So, the 'state_for_emergency' is basically the same as the 'state' but can differ.
+```
+
 ## Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
 ```shell
+# Automatically set the safe state & down and up Nginx
 bash emergency-nginx-down-and-up.sh
 # In case you need to manually set the Nginx to point to 'blue' or 'green'
 bash emergency-nginx-down-and-up.sh blue
@@ -205,50 +217,60 @@ bash ./rollback.sh
 
 ## Structure
 ```shell
-  # [A] Get mandatory variables
-  check_necessary_commands
-  cache_global_vars
-  # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
-  local initially_cached_old_state=${state}
-  check_env_integrity
+# [A] Get mandatory variables
+check_necessary_commands
+cache_global_vars
+# The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
+local initially_cached_old_state=${state}
+check_env_integrity
 
-  echo "[NOTICE] We will now deploy '${project_name}' in a way of 'Blue-Green'"
+echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
 
-  # [B] Set mandatory files
-  # These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
-  initiate_docker_compose
-  apply_env_service_name_onto_app_yaml
-  apply_ports_onto_nginx_yaml
-  apply_docker_compose_environment_onto_app_yaml
+# [B] Set mandatory files
+# These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
+initiate_docker_compose
+apply_env_service_name_onto_app_yaml
+apply_ports_onto_nginx_yaml
+apply_docker_compose_environment_onto_app_yaml
 
-  # Refer to .env.*.real
-  if [[ ${app_env} == 'real' ]]; then
-    apply_docker_compose_volumes_onto_app_real_yaml
-  fi
+# Refer to .env.*.real
+if [[ ${app_env} == 'real' ]]; then
+  apply_docker_compose_volumes_onto_app_real_yaml
+fi
 
-  apply_docker_compose_volumes_onto_app_nginx_yaml
+apply_docker_compose_volumes_onto_app_nginx_yaml
 
-  create_nginx_ctmpl
+create_nginx_ctmpl
 
-  if [[ ${skip_building_app_image} != 'true' ]]; then
-    backup_app_to_previous_images
-    backup_nginx_to_previous_images
-  fi
+if [[ ${skip_building_app_image} != 'true' ]]; then
+  backup_app_to_previous_images
+fi
+backup_nginx_to_previous_images
 
-  if [[ ${app_env} == 'local' ]]; then
-      give_host_group_id_full_permissions
-  fi
+if [[ ${app_env} == 'local' ]]; then
 
-  if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
-    terminate_whole_system
-  fi
+    give_host_group_id_full_permissions
+#else
 
-  # [B] Build Docker images for the App, Nginx, Consul
-  if [[ ${skip_building_app_image} != 'true' ]]; then
-    load_app_docker_image
-    load_consul_docker_image
-    load_nginx_docker_image
-  fi
+   # create_host_folders_if_not_exists
+fi
+
+if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
+  terminate_whole_system
+fi
+
+# [B] Build Docker images for the App, Nginx, Consul
+if [[ ${skip_building_app_image} != 'true' ]]; then
+  load_app_docker_image
+fi
+  load_consul_docker_image
+  load_nginx_docker_image
+
+local cached_new_state=${new_state}
+cache_all_states
+if [[ ${cached_new_state} != "${new_state}" ]]; then
+  (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
+fi
 
   # Run 'docker-compose up' for 'App', 'Consul (Service Mesh)' and 'Nginx' and
   # Check if the App is properly working from the inside of the App's container using 'wait-for-it.sh ( https://github.com/vishnubob/wait-for-it )' and conducting a health check with settings defined on .env.
@@ -302,6 +324,7 @@ fi
 echo "[NOTICE] Delete <none>:<none> images."
 docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
 
+echo "[NOTICE] APP_URL : ${app_url}"
 ```
 
 ## Test

@@ -313,41 +313,6 @@ load_all_containers(){
 
 }
 
-check_availability_out_of_container(){
-
-  echo "[NOTICE] Check the http status code from the outside of the container."  >&2
-  sleep 1
-
-  for retry_count in {1..8}
-  do
-    status=$(curl ${app_url}/${app_health_check_path} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
-    available_status_cnt=$(echo ${status} | egrep -i '^2[0-9]+|3[0-9]+$' | wc -l)
-
-    if [[ ${available_status_cnt} -lt 1 ]]; then
-
-      echo "Bad HTTP response in the ${new_state} app: ${status}"  >&2
-
-      if [[ ${retry_count} -eq 7 ]]
-      then
-         echo "[ERROR] Health Check Failed. (If you are not accessing an external domain (=closed network setting environment), you need to check if APP_URL is the value retrieved by ifconfig on the Ubuntu host. Access to the ip output by the WIN ipconfig command may fail. Or you need to check the network firewall."  >&2
-         echo "false"
-         return
-      fi
-
-    else
-      echo "[NOTICE] Success. (Status (2xx, 3xx) : ${status})"  >&2
-      break
-    fi
-
-    echo "[NOTICE] Retry once every 3 seconds for a total of 8 times..."  >&2
-    sleep 3
-  done
-
-  echo 'true'
-  return
-
-}
-
 backup_to_new_images(){
 
     echo "[NOTICE] docker tag latest new"
@@ -366,7 +331,7 @@ _main() {
   local initially_cached_old_state=${state}
   check_env_integrity
 
-  echo "[NOTICE] Finally, !! to ${new_state}, we will now deploy '${project_name}' in a way of 'Blue-Green'"
+  echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
 
   # [B] Set mandatory files
   # These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
@@ -408,6 +373,12 @@ _main() {
     load_consul_docker_image
     load_nginx_docker_image
 
+  local cached_new_state=${new_state}
+  cache_all_states
+  if [[ ${cached_new_state} != "${new_state}" ]]; then
+    (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
+  fi
+
   # [C] Docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
   load_all_containers
 
@@ -445,6 +416,8 @@ _main() {
 
   echo "[NOTICE] Delete <none>:<none> images."
   docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
+
+  echo "[NOTICE] APP_URL : ${app_url}"
 }
 
 _main

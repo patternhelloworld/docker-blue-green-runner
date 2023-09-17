@@ -40,6 +40,6 @@ nginx_down_and_up(){
 
 }
 
-echo "[NOTICE] Finally, !! to ${state_a}, we will now deploy '${project_name}' in a way of 'Blue-Green'"
+echo "[NOTICE] Finally, !! Deploy the App as !! ${state_a} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
 nginx_down_and_up
 ./activate.sh ${state_a} ${state_b} ${state_upstream} ${consul_key_value_store}
