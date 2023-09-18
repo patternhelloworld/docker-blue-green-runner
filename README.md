@@ -77,27 +77,6 @@ cp -f .env.node.local .env
 sudo bash run.sh
 ```
 
-## How to Start with a PHP Sample (Local).
-
-A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
-
-```shell
-# First, as the sample project requires MariaDB, run it separately.
-cd samples/laravel-crud-boilerplate
-docker-compose build
-docker-compose up -d 
-# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'HOST_IP' to your host IP in the ./samples/laravel-crud-boilerplate/.env
-```
-
-```shell
-# Go back to the root
-cd ../../
-cp -f .env.php.local .env
-# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
-# [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
-sudo bash run.sh
-```
-and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 ## How to Start with a PHP Sample (Real). - https
 
@@ -126,6 +105,29 @@ cp -f .env.php.real .env
 sudo bash run.sh
 ```
 Open https://localhost:8080 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
+
+## How to Start with a PHP Sample (Local).
+
+A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
+
+```shell
+# First, as the sample project requires MariaDB, run it separately.
+cd samples/laravel-crud-boilerplate
+docker-compose build
+docker-compose up -d 
+# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'HOST_IP' to your host IP in the ./samples/laravel-crud-boilerplate/.env
+```
+
+```shell
+# Go back to the root
+cd ../../
+cp -f .env.php.local .env
+# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
+# [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
+sudo bash run.sh
+```
+and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
+
 
 ## How to Start with a Java Sample (Local & Real).
 ```shell
