@@ -263,9 +263,13 @@ initiate_docker_compose(){
       cp -f docker-compose-app-${app_env}-original.yml docker-compose-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-compose-app-${app_env}-original.yml" && exit 1)
       echo "[DEBUG] successfully copied docker-compose-app-${app_env}-original.yml"
     fi
-    cp -f docker-compose-app-nginx-original.yml docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-compose-app-nginx-original.yml" && exit 1)
-    echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
 
+    if [[ ${nginx_restart} == true ]]; then
+      cp -f docker-compose-app-nginx-original.yml docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-compose-app-nginx-original.yml" && exit 1)
+      echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
+    else
+      echo "[DEBUG] NOT copied docker-compose-app-nginx-original.yml, as NGINX_RESTART is ${nginx_restart}"
+    fi
     sleep 1
 }
 
@@ -285,15 +289,19 @@ apply_ports_onto_nginx_yaml(){
 
    check_yq_installed
 
-   echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
-   yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
-   yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
+   if [[ ${nginx_restart} == true ]]; then
+     echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
+     yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
+     yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
 
-   for i in "${additional_ports[@]}"
-   do
-      [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
-      yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
-   done
+     for i in "${additional_ports[@]}"
+     do
+        [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
+        yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
+     done
+   else
+     echo "[DEBUG] PORTS on .env is NOT being applied to docker-compose-${project_name}-nginx.yml, as NGINX_RESTART is ${nginx_restart}."
+   fi
 }
 
 apply_docker_compose_environment_onto_app_yaml(){
@@ -373,7 +381,7 @@ create_nginx_ctmpl(){
 
     if [[ ${protocol} = 'http' ]]; then
 
-    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is not being created."
+    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
 
     cat > .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
 server {

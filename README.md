@@ -166,6 +166,9 @@ bash check-current-states.sh
 # [DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Final Check) : blue_score : 80, green_score : 0, state : blue, new_state : green, state_for_emergency : blue, new_upstream : https://laravel_crud_boilerplate-green:8080.
 # The higher the score a state receives, the more likely it is to be the currently running state. So the updated App should be deployed as the non-occupied state(=new_state).
 # For the emergency script, there is another safer priority added over the results of scores. So, the 'state_for_emergency' is basically the same as the 'state' but can differ.
+
+# Only to get the result,
+bash check-current-states.sh | grep -o '[^_]state : [^,]*,'
 ```
 
 ## Emergency

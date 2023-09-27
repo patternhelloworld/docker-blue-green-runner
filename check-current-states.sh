@@ -8,4 +8,3 @@ git config core.filemode false
 source ./util.sh
 
 cache_global_vars
-cache_all_states
