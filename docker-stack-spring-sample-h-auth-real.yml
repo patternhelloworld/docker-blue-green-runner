@@ -1,0 +1,29 @@
+version: '3.7'
+services:
+  spring-sample-h-auth-blue:
+    image: spring-sample-h-auth:blue
+    environment:
+      - SERVICE_NAME=blue
+      - TZ=Asia/Seoul
+    env_file:
+      - .env
+    volumes:
+      - ./samples/spring-sample-h-auth/logs:/var/www/files
+    ports:
+      - "18200:8200"
+      - "5005:5005"
+    deploy:
+      replicas: 4
+      update_config:
+        parallelism: 2
+        order: start-first
+        failure_action: rollback
+        delay: 10s
+      rollback_config:
+        parallelism: 0
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s

@@ -25,4 +25,6 @@ RUN ln -s $PROJECT_ROOT_IN_CONTAINER/.docker/entrypoint/$APP_ENV.sh /run-app.sh
 
 RUN apk --no-cache add curl bash
 
+EXPOSE 8200
+
 ENTRYPOINT sh /run-app.sh && /bin/sh

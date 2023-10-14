@@ -1,0 +1,38 @@
+version: '3.1'
+
+# https://www.consul.io/intro/index.html
+# http://gliderlabs.github.io/registrator/latest/
+
+services:
+  consul:
+    hostname: consul
+    container_name: consul
+    image: hashicorp/consul:latest # https://github.com/hashicorp/consul/issues/17973
+    environment:
+      - CONSUL_LOCAL_CONFIG={"disable_update_check":true}
+    entrypoint:
+      - consul
+      - agent
+      - -server
+      - -bootstrap
+      - -data-dir=/data
+      - -bind={{ GetInterfaceIP "eth0" }}
+      - -client=0.0.0.0
+      - -ui
+    volumes:
+      - consul:/data
+    ports:
+      - 8500:8500  # protect this in the real world!
+
+  registrator:
+    container_name: registrator
+    command: -internal consul://consul:8500
+    privileged: true
+    image: gliderlabs/registrator:latest
+    restart: always
+    links:
+      - consul
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+volumes:
+  consul:
