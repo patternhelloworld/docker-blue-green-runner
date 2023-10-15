@@ -109,6 +109,8 @@ terminate_whole_system(){
     docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] docker-compose-${project_name}-consul.yml down failure"
     docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] docker-compose-${project_name}-nginx.yml down failure"
 
+    docker network rm consul
+
     docker system prune -f
   fi
 }
@@ -248,8 +250,10 @@ consul_down_and_up(){
     echo "[NOTICE] As !CONSUL_RESTART is true, which means there will be a short-downtime for CONSUL, terminate CONSUL container and network."
 
     echo "[NOTICE] Stop & Remove CONSUL Container."
-    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] The previous Consul Container has been stopped & removed, if exists."
-
+    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] The previous Consul & Registrator Container has been stopped, if exists."
+    docker container rm consul || echo "[NOTICE] The previous Consul Container has been  removed, if exists."
+    docker container rm registrator || echo "[NOTICE] The previous Registrator Container has been  removed, if exists."
+    
     docker network rm consul || echo "[NOTICE] Failed to remove Consul Network. You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
     docker network create consul || echo "[NOTICE] Failed to create Consul Network.  You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
 
@@ -278,12 +282,17 @@ check_supporting_containers_loaded(){
 load_all_containers(){
   # app, consul, nginx
   # In the past, restarting Nginx before App caused error messages like "upstream not found" in the Nginx configuration file. This seems to have caused a 502 error on the socket side.
-  # Therefore, it is safer to restart the containers in the order of App -> Consul -> Nginx.
-  echo "[NOTICE] Run the app as a ${new_state} container. (This won't stop the running container since this is a BLUE-GREEN deployment.)"
+  # Therefore, it is safer to restart the containers in the order of Consul -> App -> Nginx.
+  if [[ ${consul_restart} == 'true' ]]; then
+
+      consul_down_and_up
+
+  fi
 
   echo "[NOTICE] Creating consul network..."
   docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
 
+  echo "[NOTICE] Run the app as a ${new_state} container. (As long as NGINX_RESTART is set to 'false', this won't stop the running container since this is a BLUE-GREEN deployment.)"
   app_down_and_up
 
   echo "[NOTICE] Check the integrity inside the '${project_name}-${new_state} container'."
@@ -295,12 +304,6 @@ load_all_containers(){
 
   if [[ ${re} != 'true' ]]; then
     echo "[ERROR] Failed in running the ${new_state} container. Run 'docker logs -f ${project_name}-${new_state}' to check errors (Return : ${re})" && exit 1
-  fi
-
-  if [[ ${consul_restart} == 'true' ]]; then
-
-      consul_down_and_up
-
   fi
 
   if [[ ${nginx_restart} == 'true' ]]; then

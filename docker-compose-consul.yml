@@ -1,4 +1,4 @@
-version: '3.1'
+version: '3.7'
 
 # https://www.consul.io/intro/index.html
 # http://gliderlabs.github.io/registrator/latest/
@@ -25,7 +25,7 @@ services:
     networks:
       - consul
     ports:
-      - 8500:8500  # protect this in the real world!
+      - 8500:8500
 
   registrator:
     container_name: registrator
@@ -42,8 +42,7 @@ services:
 
 networks:
   consul:
-    external:
       name: consul
-
+      external: true
 volumes:
   consul:

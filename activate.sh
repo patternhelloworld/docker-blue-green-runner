@@ -13,7 +13,7 @@ new_upstream=$3
 consul_key_value_store=$4
 
 echo "[NOTICE] new_state : ${new_state}, old_state : ${old_state}, new_upstream : ${new_upstream}, consul_key_value_store : ${consul_key_value_store}"
-was_state=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw)
+was_state=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw) || (echo "[EMERGENCY] Errors on Consul Network. This usually occurs when the physical machine has been restarted. (Solution : run bash 'stop-all-containers.sh' & 'emergency-consul-down-and-up.sh' & 'run.sh')" && exit 1)
 echo "[NOTICE] CONSUL (${consul_key_value_store}) is currently pointing to : ${was_state}"
 if [[ ${old_state} != ${was_state} ]]; then
   echo "[WARNING] Was State (${was_state}, currently pointed from CONSUL) is different from Old State (${old_state}, checked at the first stage of the mother script.)"
