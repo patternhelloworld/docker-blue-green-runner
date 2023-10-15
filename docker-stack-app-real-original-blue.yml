@@ -1,16 +1,14 @@
 version: '3.7'
 services:
-  spring-sample-h-auth-blue:
+  ${PROJECT_NAME}-blue:
     image: spring-sample-h-auth:latest
     environment:
       - SERVICE_NAME=blue
-      - TZ=Asia/Seoul
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
       - .env
-    volumes:
-      - ./samples/spring-sample-h-auth/logs:/var/www/files
+    volumes: []
     deploy:
       replicas: 4
       update_config:

@@ -1,13 +1,11 @@
 version: '3.7'
 services:
-  spring-sample-h-auth:
-    stdin_open: true
-    tty: true
-    image: spring-sample-h-auth:blue
+  ${PROJECT_NAME}-green:
+    image: spring-sample-h-auth:latest
+    environment:
+      - SERVICE_NAME=green
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    environment:
-      - SERVICE_NAME=blue
     env_file:
       - .env
     volumes: []
@@ -26,3 +24,8 @@ services:
         delay: 5s
         max_attempts: 3
         window: 120s
+    networks:
+      - consul
+networks:
+  consul:
+    external: true

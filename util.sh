@@ -263,15 +263,19 @@ initiate_docker_compose(){
       echo "[DEBUG] successfully copied docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml"
       echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml'"
     else
-      cp -f docker-${orchestration_type}-app-${app_env}-original.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-${app_env}-original.yml" && exit 1)
+      if [[ ${orchestration_type} == 'stack' ]]; then
+         cp -f docker-${orchestration_type}-app-${app_env}-original-${new_state}.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-${app_env}-original.yml" && exit 1)
+      else
+        cp -f docker-${orchestration_type}-app-${app_env}-original.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-${app_env}-original.yml" && exit 1)
+      fi
       echo "[DEBUG] successfully copied docker-${orchestration_type}-app-${app_env}-original.yml"
     fi
 
     if [[ ${nginx_restart} == true ]]; then
-      cp -f docker-${orchestration_type}-app-nginx-original.yml docker-${orchestration_type}-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-nginx-original.yml" && exit 1)
-      echo "[DEBUG] successfully copied docker-${orchestration_type}-app-nginx-original.yml"
+      cp -f docker-compose-app-nginx-original.yml docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-nginx-original.yml" && exit 1)
+      echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
     else
-      echo "[DEBUG] NOT copied docker-${orchestration_type}-app-nginx-original.yml, as NGINX_RESTART is ${nginx_restart}"
+      echo "[DEBUG] NOT copied docker-compose-app-nginx-original.yml, as NGINX_RESTART is ${nginx_restart}"
     fi
     sleep 1
 }
@@ -280,12 +284,17 @@ apply_env_service_name_onto_app_yaml(){
 
   check_yq_installed
 
-  echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-${orchestration_type}-${project_name}-${app_env}.yml."
-  yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
-  sleep 2
-  yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+  if [[ ${orchestration_type} == 'stack' ]]; then
+      yq -i "with(.services; with_entries(select(.key ==\"*-${new_state}\") | .key |= \"${project_name}-${new_state}\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+  else
+      echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-${orchestration_type}-${project_name}-${app_env}.yml."
+      yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
+      sleep 2
+      yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+  fi
 
-  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-${orchestration_type}-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YAML as ${project_name}." && exit 1)
+
+  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YAML as ${project_name}." && exit 1)
 }
 
 apply_ports_onto_nginx_yaml(){
@@ -293,17 +302,17 @@ apply_ports_onto_nginx_yaml(){
    check_yq_installed
 
    if [[ ${nginx_restart} == true ]]; then
-     echo "[NOTICE] PORTS on .env is now being applied to docker-${orchestration_type}-${project_name}-nginx.yml."
-     yq -i '.services.'${project_name}'-nginx.ports = []' docker-${orchestration_type}-${project_name}-nginx.yml
-     yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-${orchestration_type}-${project_name}-nginx.yml
+     echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
+     yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
+     yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
 
      for i in "${additional_ports[@]}"
      do
         [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
-        yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-${orchestration_type}-${project_name}-nginx.yml
+        yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
      done
    else
-     echo "[DEBUG] PORTS on .env is NOT being applied to docker-${orchestration_type}-${project_name}-nginx.yml, as NGINX_RESTART is ${nginx_restart}."
+     echo "[DEBUG] PORTS on .env is NOT being applied to docker-compose-${project_name}-nginx.yml, as NGINX_RESTART is ${nginx_restart}."
    fi
 }
 
@@ -313,7 +322,11 @@ apply_docker_compose_environment_onto_app_yaml(){
 
    echo "[NOTICE] DOCKER_COMPOSE_ENVIRONMENT on .env is now being applied to docker-${orchestration_type}-${project_name}-${app_env}.yml."
 
-   local states=("blue" "green")
+   if [[ ${orchestration_type} == 'stack' ]]; then
+    local states=("${new_state}")
+   else
+    local states=("blue" "green")
+   fi
 
    for state in "${states[@]}"
    do
@@ -334,7 +347,11 @@ apply_docker_compose_volumes_onto_app_real_yaml(){
 
    echo "[NOTICE] DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES on .env is now being applied to docker-${orchestration_type}-${project_name}-real.yml."
 
-   local states=("blue" "green")
+   if [[ ${orchestration_type} == 'stack' ]]; then
+    local states=("${new_state}")
+   else
+    local states=("blue" "green")
+   fi
 
    for state in "${states[@]}"
    do
@@ -352,11 +369,11 @@ apply_docker_compose_volumes_onto_app_nginx_yaml(){
 
    check_yq_installed
 
-   echo "[NOTICE] DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES on .env is now being applied to docker-${orchestration_type}-${project_name}-nginx.yml."
+   echo "[NOTICE] DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-${project_name}-nginx.yml."
 
     for volume in "${docker_compose_nginx_selective_volumes[@]}"
     do
-        yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-${orchestration_type}-${project_name}-nginx.yml
+        yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-${project_name}-nginx.yml
     done
 
 }

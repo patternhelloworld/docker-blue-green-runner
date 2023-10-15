@@ -107,7 +107,7 @@ terminate_whole_system(){
     docker-compose -f docker-${orchestration_type}-${project_name}-local.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-local.yml down failure"
     docker-compose -f docker-${orchestration_type}-${project_name}-real.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-real.yml down failure"
     docker-compose -f docker-${orchestration_type}-consul.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-consul.yml down failure"
-    docker-compose -f docker-${orchestration_type}-${project_name}-nginx.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-nginx.yml down failure"
+    docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] docker-compose-${project_name}-nginx.yml down failure"
 
     docker network rm consul
 
@@ -227,9 +227,9 @@ load_app_docker_image() {
 app_down_and_up(){
 
     if [[ ${orchestration_type} == 'stack' ]]; then
-      echo "[NOTICE] Down & Up '${project_name} service'."
-      docker stack rm ${project_name} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
-      docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name} || (echo "[ERROR] Service ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment. (command : docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name})" && exit 1)
+      echo "[NOTICE] Down & Up '${project_name}-${new_state} stack'."
+      docker stack rm ${project_name}-${new_state} || echo "[NOTICE] The ${project_name}-${new_state} stack has been removed, if exists."
+      docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name}-${new_state} || (echo "[ERROR] Service ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment. (command : docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name})" && exit 1)
     else
       echo "[NOTICE] Down & Up '${project_name}-${new_state} container'."
       docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
@@ -246,19 +246,12 @@ nginx_down_and_up(){
 
    docker network rm ${project_name}_app || echo "[DEBUG] NA"
 
-   if [[ ${orchestration_type} == 'stack' ]]; then
-        echo "[NOTICE] Stop & Remove NGINX Service."
-        docker stack rm ${project_name}-nginx || echo "[NOTICE] The previous Nginx Service has been stopped & removed, if exists."
 
-        echo "[NOTICE] Up NGINX Container."
-        PROJECT_NAME=${project_name} docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-nginx.yml ${project_name}-nginx || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
-   else
-        echo "[NOTICE] Stop & Remove NGINX Container."
-        docker-compose -f docker-${orchestration_type}-${project_name}-nginx.yml down || echo "[NOTICE] The previous Nginx Container has been stopped & removed, if exists."
+   echo "[NOTICE] Stop & Remove NGINX Container."
+   docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] The previous Nginx Container has been stopped & removed, if exists."
 
-        echo "[NOTICE] Up NGINX Container."
-        PROJECT_NAME=${project_name} docker-compose -f docker-${orchestration_type}-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
-   fi
+   echo "[NOTICE] Up NGINX Container."
+   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 
 }
 
@@ -273,7 +266,11 @@ consul_down_and_up(){
     docker container rm registrator || echo "[NOTICE] The previous Registrator Container has been  removed, if exists."
     
     docker network rm consul || echo "[NOTICE] Failed to remove Consul Network. You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
-    docker network create consul || echo "[NOTICE] Failed to create Consul Network.  You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
+      if [[ ${orchestration_type} != 'stack' ]]; then
+      docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+      else
+        docker network create --driver overlay consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+      fi
 
 
       echo "[NOTICE] Up CONSUL container"
@@ -314,7 +311,12 @@ load_all_containers(){
   fi
 
   echo "[NOTICE] Creating consul network..."
-  docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+  if [[ ${orchestration_type} != 'stack' ]]; then
+   docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+  else
+      docker network create --driver overlay consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+  fi
+
 
   echo "[NOTICE] Run the app as a ${new_state} container. (As long as NGINX_RESTART is set to 'false', this won't stop the running container since this is a BLUE-GREEN deployment.)"
   app_down_and_up
