@@ -39,5 +39,11 @@ fi
 
 ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
-echo "[NOTICE] Shut down the existing ${state} container."
-docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${state}
+
+if [[ ${orchestration_type} != 'stack' ]]; then
+  echo "[NOTICE] Shut down the existing ${state} container."
+  docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${state}
+else
+  echo "[NOTICE] Remove the existing ${state} stack."
+  docker stack rm ${project_name}-${state}
+fi

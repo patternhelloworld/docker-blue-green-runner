@@ -19,6 +19,10 @@ echo "[NOTICE] Delete all containers and networks related to the project. Ignore
 
 docker-compose -f docker-compose-${project_name}-${app_env}.yml down || echo "[DEBUG] A-L"
 docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[DEBUG] N"
+
+docker stack rm ${project_name}-blue || echo "[DEBUG] F"
+docker stack rm ${project_name}-green || echo "[DEBUG] F-2"
+
 docker-compose -f docker-compose-consul.yml down || echo "[DEBUG] C"
 
 docker-compose down || echo "[DEBUG] G"

@@ -213,7 +213,7 @@ cache_non_dependent_global_vars() {
 }
 
 cache_global_vars() {
-  
+
   cache_non_dependent_global_vars
 
   host_root_uid=$(id -u)
@@ -259,9 +259,15 @@ check_yq_installed(){
 initiate_docker_compose(){
 
     if [[ ${use_my_own_app_yml} == true ]]; then
-      cp -f docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml" && exit 1)
-      echo "[DEBUG] successfully copied docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml"
-      echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml'"
+      if [[ ${orchestration_type} == 'stack' ]]; then
+         echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-${orchestration_type}-${project_name}-${app_env}-original-${new_state}-ready.yml'"
+         cp -f docker-${orchestration_type}-${project_name}-${app_env}-original-${new_state}-ready.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml" && exit 1)
+         echo "[DEBUG] successfully copied docker-${orchestration_type}-${project_name}-${app_env}-original-${new_state}-ready.yml"
+      else
+         echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml'"
+         cp -f docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml" && exit 1)
+         echo "[DEBUG] successfully copied docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml"
+      fi
     else
       if [[ ${orchestration_type} == 'stack' ]]; then
          cp -f docker-${orchestration_type}-app-${app_env}-original-${new_state}.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-${app_env}-original.yml" && exit 1)
@@ -271,12 +277,9 @@ initiate_docker_compose(){
       echo "[DEBUG] successfully copied docker-${orchestration_type}-app-${app_env}-original.yml"
     fi
 
-    if [[ ${nginx_restart} == true ]]; then
-      cp -f docker-compose-app-nginx-original.yml docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-nginx-original.yml" && exit 1)
-      echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
-    else
-      echo "[DEBUG] NOT copied docker-compose-app-nginx-original.yml, as NGINX_RESTART is ${nginx_restart}"
-    fi
+    cp -f docker-compose-app-nginx-original.yml docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-nginx-original.yml" && exit 1)
+    echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
+
     sleep 1
 }
 
@@ -286,6 +289,8 @@ apply_env_service_name_onto_app_yaml(){
 
   if [[ ${orchestration_type} == 'stack' ]]; then
       yq -i "with(.services; with_entries(select(.key ==\"*-${new_state}\") | .key |= \"${project_name}-${new_state}\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+     # yq eval '(.services.[] | select(.image == "${PROJECT_NAME}:blue")).image |= \"${project_name}-blue\"' -i docker-${orchestration_type}-${project_name}-blue.yml  || (echo "[ERROR] Failed to apply image : ${project_name}-blue in the app YAML." && exit 1)
+      yq -i "(.services.\"${project_name}-${new_state}\").image = \"${project_name}:${new_state}\"" -i docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply image : ${project_name}-${new_state} in the app YAML." && exit 1)
   else
       echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-${orchestration_type}-${project_name}-${app_env}.yml."
       yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
@@ -301,19 +306,16 @@ apply_ports_onto_nginx_yaml(){
 
    check_yq_installed
 
-   if [[ ${nginx_restart} == true ]]; then
-     echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
-     yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
-     yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
+   echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
+   yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
+   yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
 
-     for i in "${additional_ports[@]}"
-     do
-        [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
-        yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
-     done
-   else
-     echo "[DEBUG] PORTS on .env is NOT being applied to docker-compose-${project_name}-nginx.yml, as NGINX_RESTART is ${nginx_restart}."
-   fi
+   for i in "${additional_ports[@]}"
+   do
+      [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
+      yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
+   done
+
 }
 
 apply_docker_compose_environment_onto_app_yaml(){
@@ -399,6 +401,17 @@ make_docker_build_arg_strings(){
 
 create_nginx_ctmpl(){
 
+   local proxy_hostname=
+   local proxy_hostname_blue=
+
+   if [[ ${orchestration_type} == 'stack' ]]; then
+     proxy_hostname="###PROJECT_NAME###-{{ \$key_value }}_###PROJECT_NAME###-{{ \$key_value }}"
+     proxy_hostname_blue="###PROJECT_NAME###-blue_###PROJECT_NAME###-blue"
+   else
+     proxy_hostname="###PROJECT_NAME###-{{ \$key_value }}"
+     proxy_hostname_blue="###PROJECT_NAME###-blue"
+   fi
+
     if [[ ${protocol} = 'http' ]]; then
 
     echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
@@ -415,9 +428,9 @@ server {
          add_header Cache-Control no-cache;
          {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
              {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                 proxy_pass http://###PROJECT_NAME###-{{ \$key_value }}:###APP_PORT###;
+                 proxy_pass http://$proxy_hostname:###APP_PORT###;
              {{ else }}
-                 proxy_pass http://###PROJECT_NAME###-blue:###APP_PORT###;
+                 proxy_pass http://$proxy_hostname_blue:###APP_PORT###;
              {{ end }}
          {{ end }}
          proxy_set_header Host \$http_host;
@@ -451,9 +464,9 @@ server {
          add_header Cache-Control no-cache;
          {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
              {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                 proxy_pass http://###PROJECT_NAME###-{{ \$key_value }}:$i;
+                 proxy_pass http://$proxy_hostname:$i;
              {{ else }}
-                 proxy_pass http://###PROJECT_NAME###-blue:$i;
+                 proxy_pass http://$proxy_hostname_blue:$i;
              {{ end }}
          {{ end }}
          proxy_set_header Host \$http_host;
@@ -498,9 +511,9 @@ server {
         add_header Cache-Control no-cache;
         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                proxy_pass https://###PROJECT_NAME###-{{ \$key_value }}:###APP_PORT###;
+                proxy_pass https://$proxy_hostname:###APP_PORT###;
             {{ else }}
-                proxy_pass https://###PROJECT_NAME###-blue:###APP_PORT###;
+                proxy_pass https://$proxy_hostname_blue:###APP_PORT###;
             {{ end }}
         {{ end }}
         proxy_set_header Host \$http_host;
@@ -543,9 +556,9 @@ server {
         add_header Cache-Control no-cache;
         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                proxy_pass https://###PROJECT_NAME###-{{ \$key_value }}:$i;
+                proxy_pass https://$proxy_hostname:$i;
             {{ else }}
-                proxy_pass https://###PROJECT_NAME###-blue:$i;
+                proxy_pass https://$proxy_hostname_blue:$i;
             {{ end }}
         {{ end }}
         proxy_set_header Host \$http_host;
@@ -687,7 +700,7 @@ check_necessary_commands(){
   }
 
   if ! docker info > /dev/null 2>&1; then
-    echo "[ERROR] docker is NOT installed. Exiting..."
+    echo "[ERROR] docker is NOT run. Exiting..."
     exit 1
   fi
 
@@ -735,6 +748,8 @@ check_command_in_container_or_fail(){
 # shellcheck disable=SC2120
 check_availability_inside_container(){
 
+  echo "[DEBUG] check_availability_inside_container"  >&2
+
   check_state=${1}
 
   if [[ -z ${check_state} ]]
@@ -758,40 +773,51 @@ check_availability_inside_container(){
       return
   fi
 
+  local container_name=
+  if [[ ${orchestration_type} == 'stack' ]]; then
 
+    container_name=$(docker ps -q --filter "name=^${project_name}-${check_state}" | shuf -n 1);
 
-   if [[ $(check_command_in_container_or_fail ${project_name}-${check_state} "curl") != "true" ]]; then
-         echo "false"
-         return
-   fi
-    if [[ $(check_command_in_container_or_fail ${project_name}-${check_state} "bash") != "true" ]]; then
-          echo "false"
-          return
+    if [[ -z ${container_name} ]]; then
+      echo "[ERROR] Any container is NOT checked in the ${project_name}-${check_state}_${project_name}-${check_state} service. (container name : ${container_name}, command : docker ps -q --filter "name=^${project_name}-${check_state}" | shuf -n 1)"  >&2 && echo "false" && return
     fi
 
-  
-  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Copy wait-for-it.sh into ${project_name}-${check_state}:${project_location}/wait-for-it.sh."  >&2
-  docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh || (echo "[ERROR] Failed in copying (HOST : ./wait-for-it.sh) to (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
+  else
+    container_name=${project_name}-${check_state}
+  fi
+
+  if [[ $(check_command_in_container_or_fail ${container_name} "curl") != "true" ]]; then
+         echo "false"
+         return
+  fi
+
+  if [[ $(check_command_in_container_or_fail ${container_name} "bash") != "true" ]]; then
+          echo "false"
+          return
+  fi
 
 
+  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Copy wait-for-it.sh into ${container_name}:${project_location}/wait-for-it.sh."  >&2
+  docker cp ./wait-for-it.sh ${container_name}:${project_location}/wait-for-it.sh || (echo "[ERROR] Failed in copying (HOST : ./wait-for-it.sh) to (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
 
-  echo "[NOTICE] ${project_name}-${check_state} Check if the web server is responding by making a request inside the node-express-boilerplate-green container. If library folders such as node_modules (Node.js), vendor (PHP) folders are NOT yet installed, the execution time of the ENTRYSCRIPT of your Dockerfile may be longer than usual (timeout: ${2} seconds)"  >&2
-  sleep 10
+
+  echo "[NOTICE] Check if the web server is responding by making a request inside the container (Name : ${container_name}). If library folders such as node_modules (Node.js), vendor (PHP) folders are NOT yet installed, the execution time of the ENTRYSCRIPT of your Dockerfile may be longer than usual (timeout: ${2} seconds)"  >&2
+
 
   # 1) APP is ON
 
   container_load_timeout=${2}
 
-  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
-  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Current status (inside Container) : \n $(docker logs ${project_name}-${check_state})"   >&2
-  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
+  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${container_name}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${container_name} (compose), docker service ps ${project_name}-${check_state}_${project_name}-${check_state} (stack) ' to check the status."   >&2
+  echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Current status (inside Container) : \n $(docker logs ${container_name})"   >&2
+  local wait_for_it_re=$(docker exec -w ${project_location} ${container_name} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
   if [[ $? != 0 ]]; then
       echo "[ERROR] Failed in getting the correct return from wait-for-it.sh. (${wait_for_it_re})" >&2
       echo "false"
       return
   else
       # 2) APP's health check
-      echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Health Check."  >&2
+      echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${container_name}  Container, conduct the Health Check."  >&2
       sleep 1
 
       local interval_sec=5
@@ -805,7 +831,7 @@ check_availability_inside_container(){
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
         echo "[NOTICE] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
-        response=$(docker exec ${project_name}-${check_state} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
+        response=$(docker exec ${container_name} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
 
         down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
         up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
@@ -813,7 +839,7 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (*Response : ${response}), (${project_name}-${check_state}, *Log (print max 25 lines) : $(docker logs --tail 25 ${project_name}-${check_state})"  >&2
+            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (*Response : ${response}), (${container_name}, *Log (print max 25 lines) : $(docker logs --tail 25 ${container_name})"  >&2
 
         else
              echo "[NOTICE] Internal health check of the application succeeded. (*Response: ${response})"  >&2
@@ -838,8 +864,9 @@ check_availability_inside_container(){
  fi
 }
 
-
 check_availability_inside_container_speed_mode(){
+
+  echo "[DEBUG] check_availability_inside_container_speed_mode"  >&2
 
   if [[ -z ${1} ]]
     then
@@ -862,29 +889,40 @@ check_availability_inside_container_speed_mode(){
       return
   fi
 
+  local container_name=
+  if [[ ${orchestration_type} == 'stack' ]]; then
+    container_name=$(docker ps -q --filter "name=^${project_name}-${check_state}" | shuf -n 1);
+
+    if [[ -z ${container_name} ]]; then
+      echo "[ERROR] Any container is NOT checked in the ${project_name}-${check_state}_${project_name}-${check_state} service."  >&2 && echo "false" && return
+    fi
+  else
+    container_name=${project_name}-${check_state}
+  fi
+
   check_state=${1}
 
-  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] Copy wait-for-it.sh into ${project_name}-${check_state}:${project_location}/wait-for-it.sh."  >&2
-  docker cp ./wait-for-it.sh ${project_name}-${check_state}:${project_location}/wait-for-it.sh
+  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] Copy wait-for-it.sh into ${container_name}:${project_location}/wait-for-it.sh."  >&2
+  docker cp ./wait-for-it.sh ${container_name}:${project_location}/wait-for-it.sh
 
 
-  #echo "[NOTICE] ${project_name}-${check_state} Check if the web server is responding by making a request inside the node-express-boilerplate-green container. If library folders such as node_modules (Node.js), vendor (PHP) folders are NOT yet installed, the execution time of the ENTRYSCRIPT of your Dockerfile may be longer than usual (timeout: ${2} seconds)"  >&2
+  #echo "[NOTICE] ${container_name} Check if the web server is responding by making a request inside the node-express-boilerplate-green container. If library folders such as node_modules (Node.js), vendor (PHP) folders are NOT yet installed, the execution time of the ENTRYSCRIPT of your Dockerfile may be longer than usual (timeout: ${2} seconds)"  >&2
   #sleep 3
 
   # 1) APP is ON
 
   container_load_timeout=${2}
 
-  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${project_name}-${check_state} ' to check the status."   >&2
-  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] Current status (inside Container) : \n $(docker logs ${project_name}-${check_state})"   >&2
-  local wait_for_it_re=$(docker exec -w ${project_location} ${project_name}-${check_state} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || echo "[WARNING] Failed in Connection Check (running wait_for_it.sh). But, this function is for checking which container is running. we don't exit."   >&2
+  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] In the ${container_name}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${container_name} (compose), docker service ps ${project_name}-${check_state}_${project_name}-${check_state} (stack) ' to check the status."   >&2
+  echo "[NOTICE] [Blue OR Green Alive Check : Currently checking ${check_state}] Current status (inside Container) : \n $(docker logs ${container_name})"   >&2
+  local wait_for_it_re=$(docker exec -w ${project_location} ${container_name} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || echo "[WARNING] Failed in Connection Check (running wait_for_it.sh). But, this function is for checking which container is running. we don't exit."   >&2
   if [[ $? != 0 ]]; then
       #echo "[ERROR] Failure in wait-for-it.sh. (${wait_for_it_re})" >&2
       echo "false"
       return
   else
       # 2) APP's health check
-      echo "[NOTICE] [Blue OR Green Alive Check : Currently ${check_state}] In the ${project_name}-${check_state}  Container, conduct the Health Check."  >&2
+      echo "[NOTICE] [Blue OR Green Alive Check : Currently ${check_state}] In the ${container_name}  Container, conduct the Health Check."  >&2
       sleep 1
 
       local interval_sec=5
@@ -898,7 +936,7 @@ check_availability_inside_container_speed_mode(){
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
         echo "[NOTICE] [Blue OR Green Alive Check : Currently ${check_state}] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
-        response=$(docker exec ${project_name}-${check_state} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}") || echo "[WARNING] [Blue OR Green Alive Check : Currently ${check_state}] Failed in Health Check. But, this function is for checking which container is running. we don't exit."   >&2
+        response=$(docker exec ${container_name} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}") || echo "[WARNING] [Blue OR Green Alive Check : Currently ${check_state}] Failed in Health Check. But, this function is for checking which container is running. we don't exit."   >&2
 
         down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
         up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
@@ -933,9 +971,10 @@ check_availability_inside_container_speed_mode(){
 
 check_availability_out_of_container(){
 
-  echo "[NOTICE] Check the http status code from the outside of the container."  >&2
-  sleep 1
+  echo "[NOTICE] Check the http status code from the outside of the container. by calling '${app_url}/${app_health_check_path}'"  >&2
 
+ sleep 1
+  
   for retry_count in {1..6}
   do
     status=$(curl ${app_url}/${app_health_check_path} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
@@ -965,3 +1004,44 @@ check_availability_out_of_container(){
   return
 
 }
+
+set_network_driver_for_orchestration_type(){
+
+  local network_name="consul"
+  local swarm_network_driver="overlay"
+  local local_network_driver="local"
+  # 네트워크 존재 여부 확인
+  network_id=$(docker network ls --filter "name=^${network_name}$" --format "{{.ID}}")
+  if [ -z "$network_id" ]; then
+    echo "[NOTICE] Network name (${network_name}) does not exist."
+
+    if [[ ${orchestration_type} != 'stack' ]]; then
+      docker network create consul || echo "[NOTICE] Consul Network (Local) has already been created. You can ignore this message."
+    else
+      docker network create --driver ${swarm_network_driver} --attachable consul || echo "[NOTICE] Consul Network (Swarm) has already been created. You can ignore this message."
+    fi
+  else
+    network_driver=$(docker network inspect $network_id --format "{{.Driver}}")
+    if [ "$network_driver" == "$swarm_network_driver" ]; then
+        if [[ ${orchestration_type} == 'stack' ]]; then
+         echo "[NOTICE] $swarm_network_driver is appropriately set for $swarm_network_driver"
+          exit 0
+        else
+          echo "[NOTICE] $swarm_network_driver is not appropriate for ${orchestration_type}"
+          bash emergency-consul-down-and-up;
+        fi
+    elif [ "$network_driver" == "$local_network_driver" ]; then
+        if [[ ${orchestration_type} == 'stack' ]]; then
+              echo "[NOTICE] $swarm_network_driver is not appropriate for ${orchestration_type}"
+              bash emergency-consul-down-and-up;
+          else
+              echo "[NOTICE] $swarm_network_driver is appropriately set for $local_network_driver"
+              exit 0
+         fi
+    else
+        echo "[ERROR] an serious error for set_network_driver_for_orchestration_type. (network_driver : ${network_driver})" && echo 1
+    fi
+  fi
+
+}
+

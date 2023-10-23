@@ -17,7 +17,13 @@ new_state=$3
 echo "[NOTICE] Be stored as ${state} in Consul."
 docker exec ${project_name}-nginx curl -X PUT -d ${state} ${consul_key_value_store} > /dev/null
 
-echo "[NOTICE] Stopping the ${new_state} container"
-docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state}
+echo "[NOTICE] Stopping the ${new_state} ${orchestration_type}"
+if [[ ${orchestration_type} != 'stack' ]]; then
+  docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${new_state}
+  echo "[NOTICE] The previous (${new_state}) container has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+else
+  docker stack rm ${project_name}-${new_state}
+  echo "[NOTICE] The previous (${new_state}) service has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+fi
 
 exit 1

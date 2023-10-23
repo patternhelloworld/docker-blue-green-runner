@@ -4,6 +4,14 @@
 
 To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
+- [NOTICE] 
+  - 'ORCHESTRATION_TYPE=stack' is currently experimental, keep 'ORCHESTRATION_TYPE=compose' as it is in the production stage.
+    - However, you would test the docker swarm, run the command. It is currently tested for the Java sample.
+      - ```shell
+          docker swarm init
+          sudo bash run.sh
+        ```
+
 ## Introduction
 
 With your project and its only Dockerfile (docker-compose.yml in the 'samples' folder is ignored), Docker-Blue-Green-Runner handles the rest of the Continuous Deployment (CD) process with Consul. Nginx allows your project to be deployed without experiencing any downtime.
