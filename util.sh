@@ -210,6 +210,7 @@ cache_non_dependent_global_vars() {
 
   orchestration_type=$(get_value_from_env "ORCHESTRATION_TYPE")
   only_building_app_image=$(get_value_from_env "ONLY_BUILDING_APP_IMAGE")
+
 }
 
 cache_global_vars() {

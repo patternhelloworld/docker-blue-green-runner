@@ -1,11 +1,11 @@
 #!/bin/bash
-sed -i -e "s/\r$//g" $(basename $0)
+sudo sed -i -e "s/\r$//g" $(basename $0)
 set -eu
 
 sudo chmod a+x *.sh
 
 echo "[NOTICE] Substituting CRLF with LF to prevent possible CRLF errors..."
-bash prevent-crlf.sh
+sudo bash prevent-crlf.sh
 git config apply.whitespace nowarn
 git config core.filemode false
 
