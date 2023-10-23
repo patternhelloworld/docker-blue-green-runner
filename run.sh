@@ -104,10 +104,12 @@ terminate_whole_system(){
     docker rmi -f ${project_name}:blue
     docker rmi -f ${project_name}:green
 
-    docker-compose -f docker-compose-${project_name}-local.yml down || echo "[NOTICE] docker-compose-${project_name}-local.yml down failure"
-    docker-compose -f docker-compose-${project_name}-real.yml down || echo "[NOTICE] docker-compose-${project_name}-real.yml down failure"
-    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] docker-compose-${project_name}-consul.yml down failure"
+    docker-compose -f docker-${orchestration_type}-${project_name}-local.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-local.yml down failure"
+    docker-compose -f docker-${orchestration_type}-${project_name}-real.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-real.yml down failure"
+    docker-compose -f docker-${orchestration_type}-consul.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-consul.yml down failure"
     docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] docker-compose-${project_name}-nginx.yml down failure"
+
+    docker network rm consul
 
     docker network rm consul
 
@@ -224,11 +226,21 @@ load_app_docker_image() {
 
 app_down_and_up(){
 
-    echo "[NOTICE] Down & Up '${project_name}-${new_state} container'."
-    docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
-    docker-compose -f docker-compose-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
-    docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] App ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment." && exit 1)
-    echo "[NOTICE] '${project_name}-${new_state} container' : successfully UP."
+    if [[ ${orchestration_type} == 'stack' ]]; then
+      echo "[NOTICE] Down & Up '${project_name}-${new_state} stack'."
+      docker stack rm ${project_name}-${new_state} || echo "[NOTICE] The ${project_name}-${new_state} stack has been removed, if exists."
+      docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name}-${new_state} || (echo "[ERROR] Service ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment. (command : docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name})" && exit 1)
+
+      # [TO DO] docker stack takes a long time to be up. it needs to use a good logic instead of sleep.
+      sleep 20
+
+    else
+      echo "[NOTICE] Down & Up '${project_name}-${new_state} container'."
+      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
+      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
+      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] App ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment." && exit 1)
+      echo "[NOTICE] '${project_name}-${new_state} container' : successfully UP."
+    fi
 
 }
 
@@ -236,39 +248,43 @@ nginx_down_and_up(){
 
    echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, terminate Nginx container and network."
 
-   docker network rm ${project_name}_app || echo "[DEBUG] NA"
-
    echo "[NOTICE] Stop & Remove NGINX Container."
    docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] The previous Nginx Container has been stopped & removed, if exists."
 
    echo "[NOTICE] Up NGINX Container."
    PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
+
 }
 
 consul_down_and_up(){
 
     echo "[NOTICE] As !CONSUL_RESTART is true, which means there will be a short-downtime for CONSUL, terminate CONSUL container and network."
 
-    echo "[NOTICE] Stop & Remove CONSUL Container."
+
+    echo "[NOTICE] Forcefully Stop & Remove CONSUL Container."
     docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] The previous Consul & Registrator Container has been stopped, if exists."
-    docker container rm consul || echo "[NOTICE] The previous Consul Container has been  removed, if exists."
-    docker container rm registrator || echo "[NOTICE] The previous Registrator Container has been  removed, if exists."
-    
-    docker network rm consul || echo "[NOTICE] Failed to remove Consul Network. You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
-    docker network create consul || echo "[NOTICE] Failed to create Consul Network.  You can ignore this message, or if you want to restart it, please terminate other projects that share the Consul network."
+    docker container rm -f consul || echo "[NOTICE] The previous Consul Container has been  removed, if exists."
+    docker container rm -f registrator || echo "[NOTICE] The previous Registrator Container has been  removed, if exists."
+
+    set_network_driver_for_orchestration_type
 
     echo "[NOTICE] Up CONSUL container"
     # https://github.com/hashicorp/consul/issues/17973
     docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
+
+   #fi
+
+
     sleep 10
 }
 
 check_one_container_loaded(){
-    if [ "$(docker ps -q -f name=${1})" ]; then
-      echo "[NOTICE] Supporting container ( ${1} ) running checked."
-    else
-      echo "[ERROR] Supporting container ( ${1} ) running not found." && exit 1
-    fi
+
+      if [ "$(docker ps -q -f name=^${1})" ]; then
+          echo "[NOTICE] Supporting container ( ${1} ) running checked."
+        else
+          echo "[ERROR] Supporting container ( ${1} ) running not found."
+        fi
 }
 
 check_supporting_containers_loaded(){
@@ -290,21 +306,41 @@ load_all_containers(){
   fi
 
   echo "[NOTICE] Creating consul network..."
-  docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+  if [[ ${orchestration_type} != 'stack' ]]; then
+   docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+  else
+      docker network create --driver overlay consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+  fi
+
 
   echo "[NOTICE] Run the app as a ${new_state} container. (As long as NGINX_RESTART is set to 'false', this won't stop the running container since this is a BLUE-GREEN deployment.)"
   app_down_and_up
 
-  echo "[NOTICE] Check the integrity inside the '${project_name}-${new_state} container'."
-  if [[ ${app_env} == 'local' ]]; then
-     re=$(check_availability_inside_container ${new_state} 600 30 | tail -n 1) || exit 1;
-  else
-     re=$(check_availability_inside_container ${new_state} 120 5 | tail -n 1) || exit 1;
-  fi
+  #if [[ ${orchestration_type} != 'stack' ]]; then
+    echo "[NOTICE] Check the integrity inside the '${project_name}-${new_state} container'."
+    if [[ ${app_env} == 'local' ]]; then
+       re=$(check_availability_inside_container ${new_state} 600 30 | tail -n 1) || exit 1;
+    else
+       re=$(check_availability_inside_container ${new_state} 120 5 | tail -n 1) || exit 1;
+    fi
 
-  if [[ ${re} != 'true' ]]; then
-    echo "[ERROR] Failed in running the ${new_state} container. Run 'docker logs -f ${project_name}-${new_state}' to check errors (Return : ${re})" && exit 1
-  fi
+    if [[ ${re} != 'true' ]]; then
+      echo "[ERROR] Failed in running the ${new_state} container. Run ' docker logs -f ${project_name}-${new_state} (compose), docker service ps ${project_name}-${new_state}}_${project_name}-${new_state} (stack) ' to check errors (Return : ${re})" && exit 1
+    fi
+  #else
+   # echo "[NOTICE] Check the integrity from Consul to the '${project_name}-${new_state} stack'."
+   # if [[ ${app_env} == 'local' ]]; then
+   #    re=$(check_availability_from_consul_to_container ${new_state} 30 | tail -n 1) || exit 1;
+   # else
+   #    re=$(check_availability_from_consul_to_container ${new_state} 5 | tail -n 1) || exit 1;
+   # fi
+   #sleep 20
+   # echo "aaa"
+    #if [[ ${re} != 'true' ]]; then
+    #  echo "[ERROR] Failed in running the ${new_state} container. Run 'docker logs -f ${project_name}-${new_state}' to check errors (Return : ${re})" && exit 1
+    #fi
+ # fi
+
 
   if [[ ${nginx_restart} == 'true' ]]; then
 
@@ -337,7 +373,7 @@ _main() {
   echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
 
   # [B] Set mandatory files
-  # These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
+  # These are all about passing variables from the .env to the docker-${orchestration_type}-${project_name}-local.yml
   initiate_docker_compose
   apply_env_service_name_onto_app_yaml
   apply_ports_onto_nginx_yaml
@@ -376,13 +412,17 @@ _main() {
     load_consul_docker_image
     load_nginx_docker_image
 
+  if [[ ${only_building_app_image} == 'true' ]]; then
+    echo "[NOTICE] Successfully built the App image : ${new_state}" && exit 0
+  fi
+
   local cached_new_state=${new_state}
   cache_all_states
   if [[ ${cached_new_state} != "${new_state}" ]]; then
     (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
   fi
 
-  # [C] Docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
+  # [C] docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
   load_all_containers
 
   # [D] Set Consul
@@ -411,8 +451,13 @@ _main() {
   echo "[NOTICE] For safety, finally check Consul pointing before stopping the previous container (${initially_cached_old_state})."
   local consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
   if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
-    docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
-    echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+    if [[ ${orchestration_type} != 'stack' ]]; then
+      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
+      echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+    else
+       docker stack rm ${project_name}-${initially_cached_old_state}
+       echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+    fi
   else
     echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
   fi

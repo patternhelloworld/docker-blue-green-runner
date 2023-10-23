@@ -7,6 +7,9 @@ COPY ./ $PROJECT_ROOT_IN_CONTAINER
 USER root
 WORKDIR $PROJECT_ROOT_IN_CONTAINER
 
+# This is the unique differnece from NON-SSL Apps
+COPY ./.docker/ssl/mydomain.com.jks /var/www/ssl/
+
 RUN --mount=type=cache,target=/root/.m2 mvn -f $PROJECT_ROOT_IN_CONTAINER/pom.xml -T100 -DskipTests clean install
 
 FROM openjdk:8-alpine
@@ -18,6 +21,9 @@ COPY --from=build $PROJECT_ROOT_IN_CONTAINER/ $PROJECT_ROOT_IN_CONTAINER
 
 USER root
 WORKDIR $PROJECT_ROOT_IN_CONTAINER
+
+# This is the unique differnece from NON-SSL Apps
+COPY ./.docker/ssl/mydomain.com.jks /var/www/ssl/
 
 RUN cp $PROJECT_ROOT_IN_CONTAINER/target/*.jar  /app.jar
 

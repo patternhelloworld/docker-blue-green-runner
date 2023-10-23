@@ -7,7 +7,6 @@ services:
     image: ${PROJECT_NAME}:blue
     restart: always
     networks:
-      - app
       - consul
     extra_hosts:
       - "${HOST_IP}:host-gateway"
@@ -23,7 +22,6 @@ services:
     image: ${PROJECT_NAME}:green
     restart: always
     networks:
-      - app
       - consul
     extra_hosts:
       - "${HOST_IP}:host-gateway"
@@ -33,7 +31,6 @@ services:
       - .env
     volumes: []
 networks:
-  app:
   consul:
     external:
       name: consul

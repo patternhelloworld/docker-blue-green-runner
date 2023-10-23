@@ -1,0 +1,18 @@
+version: '3.7'
+services:
+  ${PROJECT_NAME}-green:
+    image: ${PROJECT_NAME}:green
+    environment:
+      - SERVICE_NAME=green
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
+    volumes: []
+    deploy:
+      replicas: 2
+    networks:
+      - consul
+networks:
+  consul:
+    external: true

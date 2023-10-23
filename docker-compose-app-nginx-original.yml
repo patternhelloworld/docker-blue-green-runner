@@ -13,12 +13,10 @@ services:
       - ./.docker/ssl:/etc/nginx/ssl
       - ./.docker/nginx/ctmpl:/ctmpl
     networks:
-      - app
       - consul
     ports:
       - ${PROJECT_PORT}:${PROJECT_PORT}
 networks:
-  app:
   consul:
     external:
       name: consul
