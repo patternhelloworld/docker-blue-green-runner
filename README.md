@@ -86,7 +86,7 @@ sudo bash run.sh
 ```
 
 
-## How to Start with a PHP Sample (Real). - https
+## How to Start with a PHP Sample (Real, HTTPS self-signed SSL)
 
 Differences between ``./samples/laravel-crud-boilerplate/Dockerfile.local`` and ``./samples/laravel-crud-boilerplate/Dockerfile.real``
 
@@ -137,7 +137,7 @@ sudo bash run.sh
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 
-## How to Start with a Java Sample (Local & Real).
+## How to Start with a Java Sample (Local & Real, HTTPS commercial SSL).
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
@@ -151,6 +151,7 @@ cp -f .env.java.local .env # or cp -f .env.java.real .env
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 sudo bash run.sh
 ```
+- If you would like to use your SSL certificates, refer to ```.env.java.real.commercial.ssl.sample, samples/spring-sample-h-auth/DockerfileCommercialSSL```
 
 ## Environment Variables
 ```shell
@@ -204,6 +205,13 @@ docker exec -it ${project_name}-nginx bash # now you're in the container. Check 
 ```shell
 # Set NGINX_RESTART=false, otherwise, the Nginx Container is rollbacked as well.
 bash ./rollback.sh
+```
+- Critical Error on the Consul Network
+  - This can happen when...
+    - The server machine has been restarted, and affects the Consul network
+    - When you change the ```ORCHESTRATION_TYPE``` on the .env, the two use different network scopes.
+```shell
+bash emergency-consul-down-and-up.sh
 ```
 
 ## Running & Stopping Multiple Projects
