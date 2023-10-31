@@ -1,6 +1,6 @@
 # Docker-Blue-Green-Runner
 
-> Zero-downtime Blue-Green deployment with Docker-Compose, Consul, Integrity Checking
+> Simple Zero-Downtime Blue-Green Deployment Starting from your Dockerfiles
 
 To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 

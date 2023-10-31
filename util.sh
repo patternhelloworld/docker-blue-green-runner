@@ -211,6 +211,9 @@ cache_non_dependent_global_vars() {
   orchestration_type=$(get_value_from_env "ORCHESTRATION_TYPE")
   only_building_app_image=$(get_value_from_env "ONLY_BUILDING_APP_IMAGE")
 
+
+  docker_build_memory_usage=$(get_value_from_env "DOCKER_BUILD_MEMORY_USAGE")
+
 }
 
 cache_global_vars() {
