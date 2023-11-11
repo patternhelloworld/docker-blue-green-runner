@@ -423,6 +423,8 @@ create_nginx_ctmpl(){
     cat > .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
 server {
      listen ###EXPOSE_PORT### default_server;
+     listen [::]:###EXPOSE_PORT### default_server;
+
      server_name localhost;
 
      client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
@@ -459,6 +461,8 @@ EOF
 
 server {
      listen $i default_server;
+     listen [::]:$i default_server;
+
      server_name localhost;
 
      client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
@@ -497,6 +501,8 @@ EOF
 server {
 
     listen ###EXPOSE_PORT### default_server ssl;
+    listen [::]:###EXPOSE_PORT### default_server ssl;
+
     http2 on;
     server_name localhost;
 
@@ -542,6 +548,8 @@ EOF
 
 server {
     listen $i default_server ssl;
+    listen [::]:$i default_server ssl;
+
     http2 on;
 
     server_name localhost;
