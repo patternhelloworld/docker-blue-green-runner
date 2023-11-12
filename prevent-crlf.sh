@@ -1,5 +1,5 @@
 #!/bin/bash
-sed -i -e "s/\r$//g" $(basename $0)
+sudo sed -i -e "s/\r$//g" $(basename $0) || sed -i -e "s/\r$//g" $(basename $0)
 sed -i -e 's/\r$//' *.sh
 sed -i -e 's/\r$//' ./.docker/nginx/logrotate
 sed -i -e 's/\r$//' ./.docker/nginx/nginx.service

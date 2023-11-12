@@ -1,5 +1,5 @@
 #!/bin/bash
-sudo sed -i -e "s/\r$//g" $(basename $0)
+sudo sed -i -e "s/\r$//g" $(basename $0) || sed -i -e "s/\r$//g" $(basename $0)
 set -eu
 
 sudo chmod a+x *.sh
