@@ -11,6 +11,9 @@ git config core.filemode false
 
 sleep 3
 source ./util.sh
+source ./use-app.sh
+source ./use-nginx.sh
+source ./use-consul.sh
 
 
 # Back-up priority : new > blue or green > latest
@@ -50,30 +53,6 @@ backup_nginx_to_previous_images(){
   echo "[NOTICE] Since there is no existing Nginx 'new' image, we will attempt to back up the latest image as 'previous'."
   docker tag ${project_name}-nginx:latest ${project_name}-nginx:previous || echo "[NOTICE] No Nginx 'latest' tagged image."
 
-}
-
-create_host_folders_if_not_exists() {
-
-  arr_variable=("${host_shared_path}/apache2-access-logs" "${host_shared_path}/apache2-error-logs" "${host_shared_path}/laravel-access-logs" "${host_system_log_path}/redis" "${host_system_log_path}/apache2" "${host_system_log_path}/supervisor")
-
-  ## now loop through the above array
-  for val in "${arr_variable[@]}"; do
-    if [[ -d $val ]]; then
-      echo "[NOTICE] The directory of '$val' already exists."
-    else
-      if [ -z $val ]; then
-        echo "[NOTICE] The variable '$val' is empty"
-        exit 1
-      fi
-
-      sudo mkdir -p $val
-
-      echo "[NOTICE] The directory of '$val' has been created."
-
-      chgrp -R ${host_root_gid} $val
-      echo "[NOTICE] The directory of '$val' has been given the ${host_root_gid} group permission."
-    fi
-  done
 }
 
 give_host_group_id_full_permissions(){
@@ -117,176 +96,6 @@ terminate_whole_system(){
   fi
 }
 
-
-load_consul_docker_image(){
-
-  if [[ $(docker exec consul echo 'yes' 2> /dev/null) == '' ]]
-  then
-      echo '[NOTICE] Since the Consul container is not running, we consider it as consul_restart=true and start from loading the image again. (The .env file will not be changed.)'
-      consul_restart=true
-
-      # Since there is no Dockerfile, unlike the 'load_nginx_docker_image' and 'load_app_docker_image' functions, there is no 'build' command.
-  fi
-
-  if [ ${consul_restart} = "true" ]; then
-
-    if [ ${git_image_load_from} = "registry" ]; then
-
-      # Almost all of clients use this deployment.
-
-      echo "[NOTICE] Attempt to log in to the Registry."
-      docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}
-
-      echo "[NOTICE] Pull the Registrator image stored in the Registry."
-      docker pull ${load_from_registry_image_with_env}-registrator-${app_version}|| exit 1
-      docker tag ${load_from_registry_image_with_env}-registrator-${app_version} gliderlabs/registrator:latest || exit 1
-      docker rmi -f ${load_from_registry_image_with_env}-registrator-${app_version}|| exit 1
-
-      echo "[NOTICE] Pull the Consul image stored in the Registry."
-      docker pull ${load_from_registry_image_with_env}-consul-${app_version}|| exit 1
-      docker tag ${load_from_registry_image_with_env}-consul-${app_version} consul:latest || exit 1
-      docker rmi -f ${load_from_registry_image_with_env}-consul-${app_version}|| exit 1
-    fi
-
-    # Since there is no Dockerfile, unlike the 'load_nginx_docker_image' and 'load_app_docker_image' functions, there is no 'build' command.
-
-  fi
-
-}
-
-
-load_nginx_docker_image(){
-
-  if [[ $(docker exec ${project_name}-nginx echo 'yes' 2> /dev/null) == '' ]]
-  then
-      echo "[NOTICE] Since the '${project_name}-nginx:latest' container is not running, we consider it as 'nginx_restart=true' and start from building again."
-      nginx_restart=true
-  fi
-
-  if [ ${nginx_restart} = "true" ]; then
-
-    if [ ${git_image_load_from} = "registry" ]; then
-
-      echo "[NOTICE] Attempt to log in to the Registry."
-      docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} "${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}"
-
-      echo "[NOTICE] Pull the Nginx image stored in the Registry."
-      docker pull ${load_from_registry_image_with_env}-nginx-${app_version}|| exit 1
-      docker tag ${load_from_registry_image_with_env}-nginx-${app_version} ${project_name}-nginx:latest || exit 1
-      docker rmi -f ${load_from_registry_image_with_env}-nginx-${app_version}|| exit 1
-    else
-
-      echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, build the ${project_name}-nginx image (using cache)."
-      docker build --build-arg DISABLE_CACHE=${CUR_TIME}  --build-arg protocol="${protocol}" --tag ${project_name}-nginx -f ./.docker/nginx/Dockerfile -m ${docker_build_memory_usage} . || exit 1
-
-    fi
-
-  fi
-}
-
-# Image name: ${project_name} (utilizing 4 tags for Blue-Green deployment: ${project_name}:latest, ${project_name}:previous, ${project_name}:blue, ${project_name}:green)
-load_app_docker_image() {
-
-  if [ ${git_image_load_from} = "registry" ]; then
-
-    echo "[NOTICE] Attempt to log in to the Registry."
-    docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}
-
-    echo "[NOTICE] Pull the app image stored in the Registry."
-    docker pull ${load_from_registry_image_with_env}-app-${app_version}|| exit 1
-    docker tag ${load_from_registry_image_with_env}-app-${app_version} ${project_name}:latest || exit 1
-    docker rmi -f ${load_from_registry_image_with_env}-app-${app_version}|| exit 1
-  else
-
-
-    echo "[NOTICE] Build the image with ${docker_file_location}/${docker_file_name} (using cache)"
-    local env_build_args=$(make_docker_build_arg_strings)
-    echo "[NOTICE] DOCKER_BUILD_ARGS on the .env : ${env_build_args}"
-
-    if [[ ${docker_layer_corruption_recovery} == true ]]; then
-       echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
-       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
-       cd -
-    else
-       echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
-       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
-       cd -
-    fi
-
-  fi
-
-  if [[ $(docker images -q ${project_name}:previous 2> /dev/null) == '' ]]
-  then
-     docker tag ${project_name}:latest ${project_name}:previous
-  fi
-
-  docker tag ${project_name}:latest ${project_name}:blue
-  docker tag ${project_name}:latest ${project_name}:green
-}
-
-app_down_and_up(){
-
-    if [[ ${orchestration_type} == 'stack' ]]; then
-      echo "[NOTICE] Down & Up '${project_name}-${new_state} stack'."
-      docker stack rm ${project_name}-${new_state} || echo "[NOTICE] The ${project_name}-${new_state} stack has been removed, if exists."
-      docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name}-${new_state} || (echo "[ERROR] Service ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment. (command : docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name})" && exit 1)
-
-      # [TO DO] docker stack takes a long time to be up. it needs to use a good logic instead of sleep.
-      sleep 20
-
-    else
-      echo "[NOTICE] Down & Up '${project_name}-${new_state} container'."
-      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
-      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
-      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] App ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment." && exit 1)
-      echo "[NOTICE] '${project_name}-${new_state} container' : successfully UP."
-    fi
-
-}
-
-nginx_down_and_up(){
-
-   echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, terminate Nginx container and network."
-
-   echo "[NOTICE] Stop & Remove NGINX Container."
-   docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] The previous Nginx Container has been stopped & removed, if exists."
-
-   echo "[NOTICE] Up NGINX Container."
-   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
-
-}
-
-consul_down_and_up(){
-
-    echo "[NOTICE] As !CONSUL_RESTART is true, which means there will be a short-downtime for CONSUL, terminate CONSUL container and network."
-
-    echo "[NOTICE] Forcefully Stop & Remove CONSUL Container."
-    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] The previous Consul & Registrator Container has been stopped, if exists."
-    docker container rm -f consul || echo "[NOTICE] The previous Consul Container has been removed, if exists."
-    docker container rm -f registrator || echo "[NOTICE] The previous Registrator Container has been removed, if exists."
-
-    echo "[NOTICE] Up CONSUL container"
-    # https://github.com/hashicorp/consul/issues/17973
-    docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
-
-    sleep 7
-}
-
-check_one_container_loaded(){
-
-      if [ "$(docker ps -q -f name=^${1})" ]; then
-          echo "[NOTICE] Supporting container ( ${1} ) running checked."
-        else
-          echo "[ERROR] Supporting container ( ${1} ) running not found."
-        fi
-}
-
-check_supporting_containers_loaded(){
-  all_container_names=("consul" "registrator" "${project_name}-nginx")
-  for name in "${all_container_names[@]}"; do
-    check_one_container_loaded ${name}
-  done
-}
 
 
 load_all_containers(){
@@ -346,6 +155,7 @@ load_all_containers(){
 
 }
 
+
 backup_to_new_images(){
 
     echo "[NOTICE] docker tag latest new"
@@ -367,34 +177,32 @@ _main() {
   echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
 
   # [B] Set mandatory files
-  # These are all about passing variables from the .env to the docker-${orchestration_type}-${project_name}-local.yml
-  initiate_docker_compose
+  ## App
+  initiate_docker_compose_file
   apply_env_service_name_onto_app_yaml
-  apply_ports_onto_nginx_yaml
   apply_docker_compose_environment_onto_app_yaml
-
-  # Refer to .env.*.real
   if [[ ${app_env} == 'real' ]]; then
     apply_docker_compose_volumes_onto_app_real_yaml
   fi
-
-  apply_docker_compose_volumes_onto_app_nginx_yaml
-
-  create_nginx_ctmpl
-
   if [[ ${skip_building_app_image} != 'true' ]]; then
     backup_app_to_previous_images
   fi
-  backup_nginx_to_previous_images
 
-  if [[ ${app_env} == 'local' ]]; then
+  ## Nginx
+  if [[ ${nginx_restart} == 'true' ]]; then
+    initiate_nginx_docker_compose_file
+    apply_env_service_name_onto_nginx_yaml
+    apply_ports_onto_nginx_yaml
+    apply_docker_compose_volumes_onto_app_nginx_yaml
+    create_nginx_ctmpl
 
-      give_host_group_id_full_permissions
-  #else
-
-     # create_host_folders_if_not_exists
+    backup_nginx_to_previous_images
   fi
 
+
+  if [[ ${app_env} == 'local' ]]; then
+      give_host_group_id_full_permissions
+  fi
   if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
     terminate_whole_system
   fi
@@ -403,8 +211,12 @@ _main() {
   if [[ ${skip_building_app_image} != 'true' ]]; then
     load_app_docker_image
   fi
+  if [ ${consul_restart} == 'true' ]; then
     load_consul_docker_image
+  fi
+  if [ ${nginx_restart} == 'true' ]; then
     load_nginx_docker_image
+  fi
 
   if [[ ${only_building_app_image} == 'true' ]]; then
     echo "[NOTICE] Successfully built the App image : ${new_state}" && exit 0

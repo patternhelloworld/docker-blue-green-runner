@@ -12,8 +12,7 @@ git config core.filemode false
 sleep 3
 source ./util.sh
 source ./use-nginx.sh
-
-
+# Load necessary things from util.sh
 check_necessary_commands
 cache_global_vars
 check_env_integrity
@@ -35,6 +34,15 @@ fi
 
 
 echo "[NOTICE] Finally, !! Deploy the App as !! ${state_a} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
+
+# parse
+initiate_nginx_docker_compose_file
+apply_env_service_name_onto_nginx_yaml
+apply_ports_onto_nginx_yaml
+apply_docker_compose_volumes_onto_app_nginx_yaml
+create_nginx_ctmpl
+# build
+load_nginx_docker_image
 # run
 nginx_down_and_up
 # activate : blue or green

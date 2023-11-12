@@ -60,6 +60,41 @@ sed -i -e "s/###PROJECT_NAME###/${project_name}/g" /etc/consul-templates/nginx.c
 sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "consul_key (${consul_key}) replacement failure." && exit 1)
 sed -i -e "s/###NGINX_CLIENT_MAX_BODY_SIZE###/${nginx_client_max_body_size}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "nginx_client_max_body_size (${nginx_client_max_body_size}) replacement failure." && exit 1)
 
+use_nginx_restricted_location=$(printenv USE_NGINX_RESTRICTED_LOCATION)
+nginx_restricted_location=$(printenv NGINX_RESTRICTED_LOCATION)
+
+if [[ ${use_nginx_restricted_location} = 'true' ]]; then
+
+  sed -i -e "/###USE_NGINX_RESTRICTED_LOCATION###/c \
+      location ${nginx_restricted_location} { \
+          add_header Pragma no-cache; \
+          add_header Cache-Control no-cache; \
+  \
+                          auth_basic           \"Restricted\"; \
+                          auth_basic_user_file /etc/nginx/custom-files/.htpasswd; \
+  \
+         {{ with \$key_value := keyOrDefault \"${consul_key}\" \"blue\" }} \
+             {{ if or (eq \$key_value \"blue\") (eq \$key_value \"green\") }} \
+                  proxy_pass ${protocol}://${project_name}-{{ \$key_value }}:${app_port}; \
+           {{ else }} \
+                  proxy_pass ${protocol}://${project_name}-blue:${app_port}; \
+              {{ end }} \
+          {{ end }}  \
+          proxy_set_header Host \$http_host; \
+          proxy_set_header X-Scheme \$scheme; \
+          proxy_set_header X-Forwarded-Protocol \$scheme; \
+          proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
+          proxy_set_header X-Real-IP \$remote_addr; \
+          proxy_http_version 1.1; \
+          proxy_read_timeout 300s; \
+          proxy_connect_timeout 75s; \
+      }" /etc/consul-templates/nginx.conf.ctmpl
+
+
+else
+  sed -i -e "s/###USE_NGINX_RESTRICTED_LOCATION###//" /etc/consul-templates/nginx.conf.ctmpl || (echo "use_nginx_restricted_location=false (${use_nginx_restricted_location}) replacement failure." && exit 1)
+fi
+
 if [[ ${protocol} = 'https' ]]; then
 
     use_commercial_ssl=$(printenv USE_COMMERCIAL_SSL)

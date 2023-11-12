@@ -5,6 +5,8 @@
 !/.docker/env/real/.gitkeep
 /.docker/ssl/*
 !/.docker/ssl/.gitkeep
+/.docker/nginx/custom-files/*
+!/.docker/nginx/custom-files/.gitkeep
 
 /shared/app-error-logs/*
 !/shared/app-error-logs/.gitkeep

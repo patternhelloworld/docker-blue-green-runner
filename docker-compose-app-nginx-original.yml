@@ -12,6 +12,7 @@ services:
     volumes:
       - ./.docker/ssl:/etc/nginx/ssl
       - ./.docker/nginx/ctmpl:/ctmpl
+      - ./.docker/nginx/custom-files:/etc/nginx/custom-files
     networks:
       - consul
     ports:

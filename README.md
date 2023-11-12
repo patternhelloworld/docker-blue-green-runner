@@ -225,6 +225,10 @@ bash emergency-consul-down-and-up.sh
 `` http://localhost:8500 ``
 
 
+## USE_NGINX_RESTRICTION on .env
+- https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication
+- Create .htpasswd on ./.docker/nginx/custom-files if you would like use the settings. This is useful when you apply security to API Doc Modules such as Spring-Rest-Docs.
+
 ## Advanced
 - Customizing ```docker-compose.yml```
   - Docker-Blue-Green-Runner uses your App's only ```Dockerfile```, NOT ```docker-compose```.
@@ -238,60 +242,65 @@ bash emergency-consul-down-and-up.sh
 
 ## Structure
 ```shell
-# [A] Get mandatory variables
-check_necessary_commands
-cache_global_vars
-# The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
-local initially_cached_old_state=${state}
-check_env_integrity
+  # [A] Get mandatory variables
+  check_necessary_commands
+  cache_global_vars
+  # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
+  local initially_cached_old_state=${state}
+  check_env_integrity
 
-echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
+  echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
 
-# [B] Set mandatory files
-# These are all about passing variables from the .env to the docker-compose-${project_name}-local.yml
-initiate_docker_compose
-apply_env_service_name_onto_app_yaml
-apply_ports_onto_nginx_yaml
-apply_docker_compose_environment_onto_app_yaml
+  # [B] Set mandatory files
+  ## App
+  initiate_docker_compose_file
+  apply_env_service_name_onto_app_yaml
+  apply_docker_compose_environment_onto_app_yaml
+  if [[ ${app_env} == 'real' ]]; then
+    apply_docker_compose_volumes_onto_app_real_yaml
+  fi
+  if [[ ${skip_building_app_image} != 'true' ]]; then
+    backup_app_to_previous_images
+  fi
 
-# Refer to .env.*.real
-if [[ ${app_env} == 'real' ]]; then
-  apply_docker_compose_volumes_onto_app_real_yaml
-fi
+  ## Nginx
+  if [[ ${nginx_restart} == 'true' ]]; then
+    initiate_nginx_docker_compose_file
+    apply_ports_onto_nginx_yaml
+    apply_docker_compose_volumes_onto_app_nginx_yaml
+    create_nginx_ctmpl
 
-apply_docker_compose_volumes_onto_app_nginx_yaml
+    backup_nginx_to_previous_images
+  fi
 
-create_nginx_ctmpl
 
-if [[ ${skip_building_app_image} != 'true' ]]; then
-  backup_app_to_previous_images
-fi
-backup_nginx_to_previous_images
+  if [[ ${app_env} == 'local' ]]; then
+      give_host_group_id_full_permissions
+  fi
+  if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
+    terminate_whole_system
+  fi
 
-if [[ ${app_env} == 'local' ]]; then
+  # [B] Build Docker images for the App, Nginx, Consul
+  if [[ ${skip_building_app_image} != 'true' ]]; then
+    load_app_docker_image
+  fi
+  if [ ${consul_restart} = "true" ]; then
+    load_consul_docker_image
+  fi
+  if [ ${nginx_restart} = "true" ]; then
+    load_nginx_docker_image
+  fi
 
-    give_host_group_id_full_permissions
-#else
+  if [[ ${only_building_app_image} == 'true' ]]; then
+    echo "[NOTICE] Successfully built the App image : ${new_state}" && exit 0
+  fi
 
-   # create_host_folders_if_not_exists
-fi
-
-if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
-  terminate_whole_system
-fi
-
-# [B] Build Docker images for the App, Nginx, Consul
-if [[ ${skip_building_app_image} != 'true' ]]; then
-  load_app_docker_image
-fi
-  load_consul_docker_image
-  load_nginx_docker_image
-
-local cached_new_state=${new_state}
-cache_all_states
-if [[ ${cached_new_state} != "${new_state}" ]]; then
-  (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
-fi
+  local cached_new_state=${new_state}
+  cache_all_states
+  if [[ ${cached_new_state} != "${new_state}" ]]; then
+    (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
+  fi
 
   # Run 'docker-compose up' for 'App', 'Consul (Service Mesh)' and 'Nginx' and
   # Check if the App is properly working from the inside of the App's container using 'wait-for-it.sh ( https://github.com/vishnubob/wait-for-it )' and conducting a health check with settings defined on .env.
@@ -307,7 +316,7 @@ fi
 
 ```shell
 
-# [C] Docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
+# [C] docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
 load_all_containers
 
 # [D] Set Consul
@@ -316,19 +325,19 @@ load_all_containers
 # [E] External Integrity Check, if fails, 'emergency-nginx-down-and-up.sh' will be run.
 re=$(check_availability_out_of_container | tail -n 1);
 if [[ ${re} != 'true' ]]; then
-  echo "[WARNING] ! ${new_state}'s availability issue found. Now we are going to run 'emergency-nginx-down-and-up.sh' immediately."
-  bash emergency-nginx-down-and-up.sh
+echo "[WARNING] ! ${new_state}'s availability issue found. Now we are going to run 'emergency-nginx-down-and-up.sh' immediately."
+bash emergency-nginx-down-and-up.sh
 
-  re=$(check_availability_out_of_container | tail -n 1);
-  if [[ ${re} != 'true' ]]; then
-    echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
-  fi
+re=$(check_availability_out_of_container | tail -n 1);
+if [[ ${re} != 'true' ]]; then
+  echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
+fi
 fi
 
 
 # [F] Finalizing the process : from this point on, regarded as "success".
 if [[ ${skip_building_app_image} != 'true' ]]; then
-  backup_to_new_images
+backup_to_new_images
 fi
 
 echo "[DEBUG] state : ${state}, new_state : ${new_state}, initially_cached_old_state : ${initially_cached_old_state}"
@@ -336,10 +345,15 @@ echo "[DEBUG] state : ${state}, new_state : ${new_state}, initially_cached_old_s
 echo "[NOTICE] For safety, finally check Consul pointing before stopping the previous container (${initially_cached_old_state})."
 local consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
 if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
-  docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
+if [[ ${orchestration_type} != 'stack' ]]; then
+  docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
   echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
 else
-  echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
+   docker stack rm ${project_name}-${initially_cached_old_state}
+   echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+fi
+else
+echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
 fi
 
 echo "[NOTICE] Delete <none>:<none> images."
