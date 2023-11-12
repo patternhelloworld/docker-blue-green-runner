@@ -108,6 +108,8 @@ docker-compose up -d
 # Go back to the root
 cd ../../
 cp -f .env.php.real .env
+# For WIN WSL2, \r on shell scripts can cause issues.
+sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/real/run.sh
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
 sudo bash run.sh
@@ -130,6 +132,8 @@ docker-compose up -d
 # Go back to the root
 cd ../../
 cp -f .env.php.local .env
+# For WIN WSL2, \r on shell scripts can cause issues.
+sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/real/local.sh
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
 sudo bash run.sh
@@ -148,6 +152,8 @@ and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/
 ```shell
 # In the ROOT folder,
 cp -f .env.java.local .env # or cp -f .env.java.real .env
+# For WIN WSL2, \r on shell scripts can cause issues.
+ sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/local.sh
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 sudo bash run.sh
 ```
