@@ -29,9 +29,9 @@ container_ids=($(docker network inspect -f '{{range .Containers}}{{.Name}} {{end
 
 for container_id in "${container_ids[@]}"; do
     echo "[NOTICE] Stopping & Removing containers for removing the Consul network : $container_id"
-    docker network disconnect -f "$network_name" "$container_id"
-    docker stop "$container_id"
-    docker container rm "$container_id"
+    docker network disconnect -f "$network_name" "$container_id" || echo "[DEBUG] F"
+    docker stop "$container_id"  || echo "[DEBUG] G"
+    docker container rm "$container_id"  || echo "[DEBUG] H"
 done
 
 sleep 5
