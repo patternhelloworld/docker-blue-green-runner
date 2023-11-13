@@ -101,18 +101,19 @@ terminate_whole_system(){
 load_all_containers(){
   # app, consul, nginx
   # In the past, restarting Nginx before App caused error messages like "upstream not found" in the Nginx configuration file. This seems to have caused a 502 error on the socket side.
-  # Therefore, it is safer to restart the containers in the order of Consul -> App -> Nginx.
-  if [[ ${consul_restart} == 'true' ]]; then
-
-      consul_down_and_up
-
-  fi
 
   echo "[NOTICE] Creating consul network..."
   if [[ ${orchestration_type} != 'stack' ]]; then
    docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
   else
       docker network create --driver overlay consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+  fi
+
+  # Therefore, it is safer to restart the containers in the order of Consul -> App -> Nginx.
+  if [[ ${consul_restart} == 'true' ]]; then
+
+      consul_down_and_up
+
   fi
 
 
@@ -211,10 +212,10 @@ _main() {
   if [[ ${skip_building_app_image} != 'true' ]]; then
     load_app_docker_image
   fi
-  if [ ${consul_restart} == 'true' ]; then
+  if [[ ${consul_restart} == 'true' ]]; then
     load_consul_docker_image
   fi
-  if [ ${nginx_restart} == 'true' ]; then
+  if [[ ${nginx_restart} == 'true' ]]; then
     load_nginx_docker_image
   fi
 

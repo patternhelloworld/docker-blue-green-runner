@@ -4,13 +4,6 @@
 
 To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
-- [NOTICE] 
-  - 'ORCHESTRATION_TYPE=stack' is currently experimental, keep 'ORCHESTRATION_TYPE=compose' as it is in the production stage.
-    - However, you would test the docker swarm, run the command. It is currently tested for the Java sample.
-      - ```shell
-          docker swarm init
-          sudo bash run.sh
-        ```
 
 ## Introduction
 
@@ -378,3 +371,12 @@ sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
 ## Concurrent Running for this App
 - Running ```sudo bash *.sh``` concurrently for the **same** project at the same time, is NOT safe.
 - Running ```sudo bash *.sh``` concurrently for **different** projects at the same time, is safe.
+
+## Docker Swarm
+
+- 'ORCHESTRATION_TYPE=stack' is currently experimental, keep 'ORCHESTRATION_TYPE=compose' as it is in the production stage.
+  - However, you would test the docker swarm, run the command. It is currently tested for the Java sample.
+    - ```shell
+        docker swarm init
+        sudo bash run.sh
+      ```
