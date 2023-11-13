@@ -7,6 +7,7 @@ git config apply.whitespace nowarn
 git config core.filemode false
 
 source ./util.sh
+source ./use-app.sh
 
 cache_global_vars
 
