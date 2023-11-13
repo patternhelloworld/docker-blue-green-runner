@@ -218,7 +218,7 @@ cache_non_dependent_global_vars() {
   nginx_restricted_location=$(get_value_from_env "NGINX_RESTRICTED_LOCATION")
 
   if [[ ${use_nginx_restricted_location} = 'true' ]]; then
-    local passwd_file_path="./.docker/nginx/conf.d/.htpasswd";
+    local passwd_file_path="./.docker/nginx/custom-files/.htpasswd";
     if [ ! -f "$passwd_file_path" ]; then
         echo "[ERROR] couldn't find '${passwd_file_path}' file for 'USE_NGINX_RESTRICTED_LOCATION=true'. See the README if you would like to use USE_NGINX_RESTRICTED_LOCATION."
         exit 1
