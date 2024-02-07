@@ -7,7 +7,7 @@ services:
   consul:
     hostname: consul
     container_name: consul
-    image: hashicorp/consul:latest # https://github.com/hashicorp/consul/issues/17973
+    image: hashicorp/consul:1.14.11 # https://github.com/hashicorp/consul/issues/17973
     restart: always
     environment:
       - CONSUL_LOCAL_CONFIG={"disable_update_check":true}
@@ -31,7 +31,7 @@ services:
     container_name: registrator
     command: -internal consul://consul:8500
     privileged: true
-    image: gliderlabs/registrator:latest
+    image: gliderlabs/registrator:v7
     restart: always
     links:
       - consul
