@@ -184,10 +184,14 @@ bash check-current-states.sh | grep -o '[^_]state : [^,]*,'
 ```shell
 # Automatically set the safe state & down and up Nginx
 bash emergency-nginx-down-and-up.sh
+
 # In case you need to manually set the Nginx to point to 'blue' or 'green'
 bash emergency-nginx-down-and-up.sh blue
 ## OR
 bash emergency-nginx-down-and-up.sh green
+
+# If the script above fails, recreate & reset all about Nginx settings.
+bash emergency-nginx-restart.sh
 
 # If the script above fails, set *NGINX_RESTART to be true on .env. and..
 sudo bash run.sh
@@ -268,7 +272,7 @@ bash emergency-consul-down-and-up.sh
     apply_ports_onto_nginx_yaml
     apply_docker_compose_volumes_onto_app_nginx_yaml
     create_nginx_ctmpl
-
+    create_nginx_contingency_conf
     backup_nginx_to_previous_images
   fi
 

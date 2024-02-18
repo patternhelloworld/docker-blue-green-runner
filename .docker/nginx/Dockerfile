@@ -1,4 +1,4 @@
-FROM nginx:latest
+FROM nginx:1.25.4
 
 RUN apt-get update -qqy && apt-get -qqy --force-yes install curl runit wget unzip vim logrotate && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/*

@@ -7,7 +7,7 @@ services:
   consul:
     hostname: consul
     container_name: consul
-    image: hashicorp/consul:1.14.11 # https://github.com/hashicorp/consul/issues/17973
+    image: hashicorp/consul:1.14.11
     restart: always
     environment:
       - CONSUL_LOCAL_CONFIG={"disable_update_check":true}

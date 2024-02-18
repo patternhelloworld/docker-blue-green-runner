@@ -52,13 +52,22 @@ fi
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] Locate the template file for ${protocol}."
 sleep 3
 cp -f /ctmpl/${protocol}/nginx.conf.ctmpl /etc/consul-templates
+cp -f /ctmpl/${protocol}/nginx.conf.contingency /etc/consul-templates
 
-sed -i -e "s/###EXPOSE_PORT###/${expose_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "expose_port (${expose_port}) replacement failure." && exit 1)
-sed -i -e "s/###APP_PORT###/${app_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "app_port (${app_port}) replacement failure." && exit 1)
+sed -i -e "s/###EXPOSE_PORT###/${expose_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "expose_port (${expose_port}) replacement (ctmpl) failure." && exit 1)
+sed -i -e "s/###EXPOSE_PORT###/${expose_port}/" /etc/consul-templates/nginx.conf.contingency || (echo "expose_port (${expose_port}) replacement (contingency) failure." && exit 1)
 
-sed -i -e "s/###PROJECT_NAME###/${project_name}/g" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_name (${project_name}) replacement failure." && exit 1)
-sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "consul_key (${consul_key}) replacement failure." && exit 1)
-sed -i -e "s/###NGINX_CLIENT_MAX_BODY_SIZE###/${nginx_client_max_body_size}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "nginx_client_max_body_size (${nginx_client_max_body_size}) replacement failure." && exit 1)
+sed -i -e "s/###APP_PORT###/${app_port}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "app_port (${app_port}) replacement (ctmpl) failure." && exit 1)
+sed -i -e "s/###APP_PORT###/${app_port}/" /etc/consul-templates/nginx.conf.contingency || (echo "app_port (${app_port}) replacement (contingency) failure." && exit 1)
+
+sed -i -e "s/###PROJECT_NAME###/${project_name}/g" /etc/consul-templates/nginx.conf.ctmpl || (echo "project_name (${project_name}) replacement (ctmpl) failure." && exit 1)
+sed -i -e "s/###PROJECT_NAME###/${project_name}/g" /etc/consul-templates/nginx.conf.contingency || (echo "project_name (${project_name}) replacement (contingency) failure." && exit 1)
+
+sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "consul_key (${consul_key}) replacement (ctmpl) failure." && exit 1)
+sed -i -e "s/###CONSUL_KEY###/${consul_key}/" /etc/consul-templates/nginx.conf.contingency || (echo "consul_key (${consul_key}) replacement (contingency) failure." && exit 1)
+
+sed -i -e "s/###NGINX_CLIENT_MAX_BODY_SIZE###/${nginx_client_max_body_size}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "nginx_client_max_body_size (${nginx_client_max_body_size}) replacement (ctmpl) failure." && exit 1)
+sed -i -e "s/###NGINX_CLIENT_MAX_BODY_SIZE###/${nginx_client_max_body_size}/" /etc/consul-templates/nginx.conf.contingency || (echo "nginx_client_max_body_size (${nginx_client_max_body_size}) replacement (contingency) failure." && exit 1)
 
 use_nginx_restricted_location=$(printenv USE_NGINX_RESTRICTED_LOCATION)
 nginx_restricted_location=$(printenv NGINX_RESTRICTED_LOCATION)
@@ -90,9 +99,29 @@ if [[ ${use_nginx_restricted_location} = 'true' ]]; then
           proxy_connect_timeout 75s; \
       }" /etc/consul-templates/nginx.conf.ctmpl
 
+  sed -i -e "/###USE_NGINX_RESTRICTED_LOCATION###/c \
+      location ${nginx_restricted_location} { \
+          add_header Pragma no-cache; \
+          add_header Cache-Control no-cache; \
+  \
+                          auth_basic           \"Restricted\"; \
+                          auth_basic_user_file /etc/nginx/custom-files/.htpasswd; \
+  \
+          proxy_pass ${protocol}://${project_name}-###APP_STATE###:${app_port}; \
+          proxy_set_header Host \$http_host; \
+          proxy_set_header X-Scheme \$scheme; \
+          proxy_set_header X-Forwarded-Protocol \$scheme; \
+          proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
+          proxy_set_header X-Real-IP \$remote_addr; \
+          proxy_http_version 1.1; \
+          proxy_read_timeout 300s; \
+          proxy_connect_timeout 75s; \
+      }" /etc/consul-templates/nginx.conf.contingency
+
 
 else
-  sed -i -e "s/###USE_NGINX_RESTRICTED_LOCATION###//" /etc/consul-templates/nginx.conf.ctmpl || (echo "use_nginx_restricted_location=false (${use_nginx_restricted_location}) replacement failure." && exit 1)
+  sed -i -e "s/###USE_NGINX_RESTRICTED_LOCATION###//" /etc/consul-templates/nginx.conf.ctmpl || (echo "use_nginx_restricted_location=false (${use_nginx_restricted_location}) replacement (ctmpl) failure." && exit 1)
+  sed -i -e "s/###USE_NGINX_RESTRICTED_LOCATION###//" /etc/consul-templates/nginx.conf.contingency || (echo "use_nginx_restricted_location=false (${use_nginx_restricted_location}) replacement (contingency) failure." && exit 1)
 fi
 
 if [[ ${protocol} = 'https' ]]; then
@@ -149,7 +178,8 @@ if [[ ${protocol} = 'https' ]]; then
     # sleep 1
     #sed -i -e "s/###APP_HOST###/${app_host}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "APP_HOST on .env failed to be applied." && exit 1)
     #sleep 1
-    sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied." && exit 1)
+    sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (ctmpl)" && exit 1)
+    sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.contingency || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (contingency)" && exit 1)
 fi
 
 
@@ -174,6 +204,12 @@ for retry_count in {1..5}; do
   echo "[INSIDE_NGINX_CONTAINER][NOTICE] Retry four times with a three-second interval... (retrying ${retry_count} times...)"
   sleep 3
 done
+echo "[INSIDE_NGINX_CONTAINER][NOTICE] Creating 'nginx.conf.contingency.blue', 'nginx.conf.contingency.green' ..."
+cp -f /etc/consul-templates/nginx.conf.contingency /etc/consul-templates/nginx.conf.contingency.blue || (echo "Failed in creating /etc/consul-templates/nginx.conf.contingency.blue" && exit 1)
+sed -i -e "s/###APP_STATE###/blue/" /etc/consul-templates/nginx.conf.contingency.blue || (echo "Failed in creating /etc/consul-templates/nginx.conf.contingency.blue (2)" && exit 1)
+cp -f /etc/consul-templates/nginx.conf.contingency /etc/consul-templates/nginx.conf.contingency.green || (echo "Failed in creating /etc/consul-templates/nginx.conf.contingency.green" && exit 1)
+sed -i -e "s/###APP_STATE###/green/" /etc/consul-templates/nginx.conf.contingency.green || (echo "Failed in creating /etc/consul-templates/nginx.conf.contingency.green (2)" && exit 1)
+
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] Applying the Nginx template..."
 bash /etc/service/consul-template/run/consul-template.service
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] Start the Nginx."

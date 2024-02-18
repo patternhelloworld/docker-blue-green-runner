@@ -152,7 +152,8 @@ load_all_containers(){
 
   fi
 
-  check_supporting_containers_loaded || (echo "[ERROR] Fail in loading supporting containers." && exit 1)
+  check_necessary_supporting_containers_loaded || (echo "[ERROR] Fail in loading necessary supporting containers." && exit 1)
+  check_supporting_containers_loaded || (echo "[WARN] Fail in loading supporting containers. We will conduct the Nginx Contingency Plan.")
 
 }
 
@@ -196,7 +197,7 @@ _main() {
     apply_ports_onto_nginx_yaml
     apply_docker_compose_volumes_onto_app_nginx_yaml
     create_nginx_ctmpl
-
+    create_nginx_contingency_conf
     backup_nginx_to_previous_images
   fi
 

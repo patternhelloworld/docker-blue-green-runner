@@ -14,7 +14,12 @@ new_upstream=$3
 consul_key_value_store=$4
 
 echo "[NOTICE] new_state : ${new_state}, old_state : ${old_state}, new_upstream : ${new_upstream}, consul_key_value_store : ${consul_key_value_store}"
-was_state=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw) || (echo "[EMERGENCY] Errors on Nginx or Consul Network. 1) Nginx : check logs above & docker logs -f... 2) Consul : This usually occurs when the physical machine has been restarted. (Solution : run bash 'stop-all-containers.sh' & 'emergency-consul-down-and-up.sh' & 'run.sh')" && exit 1)
+# was_state=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw) || (echo "[EMERGENCY] Errors on Nginx or Consul Network. 1) Nginx : check logs above & docker logs -f... 2) Consul : This usually occurs when the physical machine has been restarted. (Solution : run bash 'stop-all-containers.sh' & 'emergency-consul-down-and-up.sh' & 'run.sh')" && exit 1)
+was_state=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw) || {
+    echo "[EMERGENCY] Errors on Nginx or Consul Network. Run Nginx Contingency Plan."
+    was_state="${old_state}"
+}
+
 echo "[NOTICE] CONSUL (${consul_key_value_store}) is currently pointing to : ${was_state}"
 if [[ ${old_state} != ${was_state} ]]; then
   echo "[WARNING] Was State (${was_state}, currently pointed from CONSUL) is different from Old State (${old_state}, checked at the first stage of the mother script.)"
@@ -44,7 +49,11 @@ done
 
 echo "[NOTICE] Activate ${new_state} CONSUL. (old Nginx pids: ${pid_was})"
 echo "[NOTICE] ${new_state} is stored in CONSUL."
-docker exec ${project_name}-nginx curl -X PUT -d ${new_state} ${consul_key_value_store} >/dev/null
+docker exec ${project_name}-nginx curl -X PUT -d ${new_state} ${consul_key_value_store} >/dev/null || {
+    echo "[EMERGENCY] Set ${new_state} on nginx.conf according to the Nginx Contingency Plan."
+    docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.contingency.${new_state} /etc/nginx/conf.d/nginx.conf
+    docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Contingency Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
+}
 
 sleep 1
 

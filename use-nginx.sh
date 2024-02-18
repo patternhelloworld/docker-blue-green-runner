@@ -243,10 +243,191 @@ server {
 EOF
    done
 
+   fi
+}
 
+create_nginx_contingency_conf(){
 
+   local proxy_hostname=
+
+   if [[ ${orchestration_type} == 'stack' ]]; then
+     proxy_hostname="###PROJECT_NAME###-###APP_STATE###_###PROJECT_NAME###-###APP_STATE###"
+   else
+     proxy_hostname="###PROJECT_NAME###-###APP_STATE###"
    fi
 
+    if [[ ${protocol} = 'http' ]]; then
+
+    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.contingency) is now being created."
+
+    cat > .docker/nginx/ctmpl/http/nginx.conf.contingency <<EOF
+
+server {
+
+     listen ###EXPOSE_PORT### default_server;
+     listen [::]:###EXPOSE_PORT### default_server;
+
+     server_name localhost;
+
+     error_page 497 http://\$host:\$server_port\$request_uri;
+
+     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
+
+     location / {
+         add_header Pragma no-cache;
+         add_header Cache-Control no-cache;
+
+         proxy_pass http://$proxy_hostname:###APP_PORT###;
+
+         proxy_set_header Host \$http_host;
+         proxy_set_header X-Scheme \$scheme;
+         proxy_set_header X-Forwarded-Protocol \$scheme;
+         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+         proxy_set_header X-Real-IP \$remote_addr;
+         proxy_http_version 1.1;
+         proxy_read_timeout 300s;
+         proxy_connect_timeout 75s;
+     }
+
+     ###USE_NGINX_RESTRICTED_LOCATION###
+
+     access_log /var/log/nginx/access.log;
+     error_log /var/log/nginx/error.log;
+}
+EOF
+
+   for i in "${additional_ports[@]}"
+   do
+        cat >> .docker/nginx/ctmpl/http/nginx.conf.contingency <<EOF
+
+server {
+
+     listen $i default_server;
+     listen [::]:$i default_server;
+
+     server_name localhost;
+
+     error_page 497 http://\$host:\$server_port\$request_uri;
+
+     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
+
+     location / {
+         add_header Pragma no-cache;
+         add_header Cache-Control no-cache;
+
+         proxy_pass http://$proxy_hostname:$i;
+
+         proxy_set_header Host \$http_host;
+         proxy_set_header X-Scheme \$scheme;
+         proxy_set_header X-Forwarded-Protocol \$scheme;
+         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+         proxy_set_header X-Real-IP \$remote_addr;
+         proxy_http_version 1.1;
+         proxy_read_timeout 300s;
+         proxy_connect_timeout 75s;
+    }
+
+     access_log /var/log/nginx/access.log;
+     error_log /var/log/nginx/error.log;
+}
+EOF
+   done
+
+   else
+
+    echo "[NOTICE] NGINX template (.docker/nginx/contingency/${protocol}/nginx.conf.contingency) is now being created."
+
+    cat > .docker/nginx/ctmpl/https/nginx.conf.contingency <<EOF
+server {
+
+    listen ###EXPOSE_PORT### default_server ssl;
+    listen [::]:###EXPOSE_PORT### default_server ssl;
+
+    http2 on;
+    server_name localhost;
+
+    error_page 497 https://\$host:\$server_port\$request_uri;
+
+    client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
+
+
+    ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
+    ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+
+
+    location / {
+        add_header Pragma no-cache;
+        add_header Cache-Control no-cache;
+
+        proxy_pass https://$proxy_hostname:###APP_PORT###;
+
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Scheme \$scheme;
+        proxy_set_header X-Forwarded-Protocol \$scheme;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_http_version 1.1;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    ###USE_NGINX_RESTRICTED_LOCATION###
+
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+}
+EOF
+
+   for i in "${additional_ports[@]}"
+   do
+        cat >> .docker/nginx/ctmpl/https/nginx.conf.contingency <<EOF
+
+server {
+    listen $i default_server ssl;
+    listen [::]:$i default_server ssl;
+
+    http2 on;
+
+    server_name localhost;
+
+    error_page 497 https://\$host:\$server_port\$request_uri;
+
+    client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
+
+
+    ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
+    ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+
+    location / {
+        add_header Pragma no-cache;
+        add_header Cache-Control no-cache;
+
+        proxy_pass https://$proxy_hostname:$i;
+
+        proxy_set_header Host \$http_host;
+        proxy_set_header X-Scheme \$scheme;
+        proxy_set_header X-Forwarded-Protocol \$scheme;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_http_version 1.1;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+}
+EOF
+   done
+
+   fi
 }
 
 load_nginx_docker_image(){

@@ -431,7 +431,14 @@ check_one_container_loaded(){
     fi
 }
 check_supporting_containers_loaded(){
-  all_container_names=("consul" "registrator" "${project_name}-nginx")
+  all_container_names=("consul" "registrator")
+  for name in "${all_container_names[@]}"; do
+    check_one_container_loaded ${name}
+  done
+}
+
+check_necessary_supporting_containers_loaded(){
+  all_container_names=("${project_name}-nginx")
   for name in "${all_container_names[@]}"; do
     check_one_container_loaded ${name}
   done

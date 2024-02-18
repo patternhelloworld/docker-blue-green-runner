@@ -41,6 +41,7 @@ apply_env_service_name_onto_nginx_yaml
 apply_ports_onto_nginx_yaml
 apply_docker_compose_volumes_onto_app_nginx_yaml
 create_nginx_ctmpl
+create_nginx_contingency_conf
 # build
 load_nginx_docker_image
 # run
