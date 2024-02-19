@@ -7,7 +7,7 @@ To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-
 
 ## Introduction
 
-With your project and its only Dockerfile (docker-compose.yml in the 'samples' folder is ignored), Docker-Blue-Green-Runner handles the rest of the Continuous Deployment (CD) process with Consul. Nginx allows your project to be deployed without experiencing any downtime.
+With your project and its only Dockerfile, Docker-Blue-Green-Runner handles the rest of the Continuous Deployment (CD) process with Consul. Nginx allows your project to be deployed without experiencing any downtime.
 
 ![img.png](/documents/images/img.png )
 
@@ -56,6 +56,13 @@ For all echo messages or properties .env, the following terms indicate...
 - RESTART : ```docker build & docker-compose down & docker-compose up ```
   - ex) NGINX_RESTART on .env means docker build & down & up for NGINX
 - safe : set a new state(=blue or green) without stopping or causing errors on your web App.
+
+## Log Levels
+- ``DEBUG``: Simply indicates that a specific function has been executed or a certain part of the source code has been run.
+- ``NOTICE``, ``WARN``: Just for your information.
+- ``ERROR``: Although the current deployment has not been halted, there is a clear error.
+- ``EMERGENCY``: A level of risk that halts the current deployment.
+
 ## How to Start with a Node Sample (Local).
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.

@@ -179,13 +179,13 @@ app_down_and_up(){
 # shellcheck disable=SC2120
 check_availability_inside_container(){
 
-  echo "[DEBUG] check_availability_inside_container"  >&2
+  echo "[DEBUG] 'check_availability_inside_container' is about to run."  >&2
 
   check_state=${1}
 
   if [[ -z ${check_state} ]]
     then
-      echo "[ERROR] the 'state' NOT indicated on check_availability_inside_container "  >&2
+      echo "[ERROR] the 'state' is NOT indicated on check_availability_inside_container."  >&2
       echo "false"
       return
   fi
@@ -210,11 +210,21 @@ check_availability_inside_container(){
     container_name=$(docker ps -q --filter "name=^${project_name}-${check_state}" | shuf -n 1);
 
     if [[ -z ${container_name} ]]; then
-      echo "[ERROR] Any container is NOT checked in the ${project_name}-${check_state}_${project_name}-${check_state} service. (container name : ${container_name}, command : docker ps -q --filter "name=^${project_name}-${check_state}" | shuf -n 1)"  >&2 && echo "false" && return
+      echo "[ERROR] Any container is NOT checked in the ${project_name}-${check_state}_${project_name}-${check_state} service (Swarm). (container name : ${container_name}, command : docker ps -q --filter "name=^${project_name}-${check_state}" | shuf -n 1)"  >&2 && echo "false" && return
     fi
 
   else
     container_name=${project_name}-${check_state}
+  fi
+
+  local container_status
+  container_status=$(docker inspect --format='{{.State.Status}}' ${container_name} 2>/dev/null || echo "unknown")
+
+  # 상태 검사 및 처리
+  if [ "$container_status" != "running" ] && [ "$container_status" != "created" ]; then
+    echo "[ERROR] The status of Container (${container_name}) to run is '$container_status'. It has to be one of 'running' or 'created'" >&2
+    echo "false"
+    return
   fi
 
   if [[ $(check_command_in_container_or_fail ${container_name} "curl") != "true" ]]; then

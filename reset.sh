@@ -16,7 +16,7 @@ new_state=$3
 
 echo "[NOTICE] Point Nginx back to ${state} from reset.sh."
 docker exec ${project_name}-nginx curl -X PUT -d ${state} ${consul_key_value_store} > /dev/null || {
-   echo "[EMERGENCY] Set ${state} on nginx.conf according to the Nginx Contingency Plan."
+   echo "[ERROR] Setting ${state} on '/etc/nginx/conf.d/nginx.conf' directly according to the Nginx Contingency Plan."
    docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.contingency.${state} /etc/nginx/conf.d/nginx.conf
    docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Contingency Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
 }

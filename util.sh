@@ -427,9 +427,19 @@ check_one_container_loaded(){
   if [ "$(docker ps -q -f name=^${1})" ]; then
       echo "[NOTICE] Supporting container ( ${1} ) running checked."
     else
-      echo "[ERROR] Supporting container ( ${1} ) running not found."
+      echo "[ERROR] Supporting container ( ${1} ) running not found. But, this does NOT stop the current deployment, according to the Nginx Contingency Plan."
     fi
 }
+
+check_one_necessary_container_loaded(){
+
+  if [ "$(docker ps -q -f name=^${1})" ]; then
+      echo "[NOTICE] Supporting container ( ${1} ) running checked."
+    else
+      echo "[ERROR] Supporting container ( ${1} ) running not found. As it is a necessary container, we will now exit the deployment process for safety." && exit 1
+    fi
+}
+
 check_supporting_containers_loaded(){
   all_container_names=("consul" "registrator")
   for name in "${all_container_names[@]}"; do
@@ -440,7 +450,7 @@ check_supporting_containers_loaded(){
 check_necessary_supporting_containers_loaded(){
   all_container_names=("${project_name}-nginx")
   for name in "${all_container_names[@]}"; do
-    check_one_container_loaded ${name}
+    check_one_necessary_container_loaded ${name}
   done
 }
 

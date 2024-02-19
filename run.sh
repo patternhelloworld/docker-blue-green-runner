@@ -152,8 +152,8 @@ load_all_containers(){
 
   fi
 
-  check_necessary_supporting_containers_loaded || (echo "[ERROR] Fail in loading necessary supporting containers." && exit 1)
-  check_supporting_containers_loaded || (echo "[WARN] Fail in loading supporting containers. We will conduct the Nginx Contingency Plan.")
+  check_necessary_supporting_containers_loaded || (echo "[ERROR] Failed in loading necessary supporting containers." && exit 1)
+  check_supporting_containers_loaded || (echo "[ERROR] Failed in loading supporting containers. We will conduct the Nginx Contingency Plan.")
 
 }
 
