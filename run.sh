@@ -244,7 +244,10 @@ _main() {
 
     re=$(check_availability_out_of_container | tail -n 1);
     if [[ ${re} != 'true' ]]; then
-      echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
+
+
+
+      echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh OR check your !firewall. (result value : ${re})" && exit 1
     fi
   fi
 

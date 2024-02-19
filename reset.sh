@@ -22,6 +22,8 @@ docker exec ${project_name}-nginx curl -X PUT -d ${state} ${consul_key_value_sto
 }
 
 
+
+
 echo "[NOTICE] Stopping the ${new_state} ${orchestration_type}"
 if [[ ${orchestration_type} != 'stack' ]]; then
   docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${new_state}

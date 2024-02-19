@@ -50,12 +50,19 @@ done
 echo "[NOTICE] Activate ${new_state} CONSUL. (old Nginx pids: ${pid_was})"
 echo "[NOTICE] ${new_state} is stored in CONSUL."
 docker exec ${project_name}-nginx curl -X PUT -d ${new_state} ${consul_key_value_store} >/dev/null || {
-    echo "[ERROR] Setting ${new_state} on nginx.conf according to the Nginx Contingency Plan."
+    echo "[NOTICE] Setting ${new_state} on nginx.conf according to the Nginx Contingency Plan."
     docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.contingency.${new_state} /etc/nginx/conf.d/nginx.conf
     docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Contingency Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
 }
 
 sleep 1
+
+re=$(check_availability_out_of_container_speed_mode | tail -n 1);
+if [[ ${re} != 'true' ]]; then
+    echo "[NOTICE] Setting ${new_state} on nginx.conf according to the Nginx Contingency Plan."
+    docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.contingency.${new_state} /etc/nginx/conf.d/nginx.conf
+    docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Contingency Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
+fi
 
 echo "[NOTICE] The PID of NGINX has been confirmed. Now, checking if CONSUL has been replaced with ${new_upstream} string in the NGINX configuration file."
 count=0
@@ -74,7 +81,7 @@ while [ 1 ]; do
 
           echo "[DEBUG] old_state_container_name : ${old_state_container_name}, ${orchestration_type}"
 
-          is_run=$(docker exec ${old_state_container_name}  echo 'yes' 2>/dev/null || echo 'no')
+          is_run=$(docker exec ${old_state_container_name} echo 'yes' 2>/dev/null || echo 'no')
           if [[ ${is_run} == 'yes' ]]; then
               if [[ ${orchestration_type} != 'stack' ]]; then
                 if [[ $(check_availability_inside_container_speed_mode ${old_state} 10 5 | tail -n 1) == 'true' ]]; then

@@ -307,8 +307,7 @@ check_availability_inside_container(){
 
 check_availability_inside_container_speed_mode(){
 
-  echo "[DEBUG] check_availability_inside_container_speed_mode"  >&2
-
+  echo "[DEBUG] (Speed Mode) check_availability_inside_container"  >&2
 
   check_state=${1}
 
@@ -427,6 +426,43 @@ check_availability_out_of_container(){
       echo "Bad HTTP response in the ${new_state} app: ${status}"  >&2
 
       if [[ ${retry_count} -eq 5 ]]
+      then
+         echo "[ERROR] Health Check Failed. (If you are not accessing an external domain (=closed network setting environment), you need to check if APP_URL is the value retrieved by ifconfig on the Ubuntu host. Access to the ip output by the WIN ipconfig command may fail. Or you need to check the network firewall."  >&2
+         echo "false"
+         return
+      fi
+
+    else
+      echo "[NOTICE] Success. (Status (2xx, 3xx) : ${status})"  >&2
+      break
+    fi
+
+    echo "[NOTICE] Retry once every 3 seconds for a total of 8 times..."  >&2
+    sleep 3
+  done
+
+  echo 'true'
+  return
+
+}
+
+
+check_availability_out_of_container_speed_mode(){
+
+  echo "[NOTICE] (Speed Mode) Check the http status code from the outside of the container. by calling '${app_url}/${app_health_check_path}'"  >&2
+
+ sleep 1
+
+  for retry_count in {1..3}
+  do
+    status=$(curl ${app_url}/${app_health_check_path} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
+    available_status_cnt=$(echo ${status} | egrep -i '^2[0-9]+|3[0-9]+$' | wc -l)
+
+    if [[ ${available_status_cnt} -lt 1 ]]; then
+
+      echo "Bad HTTP response in the ${new_state} app: ${status}"  >&2
+
+      if [[ ${retry_count} -eq 2 ]]
       then
          echo "[ERROR] Health Check Failed. (If you are not accessing an external domain (=closed network setting environment), you need to check if APP_URL is the value retrieved by ifconfig on the Ubuntu host. Access to the ip output by the WIN ipconfig command may fail. Or you need to check the network firewall."  >&2
          echo "false"

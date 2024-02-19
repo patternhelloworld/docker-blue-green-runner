@@ -11,10 +11,6 @@ With your project and its only Dockerfile, Docker-Blue-Green-Runner handles the 
 
 ![img.png](/documents/images/img.png )
 
-
-![img2.png](/documents/images/img2.png)
-
-
 Let me continually explain how to use Docker-Blue-Green-Runner with the following samples.
 
 |         | Local (Development) | Real (Production) |
