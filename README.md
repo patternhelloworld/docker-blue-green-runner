@@ -22,18 +22,18 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 ## Requirements
 
 - Mainly tested on WSL2 & Ubuntu 22.04.3 LTS, Docker (24.0), Docker-Compose (2.18)
-
+  - If this module operates well on WSL2, then there should be no issues using it on an Ubuntu Linux server considering the instability of WSL2.
 - In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
 
 - No Container in Container
   - >Do not use Docker-Blue-Green-Runner in containers such as CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
   - Dockerized Jenkins as well
 
-- The image or Dockerfile in your app must contain "bash" & "curl" 
+- The image or Dockerfile in your app must contain "bash" & "curl" commands, which are shown in ``./samples/spring-sample-h-auth`` folder as an example. 
 - Do NOT build or run 'local' & 'real' at the same time (There's no reason to do so, but just in case... They have the same name of the image and container)
 - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
 
-## Recommend to Use the Latest Version
+## Recommend to Use the Latest Release Version
 - When you use any upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
 - Otherwise, your server will load the previously built Nginx Image and can cause errors.
 - then, just one time, run
@@ -49,9 +49,9 @@ For all echo messages or properties .env, the following terms indicate...
 - BUILD (=LOAD IMAGE) : ```docker build```
 - UP (=LOAD CONTAINER) : ```docker-compose up```
 - DOWN : ```docker-compose down```
-- RESTART : ```docker build & docker-compose down & docker-compose up ```
+- RESTART : Parse related-files if exists, and then run ```docker build & docker-compose down & docker-compose up ```
   - ex) NGINX_RESTART on .env means docker build & down & up for NGINX
-- safe : set a new state(=blue or green) without stopping or causing errors on your web App.
+- safe : set a new state(=blue or green) without halting the running server safely. (=zero-downtime)
 
 ## Log Levels
 - ``DEBUG``: Simply indicates that a specific function has been executed or a certain part of the source code has been run.
@@ -229,6 +229,7 @@ bash emergency-consul-down-and-up.sh
 
 ## Consul
 `` http://localhost:8500 ``
+- Need to set a firewall for the 8500 port referring to ``./docker-compose-consul.yml``.
 
 
 ## USE_NGINX_RESTRICTION on .env
