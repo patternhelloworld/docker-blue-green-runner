@@ -20,32 +20,32 @@ _main() {
   echo "[NOTICE] Prepare current versions of the App,Nginx,Consul and Registrator and push them."
 
   echo "[DEBUG] Run : docker tag ${project_name}:${state_for_push} ${app_image_name_in_registry}"
-  docker tag ${project_name}:${state_for_push} ${app_image_name_in_registry}
+  docker tag ${project_name}:${state_for_push} ${app_image_name_in_registry} || exit 1
   echo "[DEBUG] Run : docker push ${app_image_name_in_registry}"
-  docker push ${app_image_name_in_registry}
+  docker push ${app_image_name_in_registry}  || exit 1
   echo "[DEBUG] Run : docker rmi -f ${app_image_name_in_registry}"
-  docker rmi -f ${app_image_name_in_registry}
+  docker rmi -f ${app_image_name_in_registry}  || exit 1
 
   echo "[DEBUG] Run : docker tag ${project_name}-nginx:latest ${nginx_image_name_in_registry}"
-  docker tag ${project_name}-nginx:latest ${nginx_image_name_in_registry}
+  docker tag ${project_name}-nginx:latest ${nginx_image_name_in_registry}  || exit 1
   echo "[DEBUG] Run : docker push ${nginx_image_name_in_registry}"
-  docker push ${nginx_image_name_in_registry}
+  docker push ${nginx_image_name_in_registry}  || exit 1
   echo "[DEBUG] Run : docker rmi -f ${nginx_image_name_in_registry}"
-  docker rmi -f ${nginx_image_name_in_registry}
+  docker rmi -f ${nginx_image_name_in_registry}  || exit 1
 
   echo "[DEBUG] Run : docker tag hashicorp/consul:1.14.11 ${consul_image_name_in_registry}}"
-  docker tag hashicorp/consul:1.14.11 ${consul_image_name_in_registry}
+  docker tag hashicorp/consul:1.14.11 ${consul_image_name_in_registry}  || exit 1
   echo "[DEBUG] Run : docker push ${consul_image_name_in_registry}"
-  docker push ${consul_image_name_in_registry}
+  docker push ${consul_image_name_in_registry}  || exit 1
   echo "[DEBUG] Run : docker rmi -f ${consul_image_name_in_registry}"
-  docker rmi -f ${consul_image_name_in_registry}
+  docker rmi -f ${consul_image_name_in_registry}  || exit 1
 
   echo "[DEBUG] Run : docker tag gliderlabs/registrator:v7 ${registrator_image_name_in_registry}"
-  docker tag gliderlabs/registrator:v7 ${registrator_image_name_in_registry}
+  docker tag gliderlabs/registrator:v7 ${registrator_image_name_in_registry}  || exit 1
   echo "[DEBUG] Run : docker push ${registrator_image_name_in_registry}"
-  docker push ${registrator_image_name_in_registry}
+  docker push ${registrator_image_name_in_registry}  || exit 1
   echo "[DEBUG] Run : docker rmi -f ${registrator_image_name_in_registry}"
-  docker rmi -f ${registrator_image_name_in_registry}
+  docker rmi -f ${registrator_image_name_in_registry}  || exit 1
 
 }
 
