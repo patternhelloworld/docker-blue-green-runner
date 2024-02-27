@@ -153,7 +153,6 @@ cp -f .env.java.local .env # or cp -f .env.java.real .env
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 sudo bash run.sh
 ```
-- If you would like to use your SSL certificates, refer to ```.env.java.real.commercial.ssl.sample, samples/spring-sample-h-auth/DockerfileCommercialSSL```
 
 
 ## How to Start with a Java Sample (Real, HTTPS commercial SSL).
@@ -165,17 +164,20 @@ sudo bash run.sh
 ```
 
 ```shell
+# Read comments carefully on ``.env.java.real.commercial.ssl.sample``, and you should be aware of where to put 'application.properties', 'logback-spring.xml', 'yourdomin.com.jks'
 # In the ROOT folder,
 cp -f .env.java.real.commercial.ssl.sample .env # or cp -f .env.java.real .env
+
 # For WIN WSL2, \r on shell scripts can cause issues.
- sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/local.sh
+sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh
+
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 sudo bash run.sh
 ```
-- If you would like to use your SSL certificates, refer to ```.env.java.real.commercial.ssl.sample, samples/spring-sample-h-auth/DockerfileCommercialSSL```
+- If you would like to use your SSL certificates, refer to ``` 1) .env.java.real.commercial.ssl.sample, 2) samples/spring-sample-h-auth/Dockerfile.real, which is pointing to samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh```
+- If ``APP_ENV`` on ``.env`` is 'real', the Runner points to ``Dockerfile.real`` in priority, and if it does NOT exist, the Runner points to ``Dockerfile``.
 
-
-## Environment Variables
+## Information on Environment Variables
 ```shell
 # If this is set to be true, that means running 'stop-all-containers.sh & remove-all-images.sh'
 # Why? In case you get your project renamed or moved to another folder, docker may NOT work properly.  
