@@ -248,14 +248,18 @@ cache_global_vars() {
 
   # In real env, for Jenkins & customer servers
   git_image_load_from=$(get_value_from_env "GIT_IMAGE_LOAD_FROM")
-  git_image_load_from_hostname=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_HOSTNAME")
+  git_image_load_from_host=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_HOST")
   git_image_load_from_pathname=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_PATHNAME")
-  docker_image_env_concatenate=":"
-  if [[ ${git_image_load_from} == 'registry' ]] && [[ ! -z ${git_image_load_from_hostname} ]] && [[ ! -z ${git_image_load_from_pathname} ]]; then
-    load_from_registry_image_with_env="${git_image_load_from_hostname}:5050/$(echo ${git_image_load_from_pathname} | awk '{ print tolower($0); }')${docker_image_env_concatenate}${app_env}"
-  fi
+
   git_token_image_load_from_username=$(get_value_from_env "GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME")
   git_token_image_load_from_password=$(get_value_from_env "GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD")
+  git_image_version=$(get_value_from_env "GIT_IMAGE_VERSION")
+
+  app_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-app:${git_image_version}"
+  nginx_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-nginx:${git_image_version}"
+  consul_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-consul:${git_image_version}"
+  registrator_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-registrator:${git_image_version}"
+
 
 
   if [[ $(docker exec consul echo 'yes' 2> /dev/null) == '' ]]
@@ -461,7 +465,7 @@ integer_hash_text(){
 docker_login_with_params() {
 
   echo "[NOTICE] Login with the following account on to Gitlab Docker Registry. ( username : ${1}, password : $(integer_hash_text ${2}) (displayed encoded.) )"
-  echo ${2} | docker login --username ${1} --password-stdin ${3}:5050 || (echo "[ERROR] Docker Registry Login failed to ${3}." && exit 1)
+  echo ${2} | docker login --username ${1} --password-stdin ${3} || (echo "[ERROR] Docker Registry Login failed to ${3}." && exit 1)
 
 }
 

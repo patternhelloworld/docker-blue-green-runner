@@ -137,7 +137,7 @@ sudo bash run.sh
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 
-## How to Start with a Java Sample (Local & Real, HTTPS commercial SSL).
+## How to Start with a Java Sample (Local).
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
@@ -153,9 +153,31 @@ cp -f .env.java.local .env # or cp -f .env.java.real .env
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 sudo bash run.sh
 ```
-- If you would like to use your SSL certificates, refer to ```.env.java.real.commercial.ssl.sample, samples/spring-sample-h-auth/DockerfileCommercialSSL```
 
-## Environment Variables
+
+## How to Start with a Java Sample (Real, HTTPS commercial SSL).
+```shell
+# First, as the sample project requires MySQL8, run it separately.
+# You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
+# and then, run ./sample/spring-sample-h-auth/.mysql/schema_all.sql
+# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'application-local.properties' to your host IP in the ./samples/spring-sample-h-auth/src/main/resources/application-local.properties
+```
+
+```shell
+# Read comments carefully on ``.env.java.real.commercial.ssl.sample``, and you should be aware of where to put 'application.properties', 'logback-spring.xml', 'yourdomin.com.jks'
+# In the ROOT folder,
+cp -f .env.java.real.commercial.ssl.sample .env # or cp -f .env.java.real .env
+
+# For WIN WSL2, \r on shell scripts can cause issues.
+sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh
+
+# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
+sudo bash run.sh
+```
+- If you would like to use your SSL certificates, refer to ``` 1) .env.java.real.commercial.ssl.sample, 2) samples/spring-sample-h-auth/Dockerfile.real, which is pointing to samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh```
+- If ``APP_ENV`` on ``.env`` is 'real', the Runner points to ``Dockerfile.real`` in priority, and if it does NOT exist, the Runner points to ``Dockerfile``.
+
+## Information on Environment Variables
 ```shell
 # If this is set to be true, that means running 'stop-all-containers.sh & remove-all-images.sh'
 # Why? In case you get your project renamed or moved to another folder, docker may NOT work properly.  
@@ -369,6 +391,36 @@ docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images i
 echo "[NOTICE] APP_URL : ${app_url}"
 ```
 
+## Gitlab Container Registry
+
+On .env, let me explain this.
+ 
+- CASE 1. DOWNLOAD IMAGE
+  ```shell
+  GIT_IMAGE_LOAD_FROM=build
+  GIT_IMAGE_LOAD_FROM_HOST=mysite.com:5050
+  GIT_IMAGE_LOAD_FROM_PATHNAME=my-group/my-project-name/what/you/want
+  GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME=aaa
+  GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD=12345
+  GIT_IMAGE_VERSION=1.0.0
+  ```
+  - ``GIT_IMAGE_LOAD_FROM`` is 'build', ``docker-blue-green-runner`` builds your ``Dockerfile``, while it is 'registry', the runner downloads ``app, nginx, consul, registrator`` from such as the example code on ``util.sh``.
+    ```shell
+    app_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-app:${git_image_version}"
+    nginx_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-nginx:${git_image_version}"
+    consul_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-consul:${git_image_version}"
+    registrator_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-registrator:${git_image_version}"
+    ``` 
+- CASE 2. PUSH IMAGE
+  - In case you run the command ``push-to-git.sh``, ``docker-blue-green-runner`` pushes one of ``Blue or Green`` images which is currently running to the address above of the Gitlab Container Registry. 
+  - This case is not related to ``GIT_IMAGE_LOAD_FROM``.
+- REFERENCE
+  - You can easily create your own Gitlab Docker with https://github.com/Andrew-Kang-G/docker-gitlab-ce-runner
+  - ``GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME, PASSWORD`` are registered on 'Project Access Tokens'.
+  - ``docker login failed to verify certificate: x509: certificate signed by unknown authority`` Error
+    - The error "failed to verify certificate: x509: certificate signed by unknown authority" typically occurs when the Docker client is unable to trust the SSL certificate presented by the Docker registry (in this case, your GitLab Docker registry).
+    - Solution
+      - Place your CA's root certificate (.crt file) in /usr/local/share/ca-certificates/ and run sudo update-ca-certificates. 
 ## Test
 ```shell
 # Tests should be conducted in the folder
@@ -387,4 +439,4 @@ sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
     - ```shell
         docker swarm init
         sudo bash run.sh
-      ```
+      ``` 

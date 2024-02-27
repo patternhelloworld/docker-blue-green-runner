@@ -57,23 +57,22 @@ consul_down_and_up_with_network(){
 load_consul_docker_image(){
 
 
-
     if [ ${git_image_load_from} = "registry" ]; then
 
       # Almost all of clients use this deployment.
 
       echo "[NOTICE] Attempt to log in to the Registry."
-      docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}
+      docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_host}
 
       echo "[NOTICE] Pull the Registrator image stored in the Registry."
-      docker pull ${load_from_registry_image_with_env}-registrator-${app_version}|| exit 1
-      docker tag ${load_from_registry_image_with_env}-registrator-${app_version} gliderlabs/registrator:latest || exit 1
-      docker rmi -f ${load_from_registry_image_with_env}-registrator-${app_version}|| exit 1
+      docker pull ${registrator_image_name_in_registry} || exit 1
+      docker tag ${registrator_image_name_in_registry} gliderlabs/registrator:v7 || exit 1
+      docker rmi -f ${registrator_image_name_in_registry} || exit 1
 
       echo "[NOTICE] Pull the Consul image stored in the Registry."
-      docker pull ${load_from_registry_image_with_env}-consul-${app_version}|| exit 1
-      docker tag ${load_from_registry_image_with_env}-consul-${app_version} consul:latest || exit 1
-      docker rmi -f ${load_from_registry_image_with_env}-consul-${app_version}|| exit 1
+      docker pull ${consul_image_name_in_registry} || exit 1
+      docker tag ${consul_image_name_in_registry} hashicorp/consul:1.14.11 || exit 1
+      docker rmi -f ${consul_image_name_in_registry} || exit 1
     fi
 
     # Since there is no Dockerfile, unlike the 'load_nginx_docker_image' and 'load_app_docker_image' functions, there is no 'build' command.
