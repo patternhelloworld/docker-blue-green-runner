@@ -250,12 +250,16 @@ cache_global_vars() {
   git_image_load_from=$(get_value_from_env "GIT_IMAGE_LOAD_FROM")
   git_image_load_from_host=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_HOST")
   git_image_load_from_pathname=$(get_value_from_env "GIT_IMAGE_LOAD_FROM_PATHNAME")
-  docker_image_env_concatenate=":"
-  if [[ ${git_image_load_from} == 'registry' ]] && [[ ! -z ${git_image_load_from_host} ]] && [[ ! -z ${git_image_load_from_pathname} ]]; then
-    load_from_registry_image_with_env="${git_image_load_from_host}/$(echo ${git_image_load_from_pathname} | awk '{ print tolower($0); }')${docker_image_env_concatenate}${app_env}"
-  fi
+
   git_token_image_load_from_username=$(get_value_from_env "GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME")
   git_token_image_load_from_password=$(get_value_from_env "GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD")
+  git_image_version=$(get_value_from_env "GIT_IMAGE_VERSION")
+
+  app_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-app:${git_image_version}"
+  nginx_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-nginx:${git_image_version}"
+  consul_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-consul:${git_image_version}"
+  registrator_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-registrator:${git_image_version}"
+
 
 
   if [[ $(docker exec consul echo 'yes' 2> /dev/null) == '' ]]

@@ -122,11 +122,11 @@ load_app_docker_image() {
     docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_host}
 
     echo "[NOTICE] Pull the app image stored in the Registry."
-    docker pull ${load_from_registry_image_with_env}-app-${app_version}|| exit 1
-    docker tag ${load_from_registry_image_with_env}-app-${app_version} ${project_name}:latest || exit 1
-    docker rmi -f ${load_from_registry_image_with_env}-app-${app_version}|| exit 1
-  else
+    docker pull ${app_image_name_in_registry} || exit 1
+    docker tag ${app_image_name_in_registry} ${project_name}:latest || exit 1
+    docker rmi -f ${app_image_name_in_registry} || exit 1
 
+  else
 
     echo "[NOTICE] Build the image with ${docker_file_location}/${docker_file_name} (using cache)"
     local env_build_args=$(make_docker_build_arg_strings)
