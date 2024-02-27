@@ -435,12 +435,12 @@ load_nginx_docker_image(){
     if [ ${git_image_load_from} = "registry" ]; then
 
       echo "[NOTICE] Attempt to log in to the Registry."
-      docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} "${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}"
+      docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_host}
 
       echo "[NOTICE] Pull the Nginx image stored in the Registry."
-      docker pull ${load_from_registry_image_with_env}-nginx-${app_version}|| exit 1
-      docker tag ${load_from_registry_image_with_env}-nginx-${app_version} ${project_name}-nginx:latest || exit 1
-      docker rmi -f ${load_from_registry_image_with_env}-nginx-${app_version}|| exit 1
+      docker pull ${nginx_image_name_in_registry} || exit 1
+      docker tag ${nginx_image_name_in_registry} ${project_name}-nginx:latest || exit 1
+      docker rmi -f ${nginx_image_name_in_registry} || exit 1
     else
 
       echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, build the ${project_name}-nginx image (using cache)."
