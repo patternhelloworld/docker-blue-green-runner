@@ -137,7 +137,7 @@ sudo bash run.sh
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 
-## How to Start with a Java Sample (Local).
+## How to Start with a Java Spring-Boot Sample (Local).
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
@@ -155,27 +155,31 @@ sudo bash run.sh
 ```
 
 
-## How to Start with a Java Sample (Real, HTTPS commercial SSL).
+## How to Start with a Java Spring-Boot Sample (Real, HTTPS commercial SSL).
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
 # and then, run ./sample/spring-sample-h-auth/.mysql/schema_all.sql
 # Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'application-local.properties' to your host IP in the ./samples/spring-sample-h-auth/src/main/resources/application-local.properties
+# Third, you must have SSLs purchased on Domain & SSL selling sites such as Godaddy and etc. 
 ```
 
 ```shell
 # Read comments carefully on ``.env.java.real.commercial.ssl.sample``, and you should be aware of where to put 'application.properties', 'logback-spring.xml', 'yourdomin.com.jks'
 # In the ROOT folder,
-cp -f .env.java.real.commercial.ssl.sample .env # or cp -f .env.java.real .env
+cp -f .env.java.real.commercial.ssl.sample .env
 
 # For WIN WSL2, \r on shell scripts can cause issues.
 sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh
 
+# Make sure to set the path of 'server.ssl.key-store' on application.properties same to be PROJECT_ROOT_IN_CONTAINER on .env. 
+cp -f samples/spring-sample-h-auth/src/main/resources/application.properties.commerical.ssl samples/spring-sample-h-auth/src/main/resources/application.properties
+
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 sudo bash run.sh
 ```
-- If you would like to use your SSL certificates, refer to ``` 1) .env.java.real.commercial.ssl.sample, 2) samples/spring-sample-h-auth/Dockerfile.real, which is pointing to samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh```
-- If ``APP_ENV`` on ``.env`` is 'real', the Runner points to ``Dockerfile.real`` in priority, and if it does NOT exist, the Runner points to ``Dockerfile``.
+- Focus on ``` 1) .env.java.real.commercial.ssl.sample, 2) samples/spring-sample-h-auth/Dockerfile.real, which is pointing to samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh, 3) samples/spring-sample-h-auth/src/main/resources/application.properties&logback.xml```
+- In case ``APP_ENV`` on ``.env`` is 'real', the Runner points to ``Dockerfile.real`` in priority, and if it does NOT exist, the Runner points to ``Dockerfile``.
 
 ## Information on Environment Variables
 ```shell
