@@ -137,7 +137,7 @@ sudo bash run.sh
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 
-## How to Start with a Java Sample (Local & Real, HTTPS commercial SSL).
+## How to Start with a Java Sample (Local).
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
@@ -154,6 +154,26 @@ cp -f .env.java.local .env # or cp -f .env.java.real .env
 sudo bash run.sh
 ```
 - If you would like to use your SSL certificates, refer to ```.env.java.real.commercial.ssl.sample, samples/spring-sample-h-auth/DockerfileCommercialSSL```
+
+
+## How to Start with a Java Sample (Real, HTTPS commercial SSL).
+```shell
+# First, as the sample project requires MySQL8, run it separately.
+# You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
+# and then, run ./sample/spring-sample-h-auth/.mysql/schema_all.sql
+# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'application-local.properties' to your host IP in the ./samples/spring-sample-h-auth/src/main/resources/application-local.properties
+```
+
+```shell
+# In the ROOT folder,
+cp -f .env.java.real.commercial.ssl.sample .env # or cp -f .env.java.real .env
+# For WIN WSL2, \r on shell scripts can cause issues.
+ sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/local.sh
+# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
+sudo bash run.sh
+```
+- If you would like to use your SSL certificates, refer to ```.env.java.real.commercial.ssl.sample, samples/spring-sample-h-auth/DockerfileCommercialSSL```
+
 
 ## Environment Variables
 ```shell
@@ -387,4 +407,4 @@ sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
     - ```shell
         docker swarm init
         sudo bash run.sh
-      ```
+      ``` 

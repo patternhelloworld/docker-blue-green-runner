@@ -119,7 +119,7 @@ load_app_docker_image() {
   if [ ${git_image_load_from} = "registry" ]; then
 
     echo "[NOTICE] Attempt to log in to the Registry."
-    docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_hostname}:5050/${git_image_load_from_pathname}
+    docker_login_with_params ${git_token_image_load_from_username} ${git_token_image_load_from_password} ${git_image_load_from_host}
 
     echo "[NOTICE] Pull the app image stored in the Registry."
     docker pull ${load_from_registry_image_with_env}-app-${app_version}|| exit 1
