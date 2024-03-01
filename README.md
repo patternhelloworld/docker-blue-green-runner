@@ -32,7 +32,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 - The image or Dockerfile in your app must contain "bash" & "curl" commands, which are shown in ``./samples/spring-sample-h-auth`` folder as an example. 
 - Do NOT build or run 'local' & 'real' at the same time (There's no reason to do so, but just in case... They have the same name of the image and container)
 - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
-
+- I have located the sample folders included in this project; however, I recommend locating your projects in external folders and using absolute paths at all times.
 ## Recommend to Use the Latest Release Version
 - When you use any upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
 - Otherwise, your server will load the previously built Nginx Image and can cause errors.
