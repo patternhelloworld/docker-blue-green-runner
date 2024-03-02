@@ -56,6 +56,12 @@ create_nginx_ctmpl(){
      proxy_hostname_blue="###PROJECT_NAME###-blue"
    fi
 
+   local app_https_protocol="https";
+   if [[ ${redirect_https_to_http} = 'true' ]]; then
+      app_https_protocol="http"
+   fi
+
+
     if [[ ${protocol} = 'http' ]]; then
 
     echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
@@ -171,9 +177,9 @@ server {
         add_header Cache-Control no-cache;
         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                proxy_pass https://$proxy_hostname:###APP_PORT###;
+                proxy_pass $app_https_protocol://$proxy_hostname:###APP_PORT###;
             {{ else }}
-                proxy_pass https://$proxy_hostname_blue:###APP_PORT###;
+                proxy_pass $app_https_protocol://$proxy_hostname_blue:###APP_PORT###;
             {{ end }}
         {{ end }}
         proxy_set_header Host \$http_host;
@@ -221,9 +227,9 @@ server {
         add_header Cache-Control no-cache;
         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                proxy_pass https://$proxy_hostname:$i;
+                proxy_pass $app_https_protocol://$proxy_hostname:$i;
             {{ else }}
-                proxy_pass https://$proxy_hostname_blue:$i;
+                proxy_pass $app_https_protocol://$proxy_hostname_blue:$i;
             {{ end }}
         {{ end }}
         proxy_set_header Host \$http_host;
@@ -255,6 +261,12 @@ create_nginx_contingency_conf(){
    else
      proxy_hostname="###PROJECT_NAME###-###APP_STATE###"
    fi
+
+    local app_https_protocol="https";
+    if [[ ${redirect_https_to_http} = 'true' ]]; then
+       app_https_protocol="http"
+    fi
+
 
     if [[ ${protocol} = 'http' ]]; then
 
@@ -362,7 +374,7 @@ server {
         add_header Pragma no-cache;
         add_header Cache-Control no-cache;
 
-        proxy_pass https://$proxy_hostname:###APP_PORT###;
+        proxy_pass $app_https_protocol://$proxy_hostname:###APP_PORT###;
 
         proxy_set_header Host \$http_host;
         proxy_set_header X-Scheme \$scheme;
@@ -408,7 +420,7 @@ server {
         add_header Pragma no-cache;
         add_header Cache-Control no-cache;
 
-        proxy_pass https://$proxy_hostname:$i;
+        proxy_pass $app_https_protocol://$proxy_hostname:$i;
 
         proxy_set_header Host \$http_host;
         proxy_set_header X-Scheme \$scheme;

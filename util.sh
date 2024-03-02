@@ -217,6 +217,10 @@ cache_non_dependent_global_vars() {
   use_nginx_restricted_location=$(get_value_from_env "USE_NGINX_RESTRICTED_LOCATION")
   nginx_restricted_location=$(get_value_from_env "NGINX_RESTRICTED_LOCATION")
 
+  nginx_restricted_location=$(get_value_from_env "NGINX_RESTRICTED_LOCATION")
+  redirect_https_to_http=$(get_value_from_env "REDIRECT_HTTPS_TO_HTTP")
+
+
   if [[ ${use_nginx_restricted_location} = 'true' ]]; then
     local passwd_file_path="./.docker/nginx/custom-files/.htpasswd";
     if [ ! -f "$passwd_file_path" ]; then
