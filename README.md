@@ -194,9 +194,9 @@ CONSUL_RESTART=false
 # The value must be json or yaml type, which is injected into docker-compose-app-${app_env}.yml
 DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
 
-# [IMPORTANT] If you set this to 'true', you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
-# 1) true : request--https-->Nginx--http-->App
-# 2) false : request--https-->Nginx--https-->App
+If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
+# 1) true : [Request]--> https (external network) -->Nginx--> http (internal network) --> App
+# 2) false :[Request]--> https (external network) -->Nginx--> httpS (internal network) --> App
 REDIRECT_HTTPS_TO_HTTP=true
 ```
 
