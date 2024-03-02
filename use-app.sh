@@ -271,8 +271,8 @@ check_availability_inside_container(){
 
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
-        echo "[NOTICE] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
-        response=$(docker exec ${container_name} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
+        echo "[NOTICE] ${retry_count} round health check (curl -s -k $(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
+        response=$(docker exec ${container_name} sh -c "curl -s -k $(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
 
         down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
         up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
@@ -378,7 +378,7 @@ check_availability_inside_container_speed_mode(){
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
         echo "[NOTICE] [Blue OR Green Alive Check : Currently ${check_state}] ${retry_count} round health check (curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
-        response=$(docker exec ${container_name} sh -c "curl -s -k ${protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}") || echo "[WARNING] [Blue OR Green Alive Check : Currently ${check_state}] Failed in Health Check. But, this function is for checking which container is running. we don't exit."   >&2
+        response=$(docker exec ${container_name} sh -c "curl -s -k $(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}") || echo "[WARNING] [Blue OR Green Alive Check : Currently ${check_state}] Failed in Health Check. But, this function is for checking which container is running. we don't exit."   >&2
 
         down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
         up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)

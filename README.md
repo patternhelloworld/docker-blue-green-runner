@@ -193,6 +193,11 @@ CONSUL_RESTART=false
 
 # The value must be json or yaml type, which is injected into docker-compose-app-${app_env}.yml
 DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
+
+# [IMPORTANT] If you set this to 'true', you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
+# 1) true : request--https-->Nginx--http-->App
+# 2) false : request--https-->Nginx--https-->App
+REDIRECT_HTTPS_TO_HTTP=true
 ```
 
 ## Check states
