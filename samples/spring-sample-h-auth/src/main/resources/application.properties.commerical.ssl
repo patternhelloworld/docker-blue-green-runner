@@ -61,6 +61,7 @@ spring.mail.password=aaa
 
 spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
+# If REDIRECT_HTTPS_TO_HTTP is set to true on .env, you should remove this ssl settings.
 server.ssl.key-store-password=11111
 server.ssl.key-store=/var/www/server/spring-sample-h-auth/yourdomain.com.jks
 server.ssl.key-store-type=jks
