@@ -10,7 +10,7 @@ To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-
 - With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with Consul. Nginx enables your project to be deployed without any downtime.
 - You should use the latest Release version for your production, NOT the latest version of the 'main' branch.
 - You can directly create pull requests for the 'main' branch.
-
+- 
 ![img.png](/documents/images/img.png )
 
 Let me continually explain how to use Docker-Blue-Green-Runner with the following samples.
@@ -23,10 +23,12 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 
 ## Requirements
 
-- Mainly tested on WSL2 & Ubuntu 22.04.3 LTS, Docker (24.0), Docker-Compose (2.18)
+- Mainly tested on WIN10 WSL2 & Ubuntu 22.04.3 LTS, Docker (24.0), Docker-Compose (2.18)
   - If this module operates well on WSL2, then there should be no issues using it on an Ubuntu Linux server considering the instability of WSL2.
+  - If you are using WSL2, which has the CRLF issue, you should run sudo bash prevent-crlf.sh twice, and then run the .sh file you need.
+  - The error message is `` $'\r': command not found``
 - In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
-
+- In summary, Linux is way better than WSL2.
 - No Container in Container
   - >Do not use Docker-Blue-Green-Runner in containers such as CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
   - Dockerized Jenkins as well
