@@ -56,11 +56,6 @@ create_nginx_ctmpl(){
      proxy_hostname_blue="###PROJECT_NAME###-blue"
    fi
 
-   local app_https_protocol="https";
-   if [[ ${redirect_https_to_http} = 'true' ]]; then
-      app_https_protocol="http"
-   fi
-
 
     if [[ ${protocol} = 'http' ]]; then
 

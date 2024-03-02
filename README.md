@@ -7,7 +7,9 @@ To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-
 
 ## Introduction
 
-With your project and its only Dockerfile, Docker-Blue-Green-Runner handles the rest of the Continuous Deployment (CD) process with Consul. Nginx allows your project to be deployed without experiencing any downtime.
+- With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with Consul. Nginx enables your project to be deployed without any downtime.
+- You should use the latest Release version for your production, NOT the latest version of the 'main' branch.
+- You can directly create pull requests for the 'main' branch.
 
 ![img.png](/documents/images/img.png )
 
@@ -33,6 +35,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 - Do NOT build or run 'local' & 'real' at the same time (There's no reason to do so, but just in case... They have the same name of the image and container)
 - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
 - I have located the sample folders included in this project; however, I recommend locating your projects in external folders and using absolute paths at all times.
+
 ## Recommend to Use the Latest Release Version
 - When you use any upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
 - Otherwise, your server will load the previously built Nginx Image and can cause errors.

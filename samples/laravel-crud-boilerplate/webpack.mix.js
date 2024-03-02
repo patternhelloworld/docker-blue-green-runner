@@ -58,5 +58,5 @@ if (mix.inProduction()) {
 }
 
 if (!mix.inProduction()) {
-  mix.browserSync('http://localhost:8100')
+  mix.browserSync('http://localhost:8080')
 }

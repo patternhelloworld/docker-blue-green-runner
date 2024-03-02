@@ -1,6 +1,8 @@
 #!/bin/bash
 sudo sed -i -e "s/\r$//g" $(basename $0) || sed -i -e "s/\r$//g" $(basename $0)
 
+sudo sed -i -e 's/\r$//' *.sh
+
 # Attempt to remove carriage return characters from the script itself with sudo; if that fails, try without sudo.
 find . -name "*.sh" -exec sed -i -e 's/\r$//' {} \;
 

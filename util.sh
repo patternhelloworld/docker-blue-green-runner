@@ -220,6 +220,10 @@ cache_non_dependent_global_vars() {
   nginx_restricted_location=$(get_value_from_env "NGINX_RESTRICTED_LOCATION")
   redirect_https_to_http=$(get_value_from_env "REDIRECT_HTTPS_TO_HTTP")
 
+   app_https_protocol=${protocol};
+   if [[ ${redirect_https_to_http} = 'true' && ${protocol} = 'https' ]]; then
+      app_https_protocol="http"
+   fi
 
   if [[ ${use_nginx_restricted_location} = 'true' ]]; then
     local passwd_file_path="./.docker/nginx/custom-files/.htpasswd";
