@@ -9,6 +9,7 @@ source ./util.sh
 
 app_env=$(get_value_from_env "APP_ENV")
 project_name=$(get_value_from_env "PROJECT_NAME")
+orchestration_type=$(get_value_from_env "ORCHESTRATION_TYPE")
 
 consul_key_value_store=$1
 state=$2
