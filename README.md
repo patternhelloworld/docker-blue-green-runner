@@ -4,13 +4,26 @@
 
 To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
+## Why would I use this approach?
+
+- No Need for Binary Installation Files and Complex Configurations
+  - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq`` installed.
+  - Can easily migrate the whole system to other Linux servers. (it might be tough to migrate the whole Kubernetes system set up to other servers)
+
+- Suitable for Single-Machine Deployments
+  - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios with low traffic where only one or two machines are available.
+  - For deployments involving more machines, traditional Layer 4 (L4) servers could be utilized.
+   
+- Building from Dockerfiles, Not Just Using Images
+  - Docker Images are binary and do not include the source-building processes, such as `composer install`, `npm run build`, or `mvn install`.
+  - By building your project from Dockerfiles, you can fully build your project and achieve zero-downtime blue-green deployments simply by executing `run.sh`.
 
 ## Introduction
 
 - With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with Consul. Nginx enables your project to be deployed without any downtime.
 - You should use the latest Release version for your production, NOT the latest version of the 'main' branch.
 - You can directly create pull requests for the 'main' branch.
-- 
+
 ![img.png](/documents/images/img.png )
 
 Let me continually explain how to use Docker-Blue-Green-Runner with the following samples.
