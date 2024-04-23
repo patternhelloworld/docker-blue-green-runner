@@ -42,7 +42,7 @@ cache_all_states() {
   local green_status
   green_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-green 2>/dev/null || echo "unknown")
 
-  echo "[DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Base Check) : consul_pointing(${consul_pointing}), nginx_pointing(${nginx_pointing}}), blue_status(${blue_status}), green_status(${green_status})"
+  echo "[DEBUG] ! Checking which (Blue OR Green) is currently running... (Base Check) : consul_pointing(${consul_pointing}), nginx_pointing(${nginx_pointing}}), blue_status(${blue_status}), green_status(${green_status})"
 
   local blue_score=0
   local green_score=0
@@ -138,7 +138,7 @@ cache_all_states() {
         new_upstream=${blue_upstream}
   fi
 
-  echo "[DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Final Check) : blue_score : ${blue_score}, green_score : ${green_score}, state : ${state}, new_state : ${new_state}, state_for_emergency : ${state_for_emergency}, new_upstream : ${new_upstream}."
+  echo "[DEBUG] ! Checked which (Blue OR Green) is currently running... (Final Check) : blue_score : ${blue_score}, green_score : ${green_score}, state : ${state}, new_state : ${new_state}, state_for_emergency : ${state_for_emergency}, new_upstream : ${new_upstream}."
 }
 
 set_expose_and_app_port(){
