@@ -11,23 +11,49 @@ cache_all_states() {
 
   local consul_pointing
   consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
+
+  local nginx_pointing
+  nginx_config=$(docker exec ${project_name}-nginx cat /etc/nginx/conf.d/nginx.conf)
+
+  blue_exists=$(echo "$nginx_config" | grep -o "proxy_pass http[s]*://${project_name}-blue")
+  green_exists=$(echo "$nginx_config" | grep -o "proxy_pass http[s]*://${project_name}-green")
+
+  # 조건에 따라 출력 결과 결정
+  if [[ -n $blue_exists ]] && [[ -n $green_exists ]]; then
+    nginx_pointing="error"
+  elif [[ -n $blue_exists ]]; then
+    nginx_pointing="blue"
+  elif [[ -n $green_exists ]]; then
+    nginx_pointing="green"
+  else
+    nginx_pointing="failed"  # proxy_pass 설정이 없는 경우도 실패로 간주
+  fi
+
   local blue_status
   blue_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-blue 2>/dev/null || echo "unknown")
   local green_status
   green_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-green 2>/dev/null || echo "unknown")
 
-  echo "[DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Base Check) : consul_pointing(${consul_pointing}), blue_status(${blue_status}), green_status(${green_status})"
+  echo "[DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Base Check) : consul_pointing(${consul_pointing}), nginx_pointing(${nginx_pointing}}), blue_status(${blue_status}), green_status(${green_status})"
 
   local blue_score=0
   local green_score=0
 
+  # consul_pointing
   if [[ "$consul_pointing" == "blue" ]]; then
       blue_score=$((blue_score + 50))
   elif [[ "$consul_pointing" == "green" ]]; then
       green_score=$((green_score + 50))
   fi
 
+  # nginx_pointing
+  if [[ "$nginx_pointing" == "blue" ]]; then
+      blue_score=$((blue_score + 50))
+  elif [[ "$nginx_pointing" == "green" ]]; then
+      green_score=$((green_score + 50))
+  fi
 
+  # status
   case "$blue_status" in
       "running")
           blue_score=$((blue_score + 30))
@@ -50,7 +76,6 @@ cache_all_states() {
       *)
           ;;
   esac
-
 
   case "$green_status" in
       "running")
