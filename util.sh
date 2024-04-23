@@ -7,27 +7,35 @@ git config core.filemode false
 
 cache_all_states() {
 
-  echo '[NOTICE] Checking which container, blue or green, is running. (Priority :  Where Consul Pointing > Which Container Running > Which Container Restarting)'
+  echo '[NOTICE] Checking which container, blue or green, is running. (Priority :  Where Consul Pointing = Where Nginx Pointing  > Which Container Running > Which Container Restarting)'
 
   local consul_pointing
   consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
 
   local nginx_pointing
-  nginx_config=$(docker exec ${project_name}-nginx cat /etc/nginx/conf.d/nginx.conf)
-
-  blue_exists=$(echo "$nginx_config" | grep -o "proxy_pass http[s]*://${project_name}-blue")
-  green_exists=$(echo "$nginx_config" | grep -o "proxy_pass http[s]*://${project_name}-green")
-
-  # 조건에 따라 출력 결과 결정
-  if [[ -n $blue_exists ]] && [[ -n $green_exists ]]; then
-    nginx_pointing="error"
-  elif [[ -n $blue_exists ]]; then
-    nginx_pointing="blue"
-  elif [[ -n $green_exists ]]; then
-    nginx_pointing="green"
+  nginx_config=$(docker exec ${project_name}-nginx cat /etc/nginx/conf.d/nginx.conf || echo "failed")
+  if echo "$nginx_config" | grep -q "proxy_pass http[s]*://${project_name}-blue"; then
+      blue_exists="blue"
   else
-    nginx_pointing="failed"  # proxy_pass 설정이 없는 경우도 실패로 간주
+      blue_exists="failed"
   fi
+
+  if echo "$nginx_config" | grep -q "proxy_pass http[s]*://${project_name}-green"; then
+      green_exists="green"
+  else
+      green_exists="failed"
+  fi
+
+  if [[ $blue_exists == "blue" ]] && [[ $green_exists == "green" ]]; then
+      nginx_pointing="error"
+  elif [[ $blue_exists == "blue" ]]; then
+      nginx_pointing="blue"
+  elif [[ $green_exists == "green" ]]; then
+      nginx_pointing="green"
+  else
+      nginx_pointing="failed"
+  fi
+
 
   local blue_status
   blue_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-blue 2>/dev/null || echo "unknown")
