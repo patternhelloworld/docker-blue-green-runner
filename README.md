@@ -4,10 +4,19 @@
 
 To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
-You should use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest version of the 'main' branch.
+- Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest version of the 'main' branch.
 You can directly create pull requests for the 'main' branch.
 
-<!-- TOC -->
+## Table of Contents
+- [Features](#Features)
+- [Requirements](#Requirements)
+- [Quick Start with Samples](#Quick-Start-with-Samples)
+- [Usage](#usage)
+- [Structure](#Structure)
+- [Gitlab Container Registry](#Gitlab-Container-Registry)
+- [Extra Information](#Extra-Information)
+
+---
 
 ## Features
 
@@ -48,33 +57,10 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
 - I have located the sample folders included in this project; however, I recommend locating your projects in external folders and using absolute paths at all times.
 
-## Recommend to Use the Latest Release Version
-- When you use any upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
-- Otherwise, your server will load the previously built Nginx Image and can cause errors.
-- then, just one time, run
-```shell
-git pull origin main
-# set NGINX_RESTART=true on your .env, after that,
-sudo bash run.sh
-```
-- However, as you are aware, ```NGINX_RESTART=true``` causes a short downtime. **Make sure ```NGINX_RESTART=false``` at all times**.
 
-## Terms
-For all echo messages or properties .env, the following terms indicate...
-- BUILD (=LOAD IMAGE) : ```docker build```
-- UP (=LOAD CONTAINER) : ```docker-compose up```
-- DOWN : ```docker-compose down```
-- RESTART : Parse related-files if exists, and then run ```docker build & docker-compose down & docker-compose up ```
-  - ex) NGINX_RESTART on .env means docker build & down & up for NGINX
-- safe : set a new state(=blue or green) without halting the running server safely. (=zero-downtime)
+## Quick Start with Samples
 
-## Log Levels
-- ``DEBUG``: Simply indicates that a specific function has been executed or a certain part of the source code has been run.
-- ``NOTICE``, ``WARN``: Just for your information.
-- ``ERROR``: Although the current deployment has not been halted, there is a clear error.
-- ``EMERGENCY``: A level of risk that halts the current deployment.
-
-## How to Start with a Node Sample (Local).
+### How to Start with a Node Sample (Local).
 - Check the port number 13000 available before getting this started.
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
@@ -98,7 +84,7 @@ sudo bash run.sh
 ```
 
 
-## How to Start with a PHP Sample (Real, HTTPS self-signed SSL)
+### How to Start with a PHP Sample (Real, HTTPS self-signed SSL)
 - Check the port number 8080 available before getting this started.
 
 Differences between ``./samples/laravel-crud-boilerplate/Dockerfile.local`` and ``./samples/laravel-crud-boilerplate/Dockerfile.real``
@@ -129,7 +115,7 @@ sudo bash run.sh
 ```
 Open https://localhost:8080 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
-## How to Start with a PHP Sample (Local).
+### How to Start with a PHP Sample (Local).
 - Check the port number 8080 available before getting this started.
 
 A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
@@ -155,7 +141,7 @@ sudo bash run.sh
 and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 
-## How to Start with a Java Spring-Boot Sample (Local).
+### How to Start with a Java Spring-Boot Sample (Local).
 - Check the port number 8200 available before getting this started.
 
 ```shell
@@ -175,7 +161,7 @@ sudo bash run.sh
 ```
 
 
-## How to Start with a Java Spring-Boot Sample (Real, HTTPS commercial SSL).
+### How to Start with a Java Spring-Boot Sample (Real, HTTPS commercial SSL).
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
@@ -201,7 +187,37 @@ sudo bash run.sh
 - Focus on ``` 1) .env.java.real.commercial.ssl.sample, 2) samples/spring-sample-h-auth/Dockerfile.real, which is pointing to samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh, 3) samples/spring-sample-h-auth/src/main/resources/application.properties&logback.xml```
 - In case ``APP_ENV`` on ``.env`` is 'real', the Runner points to ``Dockerfile.real`` in priority, and if it does NOT exist, the Runner points to ``Dockerfile``.
 
-## Information on Environment Variables
+
+## Usage
+
+### Upgrade
+- When you use any upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
+- Otherwise, your server will load the previously built Nginx Image and can cause errors.
+- then, just one time, run
+```shell
+git pull origin main
+# set NGINX_RESTART=true on your .env, after that,
+sudo bash run.sh
+```
+- However, as you are aware, ```NGINX_RESTART=true``` causes a short downtime. **Make sure ```NGINX_RESTART=false``` at all times**.
+
+
+### Terms
+For all echo messages or properties .env, the following terms indicate...
+- BUILD (=LOAD IMAGE) : ```docker build```
+- UP (=LOAD CONTAINER) : ```docker-compose up```
+- DOWN : ```docker-compose down```
+- RESTART : Parse related-files if exists, and then run ```docker build & docker-compose down & docker-compose up ```
+  - ex) NGINX_RESTART on .env means docker build & down & up for NGINX
+- safe : set a new state(=blue or green) without halting the running server safely. (=zero-downtime)
+
+### Log Levels
+- ``DEBUG``: Simply indicates that a specific function has been executed or a certain part of the source code has been run.
+- ``NOTICE``, ``WARN``: Just for your information.
+- ``ERROR``: Although the current deployment has not been halted, there is a clear error.
+- ``EMERGENCY``: A level of risk that halts the current deployment.
+
+### Information on Environment Variables
 ```shell
 # If this is set to be true, that means running 'stop-all-containers.sh & remove-all-images.sh'
 # Why? In case you get your project renamed or moved to another folder, docker may NOT work properly.  
@@ -220,7 +236,7 @@ If you set this to 'true', you won't need to configure SSL for your app. For ins
 REDIRECT_HTTPS_TO_HTTP=true
 ```
 
-## Check states
+### Check states
 ```shell
 bash check-current-states.sh
 
@@ -233,7 +249,7 @@ bash check-current-states.sh
 bash check-current-states.sh | grep -o '[^_]state : [^,]*,'
 ```
 
-## Emergency
+### Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
 ```shell
 # Automatically set the safe state & down and up Nginx
@@ -271,19 +287,18 @@ bash ./rollback.sh
 bash emergency-consul-down-and-up.sh
 ```
 
-## Running & Stopping Multiple Projects
+### Running & Stopping Multiple Projects
 - Store your .env as ```.env.ready.*``` (for me, like ```.env.ready.client```, ```.env.ready.server```)
 - When deploying ```.env.ready.client```, simply run ```cp -f .env.ready.client .env```
 - ```bash run.sh```
 - If you wish to terminate the project, which should be on your .env, run ```bash stop-all-containers.sh```
 - If you wish to remove the project's images, which should be on your .env, run ```bash remove-all-images.sh```
 
-## Consul
+### Consul
 `` http://localhost:8500 ``
 - Need to set a firewall for the 8500 port referring to ``./docker-compose-consul.yml``.
 
-
-## USE_NGINX_RESTRICTION on .env
+### USE_NGINX_RESTRICTION on .env
 - https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication
 - Create .htpasswd on ./.docker/nginx/custom-files if you would like use the settings. This is useful when you apply security to API Doc Modules such as Spring-Rest-Docs.
 
@@ -450,18 +465,21 @@ On .env, let me explain this.
     - The error "failed to verify certificate: x509: certificate signed by unknown authority" typically occurs when the Docker client is unable to trust the SSL certificate presented by the Docker registry (in this case, your GitLab Docker registry).
     - Solution
       - Place your CA's root certificate (.crt file) in /usr/local/share/ca-certificates/ and run sudo update-ca-certificates.
-## Test
+
+## Extra Information
+
+### Test
 ```shell
 # Tests should be conducted in the folder
 cd tests/spring-sample-h-auth
 sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
 ```
 
-## Concurrent Running for this App
+### Concurrent Running for this App
 - Running ```sudo bash *.sh``` concurrently for the **same** project at the same time, is NOT safe.
 - Running ```sudo bash *.sh``` concurrently for **different** projects at the same time, is safe.
 
-## Docker Swarm
+### Docker Swarm
 
 - 'ORCHESTRATION_TYPE=stack' is currently experimental, keep 'ORCHESTRATION_TYPE=compose' as it is in the production stage.
   - However, you would test the docker swarm, run the command. It is currently tested for the Java sample.
@@ -469,3 +487,4 @@ sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
         docker swarm init
         sudo bash run.sh
       ``` 
+---
