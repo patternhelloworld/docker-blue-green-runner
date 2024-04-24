@@ -14,13 +14,13 @@ cache_all_states() {
 
   local nginx_pointing
   nginx_config=$(docker exec ${project_name}-nginx cat /etc/nginx/conf.d/nginx.conf || echo "failed")
-  if echo "$nginx_config" | grep -q "proxy_pass http[s]*://${project_name}-blue"; then
+  if echo "$nginx_config" | grep -Eq "^[^#]*proxy_pass http[s]*://${project_name}-blue"; then
       blue_exists="blue"
   else
       blue_exists="failed"
   fi
 
-  if echo "$nginx_config" | grep -q "proxy_pass http[s]*://${project_name}-green"; then
+  if echo "$nginx_config" | grep -Eq "^[^#]*proxy_pass http[s]*://${project_name}-green"; then
       green_exists="green"
   else
       green_exists="failed"
