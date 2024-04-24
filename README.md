@@ -4,27 +4,24 @@
 
 To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
-## Why would I use this approach?
+You should use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest version of the 'main' branch.
+You can directly create pull requests for the 'main' branch.
 
-- No Need for Binary Installation Files and Complex Configurations
+<!-- TOC -->
+
+## Features
+
+- Pure Docker (No Need for Binary Installation Files and Complex Configurations)
   - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq`` installed.
-  - Can easily migrate the whole system to other Linux servers. (it might be tough to migrate the whole Kubernetes system set up to other servers)
+  
+- With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with Consul. Nginx enables your project to be deployed without any downtime.
+  - ![consists-of.png](/documents/images/consists-of.png )
+  - By building your project from Dockerfiles, you can fully build your project and achieve zero-downtime blue-green deployments simply by executing `run.sh`. 
 
 - Suitable for Single-Machine Deployments
-  - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios with low traffic where only one or two machines are available.
-  - For deployments involving more machines, traditional Layer 4 (L4) servers could be utilized.
-   
-- Building from Dockerfiles, Not Just Using Images
-  - Docker Images are binary and do not include the source-building processes, such as `composer install`, `npm run build`, or `mvn install`.
-  - By building your project from Dockerfiles, you can fully build your project and achieve zero-downtime blue-green deployments simply by executing `run.sh`.
+  - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios with lower traffic where only one or two machines are available.
+  - For deployments involving more machines, traditional Layer 4 (L4) load-balancer using servers could be utilized.
 
-## Introduction
-
-- With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with Consul. Nginx enables your project to be deployed without any downtime.
-- You should use the latest Release version for your production, NOT the latest version of the 'main' branch.
-- You can directly create pull requests for the 'main' branch.
-
-![img.png](/documents/images/img.png )
 
 Let me continually explain how to use Docker-Blue-Green-Runner with the following samples.
 
@@ -38,7 +35,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 
 - Mainly tested on WIN10 WSL2 & Ubuntu 22.04.3 LTS, Docker (24.0), Docker-Compose (2.18)
   - If this module operates well on WSL2, then there should be no issues using it on an Ubuntu Linux server considering the instability of WSL2.
-  - If you are using WSL2, which has the CRLF issue, you should run sudo bash prevent-crlf.sh twice, and then run the .sh file you need.
+  - If you are using WSL2, which has the CRLF issue, you should run ```bash prevent-crlf.sh``` twice, and then run the .sh file you need.
   - The error message is `` $'\r': command not found``
 - In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
 - In summary, Linux is way better than WSL2.
@@ -46,7 +43,7 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
   - >Do not use Docker-Blue-Green-Runner in containers such as CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
   - Dockerized Jenkins as well
 
-- The image or Dockerfile in your app must contain "bash" & "curl" commands, which are shown in ``./samples/spring-sample-h-auth`` folder as an example. 
+- The image or Dockerfile in your app must contain "bash" & "curl" commands, which are shown in ``./samples/spring-sample-h-auth`` folder as an example.
 - Do NOT build or run 'local' & 'real' at the same time (There's no reason to do so, but just in case... They have the same name of the image and container)
 - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
 - I have located the sample folders included in this project; however, I recommend locating your projects in external folders and using absolute paths at all times.
@@ -78,6 +75,7 @@ For all echo messages or properties .env, the following terms indicate...
 - ``EMERGENCY``: A level of risk that halts the current deployment.
 
 ## How to Start with a Node Sample (Local).
+- Check the port number 13000 available before getting this started.
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
@@ -101,6 +99,7 @@ sudo bash run.sh
 
 
 ## How to Start with a PHP Sample (Real, HTTPS self-signed SSL)
+- Check the port number 8080 available before getting this started.
 
 Differences between ``./samples/laravel-crud-boilerplate/Dockerfile.local`` and ``./samples/laravel-crud-boilerplate/Dockerfile.real``
 
@@ -131,6 +130,7 @@ sudo bash run.sh
 Open https://localhost:8080 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 ## How to Start with a PHP Sample (Local).
+- Check the port number 8080 available before getting this started.
 
 A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
@@ -156,6 +156,8 @@ and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/
 
 
 ## How to Start with a Java Spring-Boot Sample (Local).
+- Check the port number 8200 available before getting this started.
+
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
@@ -289,7 +291,7 @@ bash emergency-consul-down-and-up.sh
 - Customizing ```docker-compose.yml```
   - Docker-Blue-Green-Runner uses your App's only ```Dockerfile```, NOT ```docker-compose```.
   - You can set 'DOCKER_COMPOSE_ENVIRONMENT' on .env to change environments when your container is up.
-  - **However, in case you need more to set, follow this step.** 
+  - **However, in case you need more to set, follow this step.**
     - ```cp -f docker-compose-app-${app_env}-original.yml docker-compose-${project_name}-${app_env}-original-ready.yml```
     - Add variables you would like to ```docker-compose-${project_name}-${app_env}-original-ready.yml```
     - **For the properties of 'environment, volumes', use .env instead of setting them on the yml.**
@@ -421,7 +423,7 @@ echo "[NOTICE] APP_URL : ${app_url}"
 ## Gitlab Container Registry
 
 On .env, let me explain this.
- 
+
 - CASE 1. DOWNLOAD IMAGE
   ```shell
   GIT_IMAGE_LOAD_FROM=build
@@ -439,7 +441,7 @@ On .env, let me explain this.
     registrator_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-registrator:${git_image_version}"
     ``` 
 - CASE 2. PUSH IMAGE
-  - In case you run the command ``push-to-git.sh``, ``docker-blue-green-runner`` pushes one of ``Blue or Green`` images which is currently running to the address above of the Gitlab Container Registry. 
+  - In case you run the command ``push-to-git.sh``, ``docker-blue-green-runner`` pushes one of ``Blue or Green`` images which is currently running to the address above of the Gitlab Container Registry.
   - This case is not related to ``GIT_IMAGE_LOAD_FROM``.
 - REFERENCE
   - You can easily create your own Gitlab Docker with https://github.com/Andrew-Kang-G/docker-gitlab-ce-runner
@@ -447,7 +449,7 @@ On .env, let me explain this.
   - ``docker login failed to verify certificate: x509: certificate signed by unknown authority`` Error
     - The error "failed to verify certificate: x509: certificate signed by unknown authority" typically occurs when the Docker client is unable to trust the SSL certificate presented by the Docker registry (in this case, your GitLab Docker registry).
     - Solution
-      - Place your CA's root certificate (.crt file) in /usr/local/share/ca-certificates/ and run sudo update-ca-certificates. 
+      - Place your CA's root certificate (.crt file) in /usr/local/share/ca-certificates/ and run sudo update-ca-certificates.
 ## Test
 ```shell
 # Tests should be conducted in the folder
