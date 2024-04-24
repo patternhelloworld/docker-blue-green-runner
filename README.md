@@ -4,7 +4,7 @@
 
 To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
-- Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest version of the 'main' branch.
+- Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest commit of the 'main' branch.
 You can directly create pull requests for the 'main' branch.
 
 ## Table of Contents
