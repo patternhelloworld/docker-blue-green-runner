@@ -1,16 +1,23 @@
 /var/log/nginx/access.log {
-    daily
+    hourly
     rotate 7
-    size 10M
+    size 100K
     missingok
     notifempty
-    create 0640 root www-data
+    create 0660 nginx root
+    postrotate
+        /usr/sbin/nginx -s reopen
+    endscript
 }
+
 /var/log/nginx/error.log {
-    daily
+    hourly
     rotate 7
-    size 10M
+    size 100K
     missingok
     notifempty
-    create 0640 root www-data
+    create 0660 nginx root
+    postrotate
+        /usr/sbin/nginx -s reopen
+    endscript
 }

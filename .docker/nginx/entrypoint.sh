@@ -38,11 +38,12 @@ echo "[INSIDE_NGINX_CONTAINER][NOTICE] In case the original file './docker/nginx
 sed -i -e 's/\r$//' /etc/logrotate.d/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in replacing CRLF to LF, but it is a minor error, we continue the process."
 
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] Give safe permissions to '/var/log/nginx'."
-chown -R www-data /var/log/nginx
+chown -R nginx /var/log/nginx
 
 
-#echo "[NOTICE] Start Logrotate for logging Nginx (Access, Error) logs"
-#echo "59 23 * * * /usr/sbin/logrotate /etc/logrotate.conf" >> /etc/crontab
+echo "[NOTICE] Start Logrotate (every hour at minute 1) for logging Nginx (Access, Error) logs"
+(crontab -l -u root; echo "1 * * * * /usr/sbin/logrotate /etc/logrotate.conf") | crontab || echo "[WARN] Registering Cron failed."
+service cron restart || echo "[WARN] Restarting Cron failed."
 
 if [[ ! -d /etc/consul-templates ]]; then
     echo "[INSIDE_NGINX_CONTAINER][NOTICE] As the directory name '/etc/consul-templates' does NOT exist, it has been created."
@@ -163,7 +164,7 @@ if [[ ${protocol} = 'https' ]]; then
     echo "[INSIDE_NGINX_CONTAINER][NOTICE] For Apache2 containers, run cp -f /etc/nginx/ssl/${commercial_ssl_name}.chained.crt /etc/nginx/ssl/${commercial_ssl_name}.crt"
     cp -f /etc/nginx/ssl/${commercial_ssl_name}.chained.crt /etc/nginx/ssl/${commercial_ssl_name}.crt
 
-    chown -R root:www-data /etc/nginx/ssl
+    chown -R root:nginx /etc/nginx/ssl
     chmod 640 /etc/nginx/ssl/${commercial_ssl_name}.key
     chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.chained.crt
     chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.crt
