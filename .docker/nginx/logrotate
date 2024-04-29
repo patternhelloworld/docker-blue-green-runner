@@ -1,7 +1,7 @@
 /var/log/nginx/access.log {
     hourly
-    rotate 7
-    size 100K
+    rotate ###NGINX_LOGROTATE_FILE_NUMBER###
+    size ###NGINX_LOGROTATE_FILE_SIZE###
     missingok
     notifempty
     create 0660 nginx root
@@ -12,8 +12,8 @@
 
 /var/log/nginx/error.log {
     hourly
-    rotate 7
-    size 100K
+    rotate ###NGINX_LOGROTATE_FILE_NUMBER###
+    size ###NGINX_LOGROTATE_FILE_SIZE###
     missingok
     notifempty
     create 0660 nginx root

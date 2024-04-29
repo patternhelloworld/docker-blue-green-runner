@@ -17,6 +17,8 @@ set_expose_and_app_port(){
   fi
 }
 
+# Set base ENVs
+
 project_name=$(printenv PROJECT_NAME)
 project_port=$(printenv PROJECT_PORT)
 
@@ -34,16 +36,23 @@ nginx_client_max_body_size=$(printenv NGINX_CLIENT_MAX_BODY_SIZE)
 
 echo "[DEBUG] protocol : ${protocol} , consul_key : ${consul_key}, nginx_client_max_body_size : ${nginx_client_max_body_size}"
 
+# Handle Logging
+
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] In case the original file './docker/nginx/logrotate' has CRLF. That causes errors to Logrotate. So replacing CRLF to LF"
 sed -i -e 's/\r$//' /etc/logrotate.d/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in replacing CRLF to LF, but it is a minor error, we continue the process."
 
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] Give safe permissions to '/var/log/nginx'."
 chown -R nginx /var/log/nginx
 
-
-echo "[NOTICE] Start Logrotate (every hour at minute 1) for logging Nginx (Access, Error) logs"
+echo "[INSIDE_NGINX_CONTAINER][NOTICE] Start Logrotate (every hour at minute 1) for logging Nginx (Access, Error) logs"
+nginx_logrotate_file_number=$(printenv NGINX_LOGROTATE_FILE_NUMBER)
+nginx_logrotate_file_size=$(printenv NGINX_LOGROTATE_FILE_SIZE)
+sed -i -e "s/###NGINX_LOGROTATE_FILE_NUMBER###/${nginx_logrotate_file_number}/" /etc/logrotate.d/nginx || (echo "nginx_logrotate_file_number (${nginx_logrotate_file_number}) replacement failure.")
+sed -i -e "s/###NGINX_LOGROTATE_FILE_SIZE###/${nginx_logrotate_file_size}/" /etc/logrotate.d/nginx || (echo "nginx_logrotate_file_size (${nginx_logrotate_file_size}) replacement failure.")
 (crontab -l -u root; echo "1 * * * * /usr/sbin/logrotate /etc/logrotate.conf") | crontab || echo "[WARN] Registering Cron failed."
 service cron restart || echo "[WARN] Restarting Cron failed."
+
+# From this point on, the configuration of the NGINX consul-template begins.
 
 if [[ ! -d /etc/consul-templates ]]; then
     echo "[INSIDE_NGINX_CONTAINER][NOTICE] As the directory name '/etc/consul-templates' does NOT exist, it has been created."
