@@ -2,13 +2,14 @@
 sudo sed -i -e "s/\r$//g" $(basename $0)
 set -e
 echo "[NOTICE] To prevent CRLF errors in scripts based on the Windows operating system, currently performing CRLF to LF conversion."
-
-git config apply.whitespace nowarn
-git config core.filemode false
+sudo bash prevent-crlf.sh
+git config apply.whitespace nowarn || echo "[WARN] A supporting command 'git config apply.whitespace nowarn' has NOT been run."
+git config core.filemode false || echo "[WARN] A supporting command 'git config core.filemode false' has NOT been run."
 
 source ./util.sh
 source ./use-app.sh
 
+check_necessary_commands
 cache_global_vars
 
 with_nginx="${1:-}"
@@ -21,7 +22,7 @@ fi
 # Nginx Rollback
 if [[ ${nginx_restart} == 'true' ]]; then
   echo "[NOTICE] Change the 'previous' tagged Nginx image to the 'latest' tagged image."
-  docker tag ${project_name}-nginx:previous ${project_name}-nginx:latest || echo "[NOTICE] ${project_name}-nginx:previous image does NOT exist."
+  docker tag ${project_name}-nginx:previous ${project_name}-nginx:latest || (echo "[NOTICE] ${project_name}-nginx:previous image does NOT exist." && exit 1)
 
   sleep 2
 
