@@ -276,8 +276,11 @@ docker exec -it ${project_name}-nginx bash # now you're in the container. Check 
 ```
 - Rollback your App to the previous App
 ```shell
-# Set NGINX_RESTART=false, otherwise, the Nginx Container is rollbacked as well.
+# Roll-back only your App to the previous image.
 bash ./rollback.sh
+
+# The Nginx Container is roll-backed as well.
+bash ./rollback.sh 1
 ```
 - Critical Error on the Consul Network
   - This can happen when...
