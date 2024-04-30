@@ -6,6 +6,7 @@ To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-
 
 - Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest version of the 'main' branch.
 You can directly create pull requests for the 'main' branch.
+- In production, place your project in a separate folder, not in the samples folder, as they are just examples  
 
 ## Table of Contents
 - [Features](#Features)
@@ -223,8 +224,9 @@ For all echo messages or properties .env, the following terms indicate...
 # Why? In case you get your project renamed or moved to another folder, docker may NOT work properly.  
 DOCKER_LAYER_CORRUPTION_RECOVERY=false
 
-# If this is set to true, Nginx will be restarted, resulting in a short downtime. This option should be used when Nginx encounters errors or during the initial deployment.
+# [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. This option should be used when Nginx encounters errors or during the initial deployment.
 NGINX_RESTART=false
+
 CONSUL_RESTART=false
 
 # The value must be json or yaml type, which is injected into docker-compose-app-${app_env}.yml
@@ -234,6 +236,17 @@ If you set this to 'true', you won't need to configure SSL for your app. For ins
 # 1) true : [Request]--> https (external network) -->Nginx--> http (internal network) --> App
 # 2) false :[Request]--> https (external network) -->Nginx--> httpS (internal network) --> App
 REDIRECT_HTTPS_TO_HTTP=true
+```
+#### [IMPORTANT] ENVs that require 'NGINX_RESTART=true' to be set, otherwise changes will not be reflected.
+```shell
+DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES
+NGINX_CLIENT_MAX_BODY_SIZE
+USE_MY_OWN_APP_YML
+USE_NGINX_RESTRICTED_LOCATION
+NGINX_RESTRICTED_LOCATION
+REDIRECT_HTTPS_TO_HTTP
+NGINX_LOGROTATE_FILE_NUMBER
+NGINX_LOGROTATE_FILE_SIZE
 ```
 
 ### Check states
