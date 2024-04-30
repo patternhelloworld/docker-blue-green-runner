@@ -265,6 +265,9 @@ bash check-current-states.sh | grep -o '[^_]state : [^,]*,'
 ### Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
 ```shell
+# emergency-nginx-down-and-up.sh : Run -> Activate
+# emergency-nginx-restart.sh : Parse -> Build -> Run -> Activate
+
 # Automatically set the safe state & down and up Nginx
 bash emergency-nginx-down-and-up.sh
 
@@ -302,6 +305,13 @@ bash ./rollback.sh 1
 ```shell
 bash emergency-consul-down-and-up.sh
 ```
+
+### Security
+- Currently, this security script is only for setting file permissions.
+```shell
+sudo bash apply-security.sh
+```
+
 
 ### Running & Stopping Multiple Projects
 - Store your .env as ```.env.ready.*``` (for me, like ```.env.ready.client```, ```.env.ready.server```)
