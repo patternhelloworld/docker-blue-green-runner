@@ -18,7 +18,7 @@ then
 fi
 
 
-chown -R www-data storage bootstrap/cache shared
+chown -R www-data storage bootstrap/cache
 
 composer dump-autoload
 php artisan cache:clear
