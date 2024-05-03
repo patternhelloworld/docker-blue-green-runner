@@ -39,10 +39,16 @@ echo "[DEBUG] protocol : ${protocol} , consul_key : ${consul_key}, nginx_client_
 # Handle Logging
 
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] In case the original file './docker/nginx/logrotate' has CRLF. That causes errors to Logrotate. So replacing CRLF to LF"
-sed -i -e 's/\r$//' /etc/logrotate.d/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in replacing CRLF to LF, but it is a minor error, we continue the process."
+sed -i -e 's/\r$//' /etc/logrotate.d/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in replacing CRLF to LF on '/etc/logrotate.d/nginx', but it is a minor error, we continue the process."
 
-echo "[INSIDE_NGINX_CONTAINER][NOTICE] Give safe permissions to '/var/log/nginx'."
-chown -R nginx /var/log/nginx
+shared_volume_group_id=$(printenv SHARED_VOLUME_GROUP_ID)
+if [[ -n ${shared_volume_group_id} ]]; then
+  echo "[INSIDE_NGINX_CONTAINER][NOTICE] Give safe permissions to '/var/log/nginx'."
+  chown -R root:shared_volume_group_id /var/log/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in running 'chown -R root:nginx /var/log/nginx', we continue the process."
+  chmod -R 770 /var/log/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in running 'chmod -R 660 /var/log/nginx', but it is a minor error, we continue the process."
+else
+  echo "[INSIDE_NGINX_CONTAINER][WARNING] ${shared_volume_group_id} NOT found."
+fi
 
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] Start Logrotate (every hour at minute 1) for logging Nginx (Access, Error) logs"
 nginx_logrotate_file_number=$(printenv NGINX_LOGROTATE_FILE_NUMBER)
