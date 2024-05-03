@@ -4,7 +4,7 @@
     size ###NGINX_LOGROTATE_FILE_SIZE###
     missingok
     notifempty
-    create 0660 nginx root
+    create 0770 root nginx
     postrotate
         /usr/sbin/nginx -s reopen
     endscript
@@ -16,7 +16,7 @@
     size ###NGINX_LOGROTATE_FILE_SIZE###
     missingok
     notifempty
-    create 0660 nginx root
+    create 0770 root nginx
     postrotate
         /usr/sbin/nginx -s reopen
     endscript

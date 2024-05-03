@@ -178,7 +178,7 @@ _main() {
 
   echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
 
-  # [B] Set mandatory files
+  # [A-1] Set mandatory files
   ## App
   initiate_docker_compose_file
   apply_env_service_name_onto_app_yaml
@@ -189,7 +189,6 @@ _main() {
   if [[ ${skip_building_app_image} != 'true' ]]; then
     backup_app_to_previous_images
   fi
-
   ## Nginx
   if [[ ${nginx_restart} == 'true' ]]; then
     initiate_nginx_docker_compose_file
@@ -201,7 +200,13 @@ _main() {
     backup_nginx_to_previous_images
   fi
 
+  # [A-2] Set 'Shared Volume Group'
+  local add_host_users_to_shared_volume_group_re=$(add_host_users_to_host_group ${shared_volume_group_id} ${shared_volume_group_name} ${uids_belonging_to_shared_volume_group_id} | tail -n 1) || echo "[WARNING] Running 'add_host_users_to_shared_volume_group' failed.";
+  if [[ ${add_host_users_to_shared_volume_group_re} = 'false' ]]; then
+    echo "[WARNING] Running 'add_host_users_to_host_group'(SHARED) failed."
+  fi
 
+  # [A-3] Etc.
   if [[ ${app_env} == 'local' ]]; then
       give_host_group_id_full_permissions
   fi
@@ -239,15 +244,15 @@ _main() {
   # [E] External Integrity Check, if fails, 'emergency-nginx-down-and-up.sh' will be run.
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
+
     echo "[WARNING] ! ${new_state}'s availability issue found. Now we are going to run 'emergency-nginx-down-and-up.sh' immediately."
     bash emergency-nginx-down-and-up.sh
 
     re=$(check_availability_out_of_container | tail -n 1);
     if [[ ${re} != 'true' ]]; then
 
-
-
       echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh OR check your !firewall. (result value : ${re})" && exit 1
+
     fi
   fi
 

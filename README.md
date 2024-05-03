@@ -247,6 +247,9 @@ NGINX_RESTRICTED_LOCATION
 REDIRECT_HTTPS_TO_HTTP
 NGINX_LOGROTATE_FILE_NUMBER
 NGINX_LOGROTATE_FILE_SIZE
+SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
+SHARED_VOLUME_GROUP_NAME # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
+UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
 ```
 
 ### Check states
@@ -307,11 +310,19 @@ bash emergency-consul-down-and-up.sh
 ```
 
 ### Security
-- Currently, this security script is only for setting file permissions.
+- In Linux, security begins with file permissions. To ensure that unauthorized users cannot access volume folders while allowing specific users on the host to access them, the following `.env` settings have been added:
+```shell
+# You can find the implementation of the following on "How to Start with a PHP Sample (Real, HTTPS self-signed SSL)"
+DOCKER_BUILD_ARGS={...,"shared_volume_group_id":"1351","shared_volume_group_name":"laravel-shared-volume-group"}
+
+SHARED_VOLUME_GROUP_ID=1351
+SHARED_VOLUME_GROUP_NAME=laravel-shared-volume-group
+UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID=1000
+```
+- The Runner's host applies secure file modes to 1) scripts and support files, and 2) shared folders by running the following...
 ```shell
 sudo bash apply-security.sh
 ```
-
 
 ### Running & Stopping Multiple Projects
 - Store your .env as ```.env.ready.*``` (for me, like ```.env.ready.client```, ```.env.ready.server```)

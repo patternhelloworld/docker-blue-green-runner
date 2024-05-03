@@ -1,10 +1,12 @@
 #!/bin/bash
 rootPath="$(printenv PROJECT_LOCATION)"
-echo "[DEBUG] Root Path : ${rootPath}"
+shared_volume_group_id="$(printenv SHARED_VOLUME_GROUP_ID)"
+echo "[DEBUG] PROJECT_LOCATION : ${rootPath}"
+echo "[DEBUG] SHARED_VOLUME_GROUP_ID : ${shared_volume_group_id}"
 
 cd ${rootPath} || exit 1
 
-chown -R www-data:www-data storage bootstrap/cache public
+chown -R www-data:${shared_volume_group_id} storage bootstrap/cache public
 
 php artisan key:generate
 
@@ -13,7 +15,7 @@ then
     php artisan passport:keys
 fi
 
-chown www-data:www-data storage/oauth-*.key
+chown www-data:${shared_volume_group_id} storage/oauth-*.key
 
 #composer dump-autoload
 php artisan cache:clear
@@ -27,8 +29,8 @@ a2ensite default
 service apache2 stop
 
 # Use the same group between www-data and root
-usermod -aG www-data root
-usermod -aG root www-data
+#usermod -aG www-data root
+#usermod -aG root www-data
 
 protocol=$(echo $(printenv APP_URL) | awk -F[/:] '{print $1}')
 if [[ ${protocol} = 'https' ]]; then
@@ -61,7 +63,7 @@ if [[ ${protocol} = 'https' ]]; then
 
   fi
 
-  chown -R www-data /etc/apache2/ssl
+  chown -R www-data:${shared_volume_group_id} /etc/apache2/ssl
   chmod 640 /etc/apache2/ssl/${commercial_ssl_name}.key
   chmod 644 /etc/apache2/ssl/${commercial_ssl_name}.crt
 
@@ -88,7 +90,7 @@ php-fpm -D
 
 service apache2 start
 
-chown -R www-data storage/logs
+chown -R www-data:${shared_volume_group_id} storage/logs
 
 protocol=$(echo $(printenv APP_URL) | awk -F[/:] '{print $1}')
 use_commercial_ssl=$(echo $(printenv "USE_COMMERCIAL_SSL"))

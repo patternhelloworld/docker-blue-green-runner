@@ -4,6 +4,9 @@ set -eu
 git config apply.whitespace nowarn
 git config core.filemode false
 
+to_lower() {
+    echo "$1" | tr '[:upper:]' '[:lower:]'
+}
 
 cache_all_states() {
 
@@ -265,6 +268,10 @@ cache_non_dependent_global_vars() {
         exit 1
     fi
   fi
+
+  shared_volume_group_id=$(get_value_from_env "SHARED_VOLUME_GROUP_ID")
+  uids_belonging_to_shared_volume_group_id=$(get_value_from_env "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID")
+  shared_volume_group_name=$(get_value_from_env "SHARED_VOLUME_GROUP_NAME")
 }
 
 cache_global_vars() {
@@ -348,7 +355,7 @@ get_value_from_env(){
   value=$(echo $value | sed -e 's/\r//g')
 
   if [[ -z ${value} ]]; then
-    echo "[ERROR] ${1} NOT found on .env." >&2 && exit 1
+    echo "[WARNING] ${value} for the key ${1} is empty .env." >&2
   fi
 
   echo ${value} # return.
@@ -392,7 +399,7 @@ check_empty_env_values(){
 
       value="$(echo -e "${value}" | sed -e 's/^[[:space:]]*|[[:space:]]*$//')"
 
-      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" ]]; then
+      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" ]]; then
          empty_keys+=(${key})
       fi
 
@@ -549,4 +556,67 @@ set_network_driver_for_orchestration_type(){
     fi
   fi
 
+}
+
+add_host_users_to_host_group() {
+
+    local gid=${1}
+    local gname=${2}
+    local uids=${3:-}
+
+
+    echo "[DEBUG] add_host_users_to_host_group - gid : ${gid}, uids : ${uids}, gname : ${gname}"
+
+    # Check if ${module_name}_GROUP_ID value is valid
+    if [ -z "$gid" ]; then
+        echo "[ERROR] ${module_name}_VOLUME_GROUP_ID value is not provided." >&2
+        echo "false"
+        return
+    fi
+
+    # Retrieve group name
+    local final_gname=$(getent group "$gid" | cut -d: -f1)
+
+    # Check if the group exists
+    if [ -z "$final_gname" ]; then
+        # If the group doesn't exist, create a new one
+        echo "[NOTICE] Creating group with GID $gid..." >&2
+        sudo groupadd -g "$gid" "${gname}"
+        if [ $? -eq 0 ]; then
+            echo "[NOTICE] Group '$(to_lower "${module_name}")_group' with GID $gid created successfully." >&2
+            final_gname="${gname}"
+        else
+            echo "[ERROR] Failed to create group." >&2
+            echo "false"
+            return
+        fi
+    else
+        echo "[NOTICE] Group with GID $gid already exists: $final_gname" >&2
+    fi
+
+    # Split comma-separated user IDs into an array and remove whitespace
+    IFS=',' read -r -a uid_array <<< "$uids"
+
+    # Iterate over each user ID in the array and add them to the group
+    for uid in "${uid_array[@]}"; do
+        # Remove surrounding whitespace from user ID
+        local uid_clean=$(echo "$uid" | xargs)
+        # Convert UID to username if necessary
+        local username=$(getent passwd "$uid_clean" | cut -d: -f1)
+
+        if [ -z "$username" ]; then
+            echo "[WARNING] No user with UID $uid_clean exists." >&2
+            continue
+        fi
+        # Add user to the group
+        sudo usermod -a -G "$final_gname" "$username"
+        if [ $? -eq 0 ]; then
+            echo "[NOTICE] User $username added to group $final_gname successfully on your host." >&2
+        else
+            echo "[NOTICE] Failed to add user $username to group $final_gname on your host." >&2
+        fi
+    done
+
+    echo "true"
+    return
 }

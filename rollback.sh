@@ -19,14 +19,31 @@ else
     nginx_restart=false
 fi
 
+
+# App rollback
+echo "[NOTICE] Change the previous app image to the ${new_state} image for rollback."
+docker tag ${project_name}:previous ${project_name}:${new_state} || echo "[NOTICE] ${project_name}:previous image does NOT exist."
+
+sleep 2
+
+echo "[NOTICE] Down & Up ${new_state} container."
+docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The ${new_state} Container has been stopped, if exists."
+docker-compose -f docker-compose-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The ${new_state} Container has been removed, if exists."
+docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state}
+
+echo "[NOTICE] Wait until the ${new_state} container is fully up."
+if [[ $(check_availability_inside_container ${new_state} 60 5 | tail -n 1) != 'true' ]]; then
+  echo "[ERROR] Failed to rollback to the ${new_state} container." && exit 1
+fi
+
 # Nginx Rollback
 if [[ ${nginx_restart} == 'true' ]]; then
   echo "[NOTICE] Change the 'previous' tagged Nginx image to the 'latest' tagged image."
-  docker tag ${project_name}-nginx:previous ${project_name}-nginx:latest || (echo "[NOTICE] ${project_name}-nginx:previous image does NOT exist." && exit 1)
+  docker tag ${project_name}-nginx:previous ${project_name}-nginx:latest || echo "[NOTICE] ${project_name}-nginx:previous image does NOT exist."
 
   sleep 2
 
-  echo "[NOTICE] Run 'emergency-nginx-restart.sh'"
+  echo "[NOTICE] Run 'emergency-nginx-restart.sh' "
   bash emergency-nginx-restart.sh
 fi
 
