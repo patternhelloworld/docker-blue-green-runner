@@ -5,6 +5,14 @@ RUN apt-get update -qqy && apt-get -qqy --force-yes install curl runit wget unzi
 
 ARG DISABLE_CACHE
 ARG protocol
+ARG shared_volume_group_id
+ARG shared_volume_group_name
+
+RUN if getent group $shared_volume_group_id ; then \
+        usermod -aG $shared_volume_group_id nginx; \
+    else \
+        groupadd -g $shared_volume_group_id $shared_volume_group_name && usermod -aG $shared_volume_group_name nginx; \
+    fi
 
 RUN wget --no-check-certificate https://releases.hashicorp.com/consul-template/0.19.3/consul-template_0.19.3_linux_amd64.zip && \
     unzip -d /usr/local/bin consul-template_0.19.3_linux_amd64.zip && \

@@ -6,6 +6,7 @@ To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-
 
 - Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest commit of the 'main' branch.
 You can directly create pull requests for the 'main' branch.
+- In production, place your project in a separate folder, not in the samples folder, as they are just examples  
 
 ## Table of Contents
 - [Features](#Features)
@@ -223,8 +224,9 @@ For all echo messages or properties .env, the following terms indicate...
 # Why? In case you get your project renamed or moved to another folder, docker may NOT work properly.  
 DOCKER_LAYER_CORRUPTION_RECOVERY=false
 
-# If this is set to true, Nginx will be restarted, resulting in a short downtime. This option should be used when Nginx encounters errors or during the initial deployment.
+# [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. This option should be used when Nginx encounters errors or during the initial deployment.
 NGINX_RESTART=false
+
 CONSUL_RESTART=false
 
 # The value must be json or yaml type, which is injected into docker-compose-app-${app_env}.yml
@@ -234,6 +236,20 @@ If you set this to 'true', you won't need to configure SSL for your app. For ins
 # 1) true : [Request]--> https (external network) -->Nginx--> http (internal network) --> App
 # 2) false :[Request]--> https (external network) -->Nginx--> httpS (internal network) --> App
 REDIRECT_HTTPS_TO_HTTP=true
+```
+#### [IMPORTANT] ENVs that require 'NGINX_RESTART=true' to be set, otherwise changes will not be reflected.
+```shell
+DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES
+NGINX_CLIENT_MAX_BODY_SIZE
+USE_MY_OWN_APP_YML
+USE_NGINX_RESTRICTED_LOCATION
+NGINX_RESTRICTED_LOCATION
+REDIRECT_HTTPS_TO_HTTP
+NGINX_LOGROTATE_FILE_NUMBER
+NGINX_LOGROTATE_FILE_SIZE
+SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
+SHARED_VOLUME_GROUP_NAME # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
+UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
 ```
 
 ### Check states
@@ -252,6 +268,9 @@ bash check-current-states.sh | grep -o '[^_]state : [^,]*,'
 ### Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
 ```shell
+# emergency-nginx-down-and-up.sh : Run -> Activate
+# emergency-nginx-restart.sh : Parse -> Build -> Run -> Activate
+
 # Automatically set the safe state & down and up Nginx
 bash emergency-nginx-down-and-up.sh
 
@@ -276,8 +295,11 @@ docker exec -it ${project_name}-nginx bash # now you're in the container. Check 
 ```
 - Rollback your App to the previous App
 ```shell
-# Set NGINX_RESTART=false, otherwise, the Nginx Container is rollbacked as well.
+# Roll-back only your App to the previous image.
 bash ./rollback.sh
+
+# The Nginx Container is roll-backed as well.
+bash ./rollback.sh 1
 ```
 - Critical Error on the Consul Network
   - This can happen when...
@@ -285,6 +307,21 @@ bash ./rollback.sh
     - When you change the ```ORCHESTRATION_TYPE``` on the .env, the two use different network scopes.
 ```shell
 bash emergency-consul-down-and-up.sh
+```
+
+### Security
+- In Linux, security begins with file permissions. To ensure that unauthorized users cannot access volume folders while allowing specific users on the host to access them, the following `.env` settings have been added:
+```shell
+# You can find the implementation of the following on "How to Start with a PHP Sample (Real, HTTPS self-signed SSL)"
+DOCKER_BUILD_ARGS={...,"shared_volume_group_id":"1351","shared_volume_group_name":"laravel-shared-volume-group"}
+
+SHARED_VOLUME_GROUP_ID=1351
+SHARED_VOLUME_GROUP_NAME=laravel-shared-volume-group
+UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID=1000
+```
+- The Runner's host applies secure file modes to 1) scripts and support files, and 2) shared folders by running the following...
+```shell
+sudo bash apply-security.sh
 ```
 
 ### Running & Stopping Multiple Projects

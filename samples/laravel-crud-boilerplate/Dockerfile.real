@@ -97,6 +97,13 @@ RUN \cp /usr/local/etc/php/php.ini-production  /usr/local/etc/php/php.ini \
 && a2enmod headers \
 && usermod -u 1000 www-data && groupmod -g 1000 www-data
 
+ARG shared_volume_group_id
+
+RUN if getent group $shared_volume_group_id ; then \
+        usermod -aG $shared_volume_group_id www-data; \
+    else \
+        groupadd -g $shared_volume_group_id shared-volume-group && usermod -aG shared-volume-group www-data; \
+    fi
 
 
 RUN sed -i -E "s/(post_max_size\s*=\s*)[^\n\r]+/\1100M/" /usr/local/etc/php/php.ini \

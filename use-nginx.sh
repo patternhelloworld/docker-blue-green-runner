@@ -450,8 +450,8 @@ load_nginx_docker_image(){
       docker rmi -f ${nginx_image_name_in_registry} || exit 1
     else
 
-      echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, build the ${project_name}-nginx image (using cache)."
-      docker build --build-arg DISABLE_CACHE=${CUR_TIME}  --build-arg protocol="${protocol}" --tag ${project_name}-nginx -f ./.docker/nginx/Dockerfile -m ${docker_build_memory_usage} . || exit 1
+      echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, before that, we are now building the ${project_name}-nginx image (using cache)."
+      docker build --build-arg DISABLE_CACHE=${CUR_TIME} --build-arg protocol="${protocol}" --build-arg shared_volume_group_id="${shared_volume_group_id}" --build-arg shared_volume_group_name="${shared_volume_group_name}" --tag ${project_name}-nginx -f ./.docker/nginx/Dockerfile -m ${docker_build_memory_usage} . || exit 1
 
     fi
 
@@ -469,5 +469,3 @@ nginx_down_and_up(){
    PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 
 }
-
-

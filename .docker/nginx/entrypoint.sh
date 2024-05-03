@@ -17,6 +17,8 @@ set_expose_and_app_port(){
   fi
 }
 
+# Set base ENVs
+
 project_name=$(printenv PROJECT_NAME)
 project_port=$(printenv PROJECT_PORT)
 
@@ -34,15 +36,34 @@ nginx_client_max_body_size=$(printenv NGINX_CLIENT_MAX_BODY_SIZE)
 
 echo "[DEBUG] protocol : ${protocol} , consul_key : ${consul_key}, nginx_client_max_body_size : ${nginx_client_max_body_size}"
 
+# Handle Logging
+
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] In case the original file './docker/nginx/logrotate' has CRLF. That causes errors to Logrotate. So replacing CRLF to LF"
-sed -i -e 's/\r$//' /etc/logrotate.d/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in replacing CRLF to LF, but it is a minor error, we continue the process."
+sed -i -e 's/\r$//' /etc/logrotate.d/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in replacing CRLF to LF on '/etc/logrotate.d/nginx', but it is a minor error, we continue the process."
 
-echo "[INSIDE_NGINX_CONTAINER][NOTICE] Give safe permissions to '/var/log/nginx'."
-chown -R www-data /var/log/nginx
+shared_volume_group_id=$(printenv SHARED_VOLUME_GROUP_ID)
+if [[ -n ${shared_volume_group_id} ]]; then
+  echo "[INSIDE_NGINX_CONTAINER][NOTICE] Give safe permissions to '/var/log/nginx'."
+  chown -R root:${shared_volume_group_id} /var/log/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in running 'chown -R root:${shared_volume_group_id} /var/log/nginx', we continue the process."
+  chmod -R 770 /var/log/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in running 'chmod -R 660 /var/log/nginx', but it is a minor error, we continue the process."
+else
+  echo "[INSIDE_NGINX_CONTAINER][WARNING] ${shared_volume_group_id} NOT found."
+fi
+
+echo "[INSIDE_NGINX_CONTAINER][NOTICE] Start Logrotate (every hour at minute 1) for logging Nginx (Access, Error) logs"
+nginx_logrotate_file_number=$(printenv NGINX_LOGROTATE_FILE_NUMBER)
+nginx_logrotate_file_size=$(printenv NGINX_LOGROTATE_FILE_SIZE)
+shared_volume_group_name=$(printenv SHARED_VOLUME_GROUP_NAME)
+
+sed -i -e "s/###NGINX_LOGROTATE_FILE_NUMBER###/${nginx_logrotate_file_number}/" /etc/logrotate.d/nginx || (echo "nginx_logrotate_file_number (${nginx_logrotate_file_number}) replacement failure.")
+sed -i -e "s/###NGINX_LOGROTATE_FILE_SIZE###/${nginx_logrotate_file_size}/" /etc/logrotate.d/nginx || (echo "nginx_logrotate_file_size (${nginx_logrotate_file_size}) replacement failure.")
+sed -i -e "s/###SHARED_VOLUME_GROUP_NAME###/${shared_volume_group_name}/" /etc/logrotate.d/nginx || (echo "shared_volume_group_name (${shared_volume_group_name}) replacement failure.")
+
+(crontab -l -u root; echo "1 * * * * /usr/sbin/logrotate /etc/logrotate.conf") | crontab || echo "[WARN] Registering Cron failed."
+service cron restart || echo "[WARN] Restarting Cron failed."
 
 
-#echo "[NOTICE] Start Logrotate for logging Nginx (Access, Error) logs"
-#echo "59 23 * * * /usr/sbin/logrotate /etc/logrotate.conf" >> /etc/crontab
+# From this point on, the configuration of the NGINX consul-template begins.
 
 if [[ ! -d /etc/consul-templates ]]; then
     echo "[INSIDE_NGINX_CONTAINER][NOTICE] As the directory name '/etc/consul-templates' does NOT exist, it has been created."
@@ -163,7 +184,7 @@ if [[ ${protocol} = 'https' ]]; then
     echo "[INSIDE_NGINX_CONTAINER][NOTICE] For Apache2 containers, run cp -f /etc/nginx/ssl/${commercial_ssl_name}.chained.crt /etc/nginx/ssl/${commercial_ssl_name}.crt"
     cp -f /etc/nginx/ssl/${commercial_ssl_name}.chained.crt /etc/nginx/ssl/${commercial_ssl_name}.crt
 
-    chown -R root:www-data /etc/nginx/ssl
+    chown -R root:${shared_volume_group_id} /etc/nginx/ssl
     chmod 640 /etc/nginx/ssl/${commercial_ssl_name}.key
     chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.chained.crt
     chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.crt
