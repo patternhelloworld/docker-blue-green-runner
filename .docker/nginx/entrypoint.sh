@@ -53,10 +53,15 @@ fi
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] Start Logrotate (every hour at minute 1) for logging Nginx (Access, Error) logs"
 nginx_logrotate_file_number=$(printenv NGINX_LOGROTATE_FILE_NUMBER)
 nginx_logrotate_file_size=$(printenv NGINX_LOGROTATE_FILE_SIZE)
+shared_volume_group_name=$(printenv SHARED_VOLUME_GROUP_NAME)
+
 sed -i -e "s/###NGINX_LOGROTATE_FILE_NUMBER###/${nginx_logrotate_file_number}/" /etc/logrotate.d/nginx || (echo "nginx_logrotate_file_number (${nginx_logrotate_file_number}) replacement failure.")
 sed -i -e "s/###NGINX_LOGROTATE_FILE_SIZE###/${nginx_logrotate_file_size}/" /etc/logrotate.d/nginx || (echo "nginx_logrotate_file_size (${nginx_logrotate_file_size}) replacement failure.")
+sed -i -e "s/###SHARED_VOLUME_GROUP_NAME###/${shared_volume_group_name}/" /etc/logrotate.d/nginx || (echo "shared_volume_group_name (${shared_volume_group_name}) replacement failure.")
+
 (crontab -l -u root; echo "1 * * * * /usr/sbin/logrotate /etc/logrotate.conf") | crontab || echo "[WARN] Registering Cron failed."
 service cron restart || echo "[WARN] Restarting Cron failed."
+
 
 # From this point on, the configuration of the NGINX consul-template begins.
 
