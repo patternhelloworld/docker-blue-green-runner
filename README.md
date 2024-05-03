@@ -1,12 +1,11 @@
 # Docker-Blue-Green-Runner
 
-> Simple Zero-Downtime Blue-Green Deployment Starting from your Dockerfiles
+> One Simple Zero-Downtime Blue-Green Deployment Starting from your Dockerfiles
 
-To deploy web projects must be [simple and safe](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
+Deploying web projects should be [simple, with high availability and security](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
 
 - Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest commit of the 'main' branch.
-You can directly create pull requests for the 'main' branch.
-- In production, place your project in a separate folder, not in the samples folder, as they are just examples  
+- In production, place your project in a separate folder, not in the samples folder, as they are just examples.  
 
 ## Table of Contents
 - [Features](#Features)
@@ -24,22 +23,15 @@ You can directly create pull requests for the 'main' branch.
 - Pure Docker (No Need for Binary Installation Files and Complex Configurations)
   - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq`` installed.
   
-- With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with Consul. Nginx enables your project to be deployed without any downtime.
-  - ![consists-of.png](/documents/images/consists-of.png )
-  - By building your project from Dockerfiles, you can fully build your project and achieve zero-downtime blue-green deployments simply by executing `run.sh`. 
+- With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [Consul](https://github.com/hashicorp/consul) and [Nginx](https://github.com/nginx/nginx).
 
-- Suitable for Single-Machine Deployments
-  - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios with lower traffic where only one or two machines are available.
-  - For deployments involving more machines, traditional Layer 4 (L4) load-balancer using servers could be utilized.
+    
+![consists-of.png](/documents/images/consists-of.png )
+   
 
-
-Let me continually explain how to use Docker-Blue-Green-Runner with the following samples.
-
-|         | Local (Development) | Real (Production) |
-|---------|---------------------|-------------------|
-| Node.js | O                   | not yet           |
-| PHP     | O                   | O                 |
-| Java    | O                   | O                 |
+- Focus on zero-downtime deployment on a single machine.
+  - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios where only one or two machines are available.
+  - However, ``for deployments involving more machines, traditional Layer 4 (L4) load-balancer using servers could be utilized.``
 
 ## Requirements
 
@@ -48,11 +40,10 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
   - If you are using WSL2, which has the CRLF issue, you should run ```bash prevent-crlf.sh``` twice, and then run the .sh file you need.
   - The error message is `` $'\r': command not found``
 - In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
-- In summary, Linux is way better than WSL2.
+- In summary, Linux is way better than WSL2. Nobody would use WSL2 for production.
 - No Container in Container
   - >Do not use Docker-Blue-Green-Runner in containers such as CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
   - Dockerized Jenkins as well
-
 - The image or Dockerfile in your app must contain "bash" & "curl" commands, which are shown in ``./samples/spring-sample-h-auth`` folder as an example.
 - Do NOT build or run 'local' & 'real' at the same time (There's no reason to do so, but just in case... They have the same name of the image and container)
 - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
@@ -60,28 +51,44 @@ Let me continually explain how to use Docker-Blue-Green-Runner with the followin
 
 
 ## Quick Start with Samples
+```shell
+# Set this to 'real' in the .env file for production environments.
+APP_ENV=real
+
+# The 'real' setting requires defining 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES'.
+DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
+
+# If APP_ENV is set to 'local', as specified in 'docker-compose-app-local-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".  
+````
+
+|         | Local (Development) | Real (Production) |
+|---------|---------------------|-------------------|
+| Node.js | O                   | not yet           |
+| PHP     | O                   | O                 |
+| Java    | O                   | O                 |
 
 ### How to Start with a Node Sample (Local).
 - Check the port number 13000 available before getting this started.
 
-A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) that has been receiving a lot of stars, comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
+A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
 ```shell
-# First, as the sample project requires Mongodb, run it separately.
+# First, since the sample project requires MongoDB, run it separately.
 cd samples/node-express-boilerplate
 docker-compose build
 docker-compose up -d mongodb
-# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'MONGODB_URL' to your host IP in the ./samples/node-express-boilerplate/.env
-
+# Second, if 'host.docker.internal' is not available, change 'MONGODB_URL' in ./samples/node-express-boilerplate/.env to your host IP.
 ```
 
 ```shell
-# Go back to the ROOT
+# Return to the ROOT directory.
 cd ../../
+# Copy the local environment settings to the main .env file.
 cp -f .env.node.local .env
-# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
-# [NOTE] Initially, since the sample project does not have the "node_modules" installed, the Health Check stage may take longer.
+# If 'host.docker.internal' is not available, change 'host.docker.internal' in the ./.env file to your host IP.
+# NOTE: The Health Check stage may take longer initially as the "node_modules" are not installed in the sample project.
 sudo bash run.sh
+
 ```
 
 
@@ -232,7 +239,7 @@ CONSUL_RESTART=false
 # The value must be json or yaml type, which is injected into docker-compose-app-${app_env}.yml
 DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
 
-If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
+# [IMPORTANT] If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
 # 1) true : [Request]--> https (external network) -->Nginx--> http (internal network) --> App
 # 2) false :[Request]--> https (external network) -->Nginx--> httpS (internal network) --> App
 REDIRECT_HTTPS_TO_HTTP=true
@@ -253,23 +260,21 @@ UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID # The application to the host does NOT 
 ```
 
 ### Check states
+- Run the following command.
 ```shell
 bash check-current-states.sh
-
-# an output sample below
-# [DEBUG] ! Setting which (Blue OR Green) to deploy the App as... (Final Check) : blue_score : 80, green_score : 0, state : blue, new_state : green, state_for_emergency : blue, new_upstream : https://laravel_crud_boilerplate-green:8080.
-# The higher the score a state receives, the more likely it is to be the currently running state. So the updated App should be deployed as the non-occupied state(=new_state).
-# For the emergency script, there is another safer priority added over the results of scores. So, the 'state_for_emergency' is basically the same as the 'state' but can differ.
-
-# Only to get the result,
-bash check-current-states.sh | grep -o '[^_]state : [^,]*,'
+# The output example
+[DEBUG] ! Checking which (Blue OR Green) is currently running... (Base Check) : consul_pointing(blue), nginx_pointing(blue}), blue_status(running), green_status(exited)
+[DEBUG] ! Checked which (Blue OR Green) is currently running... (Final Check) : blue_score : 130, green_score : 27, state : blue, new_state : green, state_for_emergency : blue, new_upstream : https://PROJECT_NAME:8300.
 ```
+- The higher the score a state receives, the more likely it is to be the currently running state. So the updated App should be deployed as the non-occupied state(new_state).
+
 
 ### Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
 ```shell
-# emergency-nginx-down-and-up.sh : Run -> Activate
-# emergency-nginx-restart.sh : Parse -> Build -> Run -> Activate
+# emergency-nginx-down-and-up.sh : Stop & Run -> Activate
+# emergency-nginx-restart.sh : Parse -> Build -> Stop & Run -> Activate
 
 # Automatically set the safe state & down and up Nginx
 bash emergency-nginx-down-and-up.sh
@@ -298,13 +303,13 @@ docker exec -it ${project_name}-nginx bash # now you're in the container. Check 
 # Roll-back only your App to the previous image.
 bash ./rollback.sh
 
-# The Nginx Container is roll-backed as well.
+# The Nginx Container is roll-backed as well. (Not recommended. Nginx is safely managed as long as you use released versions.)
 bash ./rollback.sh 1
 ```
 - Critical Error on the Consul Network
-  - This can happen when...
-    - The server machine has been restarted, and affects the Consul network
-    - When you change the ```ORCHESTRATION_TYPE``` on the .env, the two use different network scopes.
+  - This rarely happens when...
+    - The server machine has been restarted, and affects the Consul network.
+    - You change the ```ORCHESTRATION_TYPE``` on the .env, the two types (compose,stack) for it come to use different network scopes, which leads to a collision.
 ```shell
 bash emergency-consul-down-and-up.sh
 ```
@@ -337,7 +342,7 @@ sudo bash apply-security.sh
 
 ### USE_NGINX_RESTRICTION on .env
 - https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication
-- Create .htpasswd on ./.docker/nginx/custom-files if you would like use the settings. This is useful when you apply security to API Doc Modules such as Spring-Rest-Docs.
+- Create ```.htpasswd``` on ```./.docker/nginx/custom-files``` if you would like use the settings. This is useful when you apply security to API Doc Modules such as Spring-Rest-Docs.
 
 ## Advanced
 - Customizing ```docker-compose.yml```
@@ -361,7 +366,7 @@ sudo bash apply-security.sh
 
   echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
 
-  # [B] Set mandatory files
+  # [A-1] Set mandatory files
   ## App
   initiate_docker_compose_file
   apply_env_service_name_onto_app_yaml
@@ -372,10 +377,10 @@ sudo bash apply-security.sh
   if [[ ${skip_building_app_image} != 'true' ]]; then
     backup_app_to_previous_images
   fi
-
   ## Nginx
   if [[ ${nginx_restart} == 'true' ]]; then
     initiate_nginx_docker_compose_file
+    apply_env_service_name_onto_nginx_yaml
     apply_ports_onto_nginx_yaml
     apply_docker_compose_volumes_onto_app_nginx_yaml
     create_nginx_ctmpl
@@ -383,7 +388,13 @@ sudo bash apply-security.sh
     backup_nginx_to_previous_images
   fi
 
+  # [A-2] Set 'Shared Volume Group'
+  local add_host_users_to_shared_volume_group_re=$(add_host_users_to_host_group ${shared_volume_group_id} ${shared_volume_group_name} ${uids_belonging_to_shared_volume_group_id} | tail -n 1) || echo "[WARNING] Running 'add_host_users_to_shared_volume_group' failed.";
+  if [[ ${add_host_users_to_shared_volume_group_re} = 'false' ]]; then
+    echo "[WARNING] Running 'add_host_users_to_host_group'(SHARED) failed."
+  fi
 
+  # [A-3] Etc.
   if [[ ${app_env} == 'local' ]]; then
       give_host_group_id_full_permissions
   fi
@@ -411,9 +422,6 @@ sudo bash apply-security.sh
   if [[ ${cached_new_state} != "${new_state}" ]]; then
     (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
   fi
-
-  # Run 'docker-compose up' for 'App', 'Consul (Service Mesh)' and 'Nginx' and
-  # Check if the App is properly working from the inside of the App's container using 'wait-for-it.sh ( https://github.com/vishnubob/wait-for-it )' and conducting a health check with settings defined on .env.
   ```
 - Integrity Check is conducted at this point.
   - **Internal Integrity Check** ( in the function 'load_all_containers')
