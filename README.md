@@ -11,7 +11,7 @@ Deploying web projects should be [simple, with high availability and security](h
 - [Features](#Features)
 - [Requirements](#Requirements)
 - [Quick Start with Samples](#Quick-Start-with-Samples)
-- [Usage](#usage)
+- [Quick Guide on Usage](#Quick-Guide-on-Usage)
 - [Structure](#Structure)
 - [Gitlab Container Registry](#Gitlab-Container-Registry)
 - [Extra Information](#Extra-Information)
@@ -60,14 +60,14 @@ DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/
 
 # If APP_ENV is set to 'local', as specified in 'docker-compose-app-local-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".  
 ````
-
+### Provided Samples
 |         | Local (Development) | Real (Production) |
 |---------|---------------------|-------------------|
 | Node.js | O                   | not yet           |
 | PHP     | O                   | O                 |
 | Java    | O                   | O                 |
 
-### How to Start with a Node Sample (Local).
+### How to Start with a Node Sample (Local)
 - Check the port number 13000 available before getting this started.
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
@@ -196,7 +196,60 @@ sudo bash run.sh
 - In case ``APP_ENV`` on ``.env`` is 'real', the Runner points to ``Dockerfile.real`` in priority, and if it does NOT exist, the Runner points to ``Dockerfile``.
 
 
-## Usage
+## Quick Guide on Usage
+
+### Information on Environment Variables
+
+#### ``APP_URL``
+- ```shell
+  APP_URL=http://localhost:<--!host-port-number!-->
+  PROJECT_PORT=<--!common-port-number!--> OR 
+  PROJECT_PORT=[<--!host-host-port-number!-->,<--!new-project-port-number!-->]
+  ```
+  - Additionally, the APP_URL parameter is used for 'check_availability_out_of_container' at [Structure](#Structure)
+  - You can set it as https://localhost:13000 or https://your-domain:13000 for production environments. (Both configurations are acceptable)
+  - Moreover, the Runner parses the protocol (http or https), and if it is https, it checks for SSL certificates in the .docker/ssl directory on the host according to the following settings:
+  - ```shell
+    USE_COMMERCIAL_SSL=true
+    COMMERCIAL_SSL_NAME=yourssl
+    ```
+  - In case USE_COMMERCIAL_SSL is 'false', the Runner generates self-signed SSL certificates.
+
+```shell
+# [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. 
+# This option should be used when upgrading the Runner. See the "Upgrade" section below.
+NGINX_RESTART=false
+
+# Setting this to 'true' is not recommended for normal operation as it results in prolonged downtime.
+CONSUL_RESTART=false
+
+# Not recommended for normal operation as it leads to a long downtime.
+# If this is set to true, it entails running 'stop-all-containers.sh & remove-all-images.sh'.
+# In case your project is renamed or moved to another folder, Docker may not work properly.
+DOCKER_LAYER_CORRUPTION_RECOVERY=false
+
+# The value should be in JSON format, which is injected into docker-compose-app-${app_env}.yml
+DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
+
+# [IMPORTANT] If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
+# 1) true : [Request]--> https (external network) -->Nginx--> http (internal network) --> App
+# 2) false :[Request]--> https (external network) -->Nginx--> https (internal network) --> App
+REDIRECT_HTTPS_TO_HTTP=true
+```
+#### [IMPORTANT] ENVs that require 'NGINX_RESTART=true' to be set, otherwise changes will not be reflected.
+```shell
+DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES
+NGINX_CLIENT_MAX_BODY_SIZE
+USE_MY_OWN_APP_YML
+USE_NGINX_RESTRICTED_LOCATION
+NGINX_RESTRICTED_LOCATION
+REDIRECT_HTTPS_TO_HTTP
+NGINX_LOGROTATE_FILE_NUMBER
+NGINX_LOGROTATE_FILE_SIZE
+SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
+SHARED_VOLUME_GROUP_NAME # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
+UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
+```
 
 ### Upgrade
 - When you use any upgraded version of 'docker-blue-green-runner', set ```NGINX_RESTART=true``` on your .env,
@@ -217,47 +270,13 @@ For all echo messages or properties .env, the following terms indicate...
 - DOWN : ```docker-compose down```
 - RESTART : Parse related-files if exists, and then run ```docker build & docker-compose down & docker-compose up ```
   - ex) NGINX_RESTART on .env means docker build & down & up for NGINX
-- safe : set a new state(=blue or green) without halting the running server safely. (=zero-downtime)
+- safe : set a new state(=blue or green) safely without halting the running server. (=zero-downtime)
 
 ### Log Levels
 - ``DEBUG``: Simply indicates that a specific function has been executed or a certain part of the source code has been run.
 - ``NOTICE``, ``WARN``: Just for your information.
 - ``ERROR``: Although the current deployment has not been halted, there is a clear error.
 - ``EMERGENCY``: A level of risk that halts the current deployment.
-
-### Information on Environment Variables
-```shell
-# If this is set to be true, that means running 'stop-all-containers.sh & remove-all-images.sh'
-# Why? In case you get your project renamed or moved to another folder, docker may NOT work properly.  
-DOCKER_LAYER_CORRUPTION_RECOVERY=false
-
-# [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. This option should be used when Nginx encounters errors or during the initial deployment.
-NGINX_RESTART=false
-
-CONSUL_RESTART=false
-
-# The value must be json or yaml type, which is injected into docker-compose-app-${app_env}.yml
-DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
-
-# [IMPORTANT] If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
-# 1) true : [Request]--> https (external network) -->Nginx--> http (internal network) --> App
-# 2) false :[Request]--> https (external network) -->Nginx--> httpS (internal network) --> App
-REDIRECT_HTTPS_TO_HTTP=true
-```
-#### [IMPORTANT] ENVs that require 'NGINX_RESTART=true' to be set, otherwise changes will not be reflected.
-```shell
-DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES
-NGINX_CLIENT_MAX_BODY_SIZE
-USE_MY_OWN_APP_YML
-USE_NGINX_RESTRICTED_LOCATION
-NGINX_RESTRICTED_LOCATION
-REDIRECT_HTTPS_TO_HTTP
-NGINX_LOGROTATE_FILE_NUMBER
-NGINX_LOGROTATE_FILE_SIZE
-SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
-SHARED_VOLUME_GROUP_NAME # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
-UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
-```
 
 ### Check states
 - Run the following command.
