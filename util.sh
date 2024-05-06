@@ -620,3 +620,15 @@ add_host_users_to_host_group() {
     echo "true"
     return
 }
+
+function check_git_status() {
+
+    status=$(git status --porcelain)
+
+    if [ -n "$status" ]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+
+}

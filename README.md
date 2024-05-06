@@ -343,9 +343,13 @@ SHARED_VOLUME_GROUP_ID=1351
 SHARED_VOLUME_GROUP_NAME=laravel-shared-volume-group
 UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID=1000
 ```
-- The Runner's host applies secure file modes to 1) scripts and support files, and 2) shared folders by running the following...
+  - The Runner's host applies secure file modes to 1) scripts and support files, and 2) shared folders by running the following...
 ```shell
 sudo bash apply-security.sh
+```
+- Since your custom settings are managed in .gitignore, the following script allows you to check if you accidentally touched other parts of the source code.
+```shell
+bash check-source-integrity.sh
 ```
 
 ### Running & Stopping Multiple Projects
