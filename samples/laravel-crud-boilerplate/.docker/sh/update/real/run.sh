@@ -70,9 +70,9 @@ if [[ ${protocol} = 'https' ]]; then
   if [[ ${use_commercial_ssl} == 'true' ]] ; then
     sed -i -e 's/#SSLCertificateChainFile/SSLCertificateChainFile/' /etc/apache2/sites-available/ssl-substr
   fi
-  sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/g" /etc/apache2/sites-available/ssl-substr
+  sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/g" /etc/apache2/sites-available/ssl-substr
 
-  sed -i -e '/###SSL-IF-REQUIRED###/{r /etc/apache2/sites-available/ssl-substr' -e 'd}' /etc/apache2/sites-available/default.conf
+  sed -i -e '/!#{SSL-IF-REQUIRED}/{r /etc/apache2/sites-available/ssl-substr' -e 'd}' /etc/apache2/sites-available/default.conf
 
   # In case of a 80 port...
   #sed -i -e 's/VirtualHost \*:80/VirtualHost \*:443/' /etc/apache2/sites-available/default.conf
@@ -97,5 +97,5 @@ use_commercial_ssl=$(echo $(printenv "USE_COMMERCIAL_SSL"))
 
 if [[ ${protocol} == 'https' && ${use_commercial_ssl} == 'true' ]]; then
   commercial_ssl_name=$(echo $(printenv "COMMERCIAL_SSL_NAME"))
-  sed -i -e "s/###COMMERCIAL_SSL_NAME###/${commercial_ssl_name}/" /laravel-echo-server/${protocol}/laravel-echo-server.json || echo "[WARNING] laravel-echo-server ###COMMERCIAL_SSL_NAME### 치환 실패"
+  sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /laravel-echo-server/${protocol}/laravel-echo-server.json || echo "[WARNING] laravel-echo-server !#{COMMERCIAL_SSL_NAME} 치환 실패"
 fi

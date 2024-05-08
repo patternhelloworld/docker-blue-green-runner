@@ -1,19 +1,19 @@
 server {
 
-     listen ###additional_port### default_server;
-     listen [::]:###additional_port### default_server;
+     listen !#{additional_port} default_server;
+     listen [::]:!#{additional_port} default_server;
 
      server_name localhost;
 
      error_page 497 http://$host:$server_port$request_uri;
 
-     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
+     client_max_body_size !#{NGINX_CLIENT_MAX_BODY_SIZE};
 
      location / {
          add_header Pragma no-cache;
          add_header Cache-Control no-cache;
 
-         proxy_pass http://$proxy_hostname:###additional_port###;
+         proxy_pass http://$proxy_hostname:!#{additional_port};
 
          proxy_set_header Host $http_host;
          proxy_set_header X-Scheme $scheme;

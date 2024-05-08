@@ -49,11 +49,11 @@ create_nginx_ctmpl(){
    local proxy_hostname_blue=
 
    if [[ ${orchestration_type} == 'stack' ]]; then
-     proxy_hostname="###PROJECT_NAME###-{{ \$key_value }}_###PROJECT_NAME###-{{ \$key_value }}"
-     proxy_hostname_blue="###PROJECT_NAME###-blue_###PROJECT_NAME###-blue"
+     proxy_hostname="!#{PROJECT_NAME}-{{ \$key_value }}_!#{PROJECT_NAME}-{{ \$key_value }}"
+     proxy_hostname_blue="!#{PROJECT_NAME}-blue_!#{PROJECT_NAME}-blue"
    else
-     proxy_hostname="###PROJECT_NAME###-{{ \$key_value }}"
-     proxy_hostname_blue="###PROJECT_NAME###-blue"
+     proxy_hostname="!#{PROJECT_NAME}-{{ \$key_value }}"
+     proxy_hostname_blue="!#{PROJECT_NAME}-blue"
    fi
 
    local app_https_protocol="https";
@@ -63,19 +63,19 @@ create_nginx_ctmpl(){
 
    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
 
-   sed -e "s|###proxy_hostname###|${proxy_hostname}|g" \
-       -e "s|###proxy_hostname_blue###|${proxy_hostname_blue}|g" \
-       -e "s|###app_https_protocol###|${app_https_protocol}|g" \
+   sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+       -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
+       -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
        .docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin > .docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl
 
    echo "" >> .docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl
 
     for i in "${additional_ports[@]}"
     do
-         sed -e "s|###proxy_hostname###|${proxy_hostname}|g" \
-             -e "s|###proxy_hostname_blue###|${proxy_hostname_blue}|g" \
-             -e "s|###app_https_protocol###|${app_https_protocol}|g" \
-             -e "s|###additional_port###|${i}|g" \
+         sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+             -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
+             -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
+             -e "s|!#{additional_port}|${i}|g" \
              .docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin >> .docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl
 
          echo "" >> .docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl
@@ -87,9 +87,9 @@ create_nginx_contingency_conf(){
    local proxy_hostname=
 
    if [[ ${orchestration_type} == 'stack' ]]; then
-     proxy_hostname="###PROJECT_NAME###-###APP_STATE###_###PROJECT_NAME###-###APP_STATE###"
+     proxy_hostname="!#{PROJECT_NAME}-!#{APP_STATE}_!#{PROJECT_NAME}-!#{APP_STATE}"
    else
-     proxy_hostname="###PROJECT_NAME###-###APP_STATE###"
+     proxy_hostname="!#{PROJECT_NAME}-!#{APP_STATE}"
    fi
 
     local app_https_protocol="https";
@@ -100,17 +100,17 @@ create_nginx_contingency_conf(){
 
    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
 
-   sed -e "s|###proxy_hostname###|${proxy_hostname}|g" \
-       -e "s|###app_https_protocol###|${app_https_protocol}|g" \
+   sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+       -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
        .docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.contingency.origin > .docker/nginx/ctmpl/${protocol}/nginx.conf.contingency
 
     echo "" >> .docker/nginx/ctmpl/${protocol}/nginx.conf.contingency
 
     for i in "${additional_ports[@]}"
     do
-         sed -e "s|###proxy_hostname###|${proxy_hostname}|g" \
-              -e "s|###app_https_protocol###|${app_https_protocol}|g" \
-              -e "s|###additional_port###|${i}|g" \
+         sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+              -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
+              -e "s|!#{additional_port}|${i}|g" \
              .docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.contingency.origin >> .docker/nginx/ctmpl/${protocol}/nginx.conf.contingency
 
          echo "" >> .docker/nginx/ctmpl/${protocol}/nginx.conf.contingency

@@ -1,22 +1,22 @@
 server {
 
-     listen ###additional_port### default_server;
-     listen [::]:###additional_port### default_server;
+     listen !#{additional_port} default_server;
+     listen [::]:!#{additional_port} default_server;
 
      server_name localhost;
 
      error_page 497 http://$host:$server_port$request_uri;
 
-     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
+     client_max_body_size !#{NGINX_CLIENT_MAX_BODY_SIZE};
 
      location / {
          add_header Pragma no-cache;
          add_header Cache-Control no-cache;
-         {{ with $key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
+         {{ with $key_value := keyOrDefault "!#{CONSUL_KEY}" "blue" }}
              {{ if or (eq $key_value "blue") (eq $key_value "green") }}
-                 proxy_pass http://###proxy_hostname###:###additional_port###;
+                 proxy_pass http://!#{proxy_hostname}:!#{additional_port};
              {{ else }}
-                 proxy_pass http://###proxy_hostname_blue###:###additional_port###;
+                 proxy_pass http://!#{proxy_hostname_blue}:!#{additional_port};
              {{ end }}
          {{ end }}
          proxy_set_header Host $http_host;
