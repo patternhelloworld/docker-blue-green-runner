@@ -285,7 +285,7 @@ NGINX_RESTART=true
 ```shell
 bash check-source-integrity.sh
 ```
-- Don't worry. Starting from v5.0.0, if NGINX_RESTART is set to 'true', the Runner will test your configuration using nginx -t before recreating the NGINX container. If the test fails, the process stops, preventing any side effects on your currently running app.
+- Don't worry. **Starting from v5.0.0**, if NGINX_RESTART is set to 'true', the Runner will test your configuration using ``nginx -t`` in a temporary container before recreating the NGINX container. If the test fails, the process stops, preventing any side effects on your currently running app.
 - Don't touch any file in ``.docker/nginx/template``. They are just ones in ready to be injected into the NGINX Image in Dockerfile.
 
 ### Ecosystem of NGINX Configuration
@@ -295,6 +295,10 @@ bash check-source-integrity.sh
   - A syntax that brings values from the .env file throughout the ecosystem.
   - ``!#{ value here }`` 
 ![img4.png](/documents/images/img4.png)
+
+### NGINX Contingency
+- In the event of a Consul failure, the NGINX Contingency module takes over and operates NGINX autonomously. This ensures uninterrupted service by allowing NGINX to function independently.
+
 ### Terms
 For all echo messages or properties .env, the following terms indicate...
 - BUILD (=LOAD IMAGE) : ```docker build```
