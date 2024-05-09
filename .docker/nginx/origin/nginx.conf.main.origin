@@ -25,6 +25,9 @@ http {
     keepalive_timeout  65;
 
     #gzip  on;
+
+    # Why don't you prevent DOS attack by running 'cp nginx.conf.main.origin nginx.conf.main.origin.customized' and modify the following part?
+
     geo $apply_limit {
     default $binary_remote_addr;
         10.10.0.0/16    '';

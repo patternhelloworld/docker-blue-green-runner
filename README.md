@@ -213,7 +213,7 @@ sudo bash run.sh
     USE_COMMERCIAL_SSL=true
     COMMERCIAL_SSL_NAME=yourssl
     ```
-  - In case USE_COMMERCIAL_SSL is 'false', the Runner generates self-signed SSL certificates.
+  - In case USE_COMMERCIAL_SSL is 'false', the Runner generates self-signed SSL certificates. However, you should set any name for ``COMMERCIAL_SSL_NAME``.
 
 ```shell
 # [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. 
@@ -269,7 +269,32 @@ sudo bash run.sh
 ```
 - However, as you are aware, ```NGINX_RESTART=true``` causes a short downtime. **Make sure ```NGINX_RESTART=false``` at all times**.
 
+### Fully Customizing NGINX Configuration
 
+![img.png](/documents/images/img3.png)
+
+- Create the five yellow-highlighted files ending with 'ctmpl.origin.customized' by copying the originals ending with 'ctmpl.origin.'
+- You don't have to create all five files; just create the ones you need.
+- In the .env file, set this to 'true'
+```shell
+USE_MY_OWN_NGINX_ORIGIN=true
+# See '[IMPORTANT] ENVs that require 'NGINX_RESTART=true' above.
+NGINX_RESTART=true
+```
+- For reference, the files you just created are ignored by git, so there won't be any issues when you run the following:
+```shell
+bash check-source-integrity.sh
+```
+- Don't worry. Starting from v5.0.0, if NGINX_RESTART is set to 'true', the Runner will test your configuration using nginx -t before recreating the NGINX container. If the test fails, the process stops, preventing any side effects on your currently running app.
+- Don't touch any file in ``.docker/nginx/template``. They are just ones in ready to be injected into the NGINX Image in Dockerfile.
+
+### Ecosystem of NGINX Configuration
+- ``Origin`` -(processed with the .env)-> ``Template`` -(docker build)-> ``Image`` -(running entrypoint.sh)-> ``Container``
+- Other cases, such as ``.docker/nginx/origin/logroate/nginx``
+- ENV Spel 
+  - A syntax that brings values from the .env file throughout the ecosystem.
+  - ``!#{ value here }`` 
+![img4.png](/documents/images/img4.png)
 ### Terms
 For all echo messages or properties .env, the following terms indicate...
 - BUILD (=LOAD IMAGE) : ```docker build```
