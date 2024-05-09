@@ -7,7 +7,7 @@ shared_volume_group_id=$(printenv SHARED_VOLUME_GROUP_ID)
 if [[ -n ${shared_volume_group_id} ]]; then
   echo "[INSIDE_NGINX_CONTAINER][NOTICE] Give safe permissions to '/var/log/nginx'."
   chown -R root:${shared_volume_group_id} /var/log/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in running 'chown -R root:${shared_volume_group_id} /var/log/nginx', we continue the process."
-  chmod -R 770 /var/log/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in running 'chmod -R 660 /var/log/nginx', but it is a minor error, we continue the process."
+  chmod -R 750 /var/log/nginx || echo "[INSIDE_NGINX_CONTAINER][NOTICE] Failed in running 'chmod -R 750 /var/log/nginx', but it is a minor error, we continue the process."
 else
   echo "[INSIDE_NGINX_CONTAINER][WARNING] ${shared_volume_group_id} NOT found."
 fi
