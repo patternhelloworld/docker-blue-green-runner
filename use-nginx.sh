@@ -304,8 +304,9 @@ check_nginx_templates_integrity(){
   echo "[NOTICE] Now we'll create a temporary NGINX image to test parsed settings in '.docker/nginx/template/ctmpl'"
   docker build --build-arg DISABLE_CACHE=${CUR_TIME} --build-arg protocol="${protocol}" --build-arg shared_volume_group_id="${shared_volume_group_id}" --build-arg shared_volume_group_name="${shared_volume_group_name}" --tag ${project_name}-nginx-test -f ./.docker/nginx/Dockerfile -m ${docker_build_memory_usage} . || exit 1
   echo "[NOTICE] Now we'll create a temporary NGINX container to test parsed settings in '.docker/nginx/template/ctmpl'"
-  docker stop ${project_name}-nginx-test || echo ""
-  docker rm ${project_name}-nginx-test || echo ""
+
+  stop_and_remove_container "${project_name}-nginx-test"
+
   docker run -d -it --name ${project_name}-nginx-test \
     -e TZ=Asia/Seoul \
     -e SERVICE_NAME=nginx \
@@ -321,21 +322,18 @@ check_nginx_templates_integrity(){
   if echo "$output" | grep -q "successful"; then
 
       echo "[NOTICE] Testing for NGINX configuration was successful. Now we'll apply it to the real NGINX Container."
-      docker stop ${project_name}-nginx-test || echo ""
-      docker rm ${project_name}-nginx-test || echo ""
+      stop_and_remove_container "${project_name}-nginx-test"
 
   elif echo "$output" | grep -q "host not found in upstream \"${project_name}"; then
 
         echo "[NOTICE] host not found in upstream (${project_name}) regarded as NOT a syntax issue. that is ignored. Now we'll apply it to the real NGINX Container."
-        docker stop ${project_name}-nginx-test || echo ""
-        docker rm ${project_name}-nginx-test || echo ""
+        stop_and_remove_container "${project_name}-nginx-test"
 
   else
       echo "[ERROR] NGINX configuration test failed. But don't worry. this is testing just before restarting NGINX. Check settings in '.docker/nginx/origin,'"
       echo "Output:"
       echo "$output"
-      docker stop ${project_name}-nginx-test || echo ""
-      docker rm ${project_name}-nginx-test || echo ""
+      stop_and_remove_container "${project_name}-nginx-test"
       exit 1
   fi
 

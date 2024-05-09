@@ -630,7 +630,7 @@ add_host_users_to_host_group() {
     return
 }
 
-function check_git_status() {
+check_git_status() {
 
     status=$(git status --porcelain)
 
@@ -640,4 +640,18 @@ function check_git_status() {
         echo "false"
     fi
 
+}
+
+stop_and_remove_container() {
+    # Assign container name passed as an argument
+    local container_name="$1"
+
+    # Check if the container is running or exists
+    if [ "$(docker ps -a -q -f name=${container_name})" ]; then
+        echo "[NOTICE] Stopping and removing container: ${container_name}"
+        docker stop "${container_name}" || echo "[ERROR] Failed to stop container: ${container_name}"
+        docker rm "${container_name}" || echo "[ERROR] Failed to remove container: ${container_name}"
+    else
+        echo "[NOTICE] Container ${container_name} does not exist."
+    fi
 }
