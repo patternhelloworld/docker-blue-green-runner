@@ -312,13 +312,21 @@ check_nginx_templates_integrity(){
 
   sleep 3
 
-  echo "[NOTICE] Now we'll run 'nginx -t' to test '${project_name}-nginx-test'"
-  output=$(docker exec ${project_name}-nginx-test nginx -t 2>&1 || echo "[ERROR] ${project_name}-nginx-test failed to run. But don't worry. this is testing just before restarting Nginx. Check settings in '.docker/nginx/origin,'")
+  echo "[NOTICE] Now we'll run 'nginx -t' to verify the syntax of '.docker/nginx/template/nginx.conf.main & ctmpl'"
+  output=$(docker exec ${project_name}-nginx-test nginx -t 2>&1 || echo "[ERROR] ${project_name}-nginx-test failed to run. But don't worry. this is testing just before restarting Nginx. Check settings in '.docker/nginx/origin & .docker/nginx/template'")
 
   if echo "$output" | grep -q "successful"; then
-      echo "[NOTICE] Testing for NGINX configuration test was successful. Now we'll apply it to the real NGINX Container."
+
+      echo "[NOTICE] Testing for NGINX configuration was successful. Now we'll apply it to the real NGINX Container."
       docker stop ${project_name}-nginx-test || echo ""
       docker rm ${project_name}-nginx-test || echo ""
+
+  elif echo "$output" | grep -q "host not found in upstream \"${project_name}"; then
+
+        echo "[NOTICE] host not found in upstream (${project_name}) regarded as NOT a syntax issue. that is ignored. Now we'll apply it to the real NGINX Container."
+        docker stop ${project_name}-nginx-test || echo ""
+        docker rm ${project_name}-nginx-test || echo ""
+
   else
       echo "[ERROR] NGINX configuration test failed. But don't worry. this is testing just before restarting NGINX. Check settings in '.docker/nginx/origin,'"
       echo "Output:"
