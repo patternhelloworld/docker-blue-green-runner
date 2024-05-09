@@ -18,11 +18,13 @@ RUN wget --no-check-certificate https://releases.hashicorp.com/consul-template/0
     unzip -d /usr/local/bin consul-template_0.19.3_linux_amd64.zip && \
     rm -rf consul-template_0.19.3_linux_amd64.zip
 
-COPY ./.docker/nginx/entrypoint.sh /
-COPY ./.docker/nginx/nginx.service /etc/service/nginx/run/
-COPY ./.docker/nginx/consul-template.service /etc/service/consul-template/run/
-COPY ./.docker/nginx/ctmpl/ /ctmpl
-COPY ./.docker/nginx/logrotate /etc/logrotate.d/nginx
+COPY ./.docker/nginx/template/entrypoint.sh /
+COPY ./.docker/nginx/template/nginx.service /etc/service/nginx/run/
+COPY ./.docker/nginx/template/consul-template.service /etc/service/consul-template/run/
+
+COPY ./.docker/nginx/template/nginx.conf.main /etc/nginx/nginx.conf
+COPY ./.docker/nginx/template/ctmpl /ctmpl
+COPY ./.docker/nginx/template/logrotate/nginx /etc/logrotate.d/nginx
 
 RUN chmod +x /etc/service/nginx/run && chmod +x /etc/service/consul-template/run
 RUN sed -i -e 's/\r$//' /etc/service/consul-template/run/consul-template.service

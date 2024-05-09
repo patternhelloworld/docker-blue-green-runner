@@ -1,0 +1,23 @@
+/var/log/nginx/access.log {
+    hourly
+    rotate !#{NGINX_LOGROTATE_FILE_NUMBER}
+    size !#{NGINX_LOGROTATE_FILE_SIZE}
+    missingok
+    notifempty
+    create 0770 root !#{SHARED_VOLUME_GROUP_NAME}
+    postrotate
+        /usr/sbin/nginx -s reopen
+    endscript
+}
+
+/var/log/nginx/error.log {
+    hourly
+    rotate !#{NGINX_LOGROTATE_FILE_NUMBER}
+    size !#{NGINX_LOGROTATE_FILE_SIZE}
+    missingok
+    notifempty
+    create 0770 root !#{SHARED_VOLUME_GROUP_NAME}
+    postrotate
+        /usr/sbin/nginx -s reopen
+    endscript
+}

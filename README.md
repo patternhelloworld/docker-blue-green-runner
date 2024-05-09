@@ -23,7 +23,7 @@ Deploying web projects should be [simple, with high availability and security](h
 - Pure Docker (No Need for Binary Installation Files and Complex Configurations)
   - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq`` installed.
   
-- With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [Consul](https://github.com/hashicorp/consul) and [Nginx](https://github.com/nginx/nginx).
+- With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [consul-template](https://github.com/hashicorp/consul-template) and [Nginx](https://github.com/nginx/nginx).
 
     
 ![consists-of.png](/documents/images/consists-of.png )
@@ -238,6 +238,12 @@ REDIRECT_HTTPS_TO_HTTP=true
 ```
 #### [IMPORTANT] ENVs that require 'NGINX_RESTART=true' to be set, otherwise changes will not be reflected.
 ```shell
+APP_URL
+PROJECT_PORT
+ADDITIONAL_PORT
+CONSUL_KEY_VALUE
+USE_COMMERCIAL_SSL
+COMMERCIAL_SSL_NAME
 DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES
 NGINX_CLIENT_MAX_BODY_SIZE
 USE_MY_OWN_APP_YML
@@ -249,6 +255,7 @@ NGINX_LOGROTATE_FILE_SIZE
 SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
 SHARED_VOLUME_GROUP_NAME # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
 UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
+USE_MY_OWN_NGINX_ORIGIN
 ```
 
 ### Upgrade
@@ -406,8 +413,8 @@ bash check-source-integrity.sh
     apply_env_service_name_onto_nginx_yaml
     apply_ports_onto_nginx_yaml
     apply_docker_compose_volumes_onto_app_nginx_yaml
-    create_nginx_ctmpl
-    create_nginx_contingency_conf
+    save_nginx_ctmpl_template_from_origin
+    save_nginx_contingency_template_from_origin
     backup_nginx_to_previous_images
   fi
 

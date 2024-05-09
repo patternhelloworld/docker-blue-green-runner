@@ -1,8 +1,4 @@
 # docker
-/.docker/env/local/*
-!/.docker/env/local/.gitkeep
-/.docker/env/real/*
-!/.docker/env/real/.gitkeep
 /.docker/ssl/*
 !/.docker/ssl/.gitkeep
 /.docker/nginx/custom-files/*
@@ -41,8 +37,22 @@
 /!docker-compose-app-nginx-original.yml
 /!docker-compose-consul.yml
 
-/.docker/nginx/ctmpl/http/*
-!/.docker/nginx/ctmpl/http/.gitkeep
+/.docker/nginx/template/ctmpl/http/*
+!/.docker/nginx/template/ctmpl/http/.gitkeep
 
-/.docker/nginx/ctmpl/https/*
-!/.docker/nginx/ctmpl/https/.gitkeep
+/.docker/nginx/template/ctmpl/https/*
+!/.docker/nginx/template/ctmpl/https/.gitkeep
+
+/.docker/nginx/template/logrotate/*
+!/.docker/nginx/template/logrotate/.gitkeep
+
+/.docker/nginx/template/nginx.conf.main
+
+/.docker/nginx/origin/nginx.conf.main.origin.customized
+
+/.docker/nginx/origin/conf.d/http/additionals/nginx.conf.ctmpl.origin.customized
+/.docker/nginx/origin/conf.d/http/app/nginx.conf.ctmpl.origin.customized
+
+/.docker/nginx/origin/conf.d/https/additionals/nginx.conf.ctmpl.origin.customized
+/.docker/nginx/origin/conf.d/https/app/nginx.conf.ctmpl.origin.customized
+

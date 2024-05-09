@@ -147,9 +147,8 @@ load_all_containers(){
 
 
   if [[ ${nginx_restart} == 'true' ]]; then
-
+      check_nginx_templates_integrity
       nginx_down_and_up
-
   fi
 
   check_necessary_supporting_containers_loaded || (echo "[ERROR] Failed in loading necessary supporting containers." && exit 1)
@@ -195,8 +194,12 @@ _main() {
     apply_env_service_name_onto_nginx_yaml
     apply_ports_onto_nginx_yaml
     apply_docker_compose_volumes_onto_app_nginx_yaml
-    create_nginx_ctmpl
-    create_nginx_contingency_conf
+
+    save_nginx_ctmpl_template_from_origin
+    save_nginx_contingency_template_from_origin
+    save_nginx_logrotate_template_from_origin
+    save_nginx_main_template_from_origin
+
     backup_nginx_to_previous_images
   fi
 

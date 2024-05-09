@@ -43,218 +43,126 @@ apply_docker_compose_volumes_onto_app_nginx_yaml(){
 
 }
 
-create_nginx_ctmpl(){
+set_origin_file() {
+    local customized_file=$1
+    local default_file=$2
+
+    if [[ ${use_my_own_nginx_origin} = 'true' ]]; then
+      if [[ -f $customized_file ]]; then
+        echo $customized_file
+      else
+        echo $default_file
+      fi
+    else
+      echo $default_file
+    fi
+}
+
+save_nginx_ctmpl_template_from_origin(){
 
    local proxy_hostname=
    local proxy_hostname_blue=
 
    if [[ ${orchestration_type} == 'stack' ]]; then
-     proxy_hostname="###PROJECT_NAME###-{{ \$key_value }}_###PROJECT_NAME###-{{ \$key_value }}"
-     proxy_hostname_blue="###PROJECT_NAME###-blue_###PROJECT_NAME###-blue"
+     proxy_hostname="!#{PROJECT_NAME}-{{ \$key_value }}_!#{PROJECT_NAME}-{{ \$key_value }}"
+     proxy_hostname_blue="!#{PROJECT_NAME}-blue_!#{PROJECT_NAME}-blue"
    else
-     proxy_hostname="###PROJECT_NAME###-{{ \$key_value }}"
-     proxy_hostname_blue="###PROJECT_NAME###-blue"
+     proxy_hostname="!#{PROJECT_NAME}-{{ \$key_value }}"
+     proxy_hostname_blue="!#{PROJECT_NAME}-blue"
    fi
 
+   local app_https_protocol="https";
+   if [[ ${redirect_https_to_http} = 'true' ]]; then
+      app_https_protocol="http"
+   fi
 
-    if [[ ${protocol} = 'http' ]]; then
+    local nginx_template_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.ctmpl"
 
-    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
+    echo "[NOTICE] NGINX template (${nginx_template_file}) is now being created."
 
-    cat > .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
+    local app_origin_file=$(set_origin_file ".docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin.customized" \
+                                        ".docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin")
 
-server {
+    echo "[DEBUG] ${app_origin_file} will be added to Template (${nginx_template_file})"
 
-     listen ###EXPOSE_PORT### default_server;
-     listen [::]:###EXPOSE_PORT### default_server;
+    sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+        -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
+        -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
+        "${app_origin_file}" > "${nginx_template_file}"
 
-     server_name localhost;
 
-     error_page 497 http://\$host:\$server_port\$request_uri;
+    echo "" >> "${nginx_template_file}"
 
-     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
+    local additionals_origin_file=$(set_origin_file ".docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin.customized" \
+                                        ".docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin")
 
-     location / {
-         add_header Pragma no-cache;
-         add_header Cache-Control no-cache;
-         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
-             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                 proxy_pass http://$proxy_hostname:###APP_PORT###;
-             {{ else }}
-                 proxy_pass http://$proxy_hostname_blue:###APP_PORT###;
-             {{ end }}
-         {{ end }}
-         proxy_set_header Host \$http_host;
-         proxy_set_header X-Scheme \$scheme;
-         proxy_set_header X-Forwarded-Protocol \$scheme;
-         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-         proxy_set_header X-Real-IP \$remote_addr;
-         proxy_http_version 1.1;
-         proxy_read_timeout 300s;
-         proxy_connect_timeout 75s;
-     }
+    echo "[DEBUG] ${additionals_origin_file} will be added to Template (${nginx_template_file})"
 
-     ###USE_NGINX_RESTRICTED_LOCATION###
+    if [ ${#additional_ports[@]} -eq 0 ]; then
+        echo "[DEBUG] However, no additional_ports found. it will not be added to ${nginx_template_file}"
+    else
+      for i in "${additional_ports[@]}"
+      do
 
-     access_log /var/log/nginx/access.log;
-     error_log /var/log/nginx/error.log;
-}
-EOF
+           sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+               -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
+               -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
+               -e "s|!#{additional_port}|${i}|g" \
+               "${additionals_origin_file}" >> "${nginx_template_file}"
 
-   for i in "${additional_ports[@]}"
-   do
-        cat >> .docker/nginx/ctmpl/http/nginx.conf.ctmpl <<EOF
+           echo "" >> ${nginx_template_file}
+      done
+    fi
 
-server {
+   sed -i -e "s|!#{EXPOSE_PORT}|${expose_port}|g" \
+       -e "s|!#{APP_PORT}|${app_port}|g" \
+       -e "s|!#{PROJECT_NAME}|${project_name}|g" \
+       -e "s|!#{CONSUL_KEY}|${consul_key}|g" \
+       -e "s|!#{NGINX_CLIENT_MAX_BODY_SIZE}|${nginx_client_max_body_size}|g" \
+       "${nginx_template_file}"
 
-     listen $i default_server;
-     listen [::]:$i default_server;
 
-     server_name localhost;
+   if [[ ${use_nginx_restricted_location} = 'true' ]]; then
 
-     error_page 497 http://\$host:\$server_port\$request_uri;
-
-     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
-
-     location / {
-         add_header Pragma no-cache;
-         add_header Cache-Control no-cache;
-         {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
-             {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                 proxy_pass http://$proxy_hostname:$i;
-             {{ else }}
-                 proxy_pass http://$proxy_hostname_blue:$i;
-             {{ end }}
-         {{ end }}
-         proxy_set_header Host \$http_host;
-         proxy_set_header X-Scheme \$scheme;
-         proxy_set_header X-Forwarded-Protocol \$scheme;
-         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-         proxy_set_header X-Real-IP \$remote_addr;
-         proxy_http_version 1.1;
-         proxy_read_timeout 300s;
-         proxy_connect_timeout 75s;
-    }
-
-     access_log /var/log/nginx/access.log;
-     error_log /var/log/nginx/error.log;
-}
-EOF
-   done
-
+       sed -i -e "/!#{USE_NGINX_RESTRICTED_LOCATION}/c \
+           location ${nginx_restricted_location} { \
+               add_header Pragma no-cache; \
+               add_header Cache-Control no-cache; \
+       \
+                               auth_basic           \"Restricted\"; \
+                               auth_basic_user_file /etc/nginx/custom-files/.htpasswd; \
+       \
+              {{ with \$key_value := keyOrDefault \"${consul_key}\" \"blue\" }} \
+                  {{ if or (eq \$key_value \"blue\") (eq \$key_value \"green\") }} \
+                       proxy_pass ${protocol}://${project_name}-{{ \$key_value }}:${app_port}; \
+                {{ else }} \
+                       proxy_pass ${protocol}://${project_name}-blue:${app_port}; \
+                   {{ end }} \
+               {{ end }}  \
+               proxy_set_header Host \$http_host; \
+               proxy_set_header X-Scheme \$scheme; \
+               proxy_set_header X-Forwarded-Protocol \$scheme; \
+               proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
+               proxy_set_header X-Real-IP \$remote_addr; \
+               proxy_http_version 1.1; \
+               proxy_read_timeout 300s; \
+               proxy_connect_timeout 75s; \
+           }" "${nginx_template_file}"
    else
 
-    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
-
-    cat > .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
-server {
-
-    listen ###EXPOSE_PORT### default_server ssl;
-    listen [::]:###EXPOSE_PORT### default_server ssl;
-
-    http2 on;
-    server_name localhost;
-
-    error_page 497 https://\$host:\$server_port\$request_uri;
-
-    client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
-
-
-    ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
-    ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
-    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
-
-
-    location / {
-        add_header Pragma no-cache;
-        add_header Cache-Control no-cache;
-        {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
-            {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                proxy_pass $app_https_protocol://$proxy_hostname:###APP_PORT###;
-            {{ else }}
-                proxy_pass $app_https_protocol://$proxy_hostname_blue:###APP_PORT###;
-            {{ end }}
-        {{ end }}
-        proxy_set_header Host \$http_host;
-        proxy_set_header X-Scheme \$scheme;
-        proxy_set_header X-Forwarded-Protocol \$scheme;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_http_version 1.1;
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75s;
-    }
-
-    ###USE_NGINX_RESTRICTED_LOCATION###
-
-    access_log /var/log/nginx/access.log;
-    error_log /var/log/nginx/error.log;
-}
-EOF
-
-   for i in "${additional_ports[@]}"
-   do
-        cat >> .docker/nginx/ctmpl/https/nginx.conf.ctmpl <<EOF
-
-server {
-    listen $i default_server ssl;
-    listen [::]:$i default_server ssl;
-
-    http2 on;
-
-    server_name localhost;
-
-    error_page 497 https://\$host:\$server_port\$request_uri;
-
-    client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
-
-
-    ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
-    ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
-    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
-
-    location / {
-        add_header Pragma no-cache;
-        add_header Cache-Control no-cache;
-        {{ with \$key_value := keyOrDefault "###CONSUL_KEY###" "blue" }}
-            {{ if or (eq \$key_value "blue") (eq \$key_value "green") }}
-                proxy_pass $app_https_protocol://$proxy_hostname:$i;
-            {{ else }}
-                proxy_pass $app_https_protocol://$proxy_hostname_blue:$i;
-            {{ end }}
-        {{ end }}
-        proxy_set_header Host \$http_host;
-        proxy_set_header X-Scheme \$scheme;
-        proxy_set_header X-Forwarded-Protocol \$scheme;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_http_version 1.1;
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75s;
-    }
-
-
-    access_log /var/log/nginx/access.log;
-    error_log /var/log/nginx/error.log;
-}
-EOF
-   done
+     sed -i -e "s/!#{USE_NGINX_RESTRICTED_LOCATION}//" "${nginx_template_file}"
 
    fi
 }
 
-create_nginx_contingency_conf(){
+save_nginx_contingency_template_from_origin(){
 
    local proxy_hostname=
 
    if [[ ${orchestration_type} == 'stack' ]]; then
-     proxy_hostname="###PROJECT_NAME###-###APP_STATE###_###PROJECT_NAME###-###APP_STATE###"
+     proxy_hostname="!#{PROJECT_NAME}-!#{APP_STATE}_!#{PROJECT_NAME}-!#{APP_STATE}"
    else
-     proxy_hostname="###PROJECT_NAME###-###APP_STATE###"
+     proxy_hostname="!#{PROJECT_NAME}-!#{APP_STATE}"
    fi
 
     local app_https_protocol="https";
@@ -263,179 +171,100 @@ create_nginx_contingency_conf(){
     fi
 
 
-    if [[ ${protocol} = 'http' ]]; then
+   local nginx_contingency_template_temp_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency"
+   local nginx_contingency_template_blue_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency.blue"
+   local nginx_contingency_template_green_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency.green"
 
-    echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.contingency) is now being created."
+   echo "[NOTICE] NGINX template (${nginx_contingency_template_temp_file}) is now being created."
 
-    cat > .docker/nginx/ctmpl/http/nginx.conf.contingency <<EOF
+   sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+       -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
+       .docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.contingency.origin > ${nginx_contingency_template_temp_file}
 
-server {
+    echo "" >> ${nginx_contingency_template_temp_file}
 
-     listen ###EXPOSE_PORT### default_server;
-     listen [::]:###EXPOSE_PORT### default_server;
+    for i in "${additional_ports[@]}"
+    do
+         sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+              -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
+              -e "s|!#{additional_port}|${i}|g" \
+             .docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.contingency.origin >> ${nginx_contingency_template_temp_file}
 
-     server_name localhost;
+         echo "" >> ${nginx_contingency_template_temp_file}
+    done
 
-     error_page 497 http://\$host:\$server_port\$request_uri;
 
-     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
+    sed -i -e "s|!#{EXPOSE_PORT}|${expose_port}|g" \
+       -e "s|!#{APP_PORT}|${app_port}|g" \
+       -e "s|!#{PROJECT_NAME}|${project_name}|g" \
+       -e "s|!#{CONSUL_KEY}|${consul_key}|g" \
+       -e "s|!#{NGINX_CLIENT_MAX_BODY_SIZE}|${nginx_client_max_body_size}|g" \
+       ${nginx_contingency_template_temp_file}
 
-     location / {
-         add_header Pragma no-cache;
-         add_header Cache-Control no-cache;
 
-         proxy_pass http://$proxy_hostname:###APP_PORT###;
 
-         proxy_set_header Host \$http_host;
-         proxy_set_header X-Scheme \$scheme;
-         proxy_set_header X-Forwarded-Protocol \$scheme;
-         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-         proxy_set_header X-Real-IP \$remote_addr;
-         proxy_http_version 1.1;
-         proxy_read_timeout 300s;
-         proxy_connect_timeout 75s;
-     }
+      if [[ ${use_nginx_restricted_location} = 'true' ]]; then
 
-     ###USE_NGINX_RESTRICTED_LOCATION###
+        sed -i -e "/!#{USE_NGINX_RESTRICTED_LOCATION}/c \
+            location ${nginx_restricted_location} { \
+                add_header Pragma no-cache; \
+                add_header Cache-Control no-cache; \
+        \
+                                auth_basic           \"Restricted\"; \
+                                auth_basic_user_file /etc/nginx/custom-files/.htpasswd; \
+        \
+                proxy_pass ${protocol}://${project_name}-!#{APP_STATE}:${app_port}; \
+                proxy_set_header Host \$http_host; \
+                proxy_set_header X-Scheme \$scheme; \
+                proxy_set_header X-Forwarded-Protocol \$scheme; \
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
+                proxy_set_header X-Real-IP \$remote_addr; \
+                proxy_http_version 1.1; \
+                proxy_read_timeout 300s; \
+                proxy_connect_timeout 75s; \
+            }" ${nginx_contingency_template_temp_file}
 
-     access_log /var/log/nginx/access.log;
-     error_log /var/log/nginx/error.log;
+      else
+
+        sed -i -e "s/!#{USE_NGINX_RESTRICTED_LOCATION}//" ${nginx_contingency_template_temp_file}
+
+      fi
+
+
+    echo "[NOTICE] Creating 'nginx.conf.contingency.blue', 'nginx.conf.contingency.green''."
+    cp -f ${nginx_contingency_template_temp_file} ${nginx_contingency_template_blue_file}
+    sed -i -e "s/!#{APP_STATE}/blue/" ${nginx_contingency_template_blue_file}
+    cp -f ${nginx_contingency_template_temp_file} ${nginx_contingency_template_green_file}
+    sed -i -e "s/!#{APP_STATE}/green/" ${nginx_contingency_template_green_file}
+
 }
-EOF
 
-   for i in "${additional_ports[@]}"
-   do
-        cat >> .docker/nginx/ctmpl/http/nginx.conf.contingency <<EOF
+save_nginx_logrotate_template_from_origin(){
 
-server {
+   echo "[NOTICE] NGINX LOGROTATE template (.docker/nginx/template/logrotate/nginx) is now being created."
 
-     listen $i default_server;
-     listen [::]:$i default_server;
+   sed -e "s|!#{NGINX_LOGROTATE_FILE_NUMBER}|${nginx_logrotate_file_number}|g" \
+       -e "s|!#{NGINX_LOGROTATE_FILE_SIZE}|${nginx_logrotate_file_size}|g" \
+       -e "s|!#{SHARED_VOLUME_GROUP_NAME}|${shared_volume_group_name}|g" \
+       .docker/nginx/origin/logrotate/nginx > .docker/nginx/template/logrotate/nginx
 
-     server_name localhost;
-
-     error_page 497 http://\$host:\$server_port\$request_uri;
-
-     client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
-
-     location / {
-         add_header Pragma no-cache;
-         add_header Cache-Control no-cache;
-
-         proxy_pass http://$proxy_hostname:$i;
-
-         proxy_set_header Host \$http_host;
-         proxy_set_header X-Scheme \$scheme;
-         proxy_set_header X-Forwarded-Protocol \$scheme;
-         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-         proxy_set_header X-Real-IP \$remote_addr;
-         proxy_http_version 1.1;
-         proxy_read_timeout 300s;
-         proxy_connect_timeout 75s;
-    }
-
-     access_log /var/log/nginx/access.log;
-     error_log /var/log/nginx/error.log;
 }
-EOF
-   done
-
-   else
-
-    echo "[NOTICE] NGINX template (.docker/nginx/contingency/${protocol}/nginx.conf.contingency) is now being created."
-
-    cat > .docker/nginx/ctmpl/https/nginx.conf.contingency <<EOF
-server {
-
-    listen ###EXPOSE_PORT### default_server ssl;
-    listen [::]:###EXPOSE_PORT### default_server ssl;
-
-    http2 on;
-    server_name localhost;
-
-    error_page 497 https://\$host:\$server_port\$request_uri;
-
-    client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
 
 
-    ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
-    ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
-    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+save_nginx_main_template_from_origin(){
 
+   echo "[NOTICE] NGINX Main template (.docker/nginx/template/nginx.conf.main) is now being created."
 
-    location / {
-        add_header Pragma no-cache;
-        add_header Cache-Control no-cache;
+   local main_origin_file=$(set_origin_file ".docker/nginx/origin/nginx.conf.main.origin.customized" \
+                                       ".docker/nginx/origin/nginx.conf.main.origin")
 
-        proxy_pass $app_https_protocol://$proxy_hostname:###APP_PORT###;
+   echo "[DEBUG] ${main_origin_file} will be processed into Template (.docker/nginx/template/nginx.conf.main)"
 
-        proxy_set_header Host \$http_host;
-        proxy_set_header X-Scheme \$scheme;
-        proxy_set_header X-Forwarded-Protocol \$scheme;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_http_version 1.1;
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75s;
-    }
+   cp -f ${main_origin_file} .docker/nginx/template/nginx.conf.main
 
-    ###USE_NGINX_RESTRICTED_LOCATION###
-
-    access_log /var/log/nginx/access.log;
-    error_log /var/log/nginx/error.log;
 }
-EOF
-
-   for i in "${additional_ports[@]}"
-   do
-        cat >> .docker/nginx/ctmpl/https/nginx.conf.contingency <<EOF
-
-server {
-    listen $i default_server ssl;
-    listen [::]:$i default_server ssl;
-
-    http2 on;
-
-    server_name localhost;
-
-    error_page 497 https://\$host:\$server_port\$request_uri;
-
-    client_max_body_size ###NGINX_CLIENT_MAX_BODY_SIZE###;
 
 
-    ssl_certificate /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.chained.crt;
-    ssl_certificate_key /etc/nginx/ssl/###COMMERCIAL_SSL_NAME###.key;
-    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
-
-    location / {
-        add_header Pragma no-cache;
-        add_header Cache-Control no-cache;
-
-        proxy_pass $app_https_protocol://$proxy_hostname:$i;
-
-        proxy_set_header Host \$http_host;
-        proxy_set_header X-Scheme \$scheme;
-        proxy_set_header X-Forwarded-Protocol \$scheme;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_http_version 1.1;
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75s;
-    }
-
-
-    access_log /var/log/nginx/access.log;
-    error_log /var/log/nginx/error.log;
-}
-EOF
-   done
-
-   fi
-}
 
 load_nginx_docker_image(){
 
@@ -467,5 +296,47 @@ nginx_down_and_up(){
 
    echo "[NOTICE] Up NGINX Container."
    PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
+
+}
+
+check_nginx_templates_integrity(){
+
+  echo "[NOTICE] Now we'll create a temporary NGINX image to test parsed settings in '.docker/nginx/template/ctmpl'"
+  docker build --build-arg DISABLE_CACHE=${CUR_TIME} --build-arg protocol="${protocol}" --build-arg shared_volume_group_id="${shared_volume_group_id}" --build-arg shared_volume_group_name="${shared_volume_group_name}" --tag ${project_name}-nginx-test -f ./.docker/nginx/Dockerfile -m ${docker_build_memory_usage} . || exit 1
+  echo "[NOTICE] Now we'll create a temporary NGINX container to test parsed settings in '.docker/nginx/template/ctmpl'"
+  docker stop ${project_name}-nginx-test || echo ""
+  docker rm ${project_name}-nginx-test || echo ""
+  docker run -d -it --name ${project_name}-nginx-test \
+    -e TZ=Asia/Seoul \
+    -e SERVICE_NAME=nginx \
+    --network=consul \
+    --env-file .env \
+    ${project_name}-nginx-test:latest
+
+  sleep 3
+
+  echo "[NOTICE] Now we'll run 'nginx -t' to verify the syntax of '.docker/nginx/template/nginx.conf.main & ctmpl'"
+  output=$(docker exec ${project_name}-nginx-test nginx -t 2>&1 || echo "[ERROR] ${project_name}-nginx-test failed to run. But don't worry. this is testing just before restarting Nginx. Check settings in '.docker/nginx/origin & .docker/nginx/template'")
+
+  if echo "$output" | grep -q "successful"; then
+
+      echo "[NOTICE] Testing for NGINX configuration was successful. Now we'll apply it to the real NGINX Container."
+      docker stop ${project_name}-nginx-test || echo ""
+      docker rm ${project_name}-nginx-test || echo ""
+
+  elif echo "$output" | grep -q "host not found in upstream \"${project_name}"; then
+
+        echo "[NOTICE] host not found in upstream (${project_name}) regarded as NOT a syntax issue. that is ignored. Now we'll apply it to the real NGINX Container."
+        docker stop ${project_name}-nginx-test || echo ""
+        docker rm ${project_name}-nginx-test || echo ""
+
+  else
+      echo "[ERROR] NGINX configuration test failed. But don't worry. this is testing just before restarting NGINX. Check settings in '.docker/nginx/origin,'"
+      echo "Output:"
+      echo "$output"
+      docker stop ${project_name}-nginx-test || echo ""
+      docker rm ${project_name}-nginx-test || echo ""
+      exit 1
+  fi
 
 }
