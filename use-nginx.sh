@@ -43,7 +43,22 @@ apply_docker_compose_volumes_onto_app_nginx_yaml(){
 
 }
 
-create_nginx_ctmpl(){
+set_origin_file() {
+    local customized_file=$1
+    local default_file=$2
+
+    if [[ ${use_my_own_nginx_origin} = 'true' ]]; then
+      if [[ -f $customized_file ]]; then
+        echo $customized_file
+      else
+        echo $default_file
+      fi
+    else
+      echo $default_file
+    fi
+}
+
+save_nginx_ctmpl_template_from_origin(){
 
    local proxy_hostname=
    local proxy_hostname_blue=
@@ -61,28 +76,83 @@ create_nginx_ctmpl(){
       app_https_protocol="http"
    fi
 
-   echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
+    local nginx_template_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.ctmpl"
 
-   sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
-       -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
-       -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
-       .docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin > .docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl
+    echo "[NOTICE] NGINX template (${nginx_template_file}) is now being created."
 
-   echo "" >> .docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl
+    local app_origin_file=$(set_origin_file ".docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin.customized" \
+                                        ".docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin")
+
+    echo "[DEBUG] ${app_origin_file} will be processed into Template (${nginx_template_file})"
+
+    sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+        -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
+        -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
+        "${app_origin_file}" > "${nginx_template_file}"
+
+
+    echo "" >> "${nginx_template_file}"
+
+    local additionals_origin_file=$(set_origin_file ".docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin.customized" \
+                                        ".docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin")
+
+    echo "[DEBUG] ${additionals_origin_file} will be processed into Template (${nginx_template_file})"
 
     for i in "${additional_ports[@]}"
     do
+
          sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
              -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
              -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
              -e "s|!#{additional_port}|${i}|g" \
-             .docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin >> .docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl
+             "${additionals_origin_file}" >> "${nginx_template_file}"
 
-         echo "" >> .docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl
+         echo "" >> ${nginx_template_file}
     done
+
+
+   sed -i -e "s|!#{EXPOSE_PORT}|${expose_port}|g" \
+       -e "s|!#{APP_PORT}|${app_port}|g" \
+       -e "s|!#{PROJECT_NAME}|${project_name}|g" \
+       -e "s|!#{CONSUL_KEY}|${consul_key}|g" \
+       -e "s|!#{NGINX_CLIENT_MAX_BODY_SIZE}|${nginx_client_max_body_size}|g" \
+       "${nginx_template_file}"
+
+
+   if [[ ${use_nginx_restricted_location} = 'true' ]]; then
+
+       sed -i -e "/!#{USE_NGINX_RESTRICTED_LOCATION}/c \
+           location ${nginx_restricted_location} { \
+               add_header Pragma no-cache; \
+               add_header Cache-Control no-cache; \
+       \
+                               auth_basic           \"Restricted\"; \
+                               auth_basic_user_file /etc/nginx/custom-files/.htpasswd; \
+       \
+              {{ with \$key_value := keyOrDefault \"${consul_key}\" \"blue\" }} \
+                  {{ if or (eq \$key_value \"blue\") (eq \$key_value \"green\") }} \
+                       proxy_pass ${protocol}://${project_name}-{{ \$key_value }}:${app_port}; \
+                {{ else }} \
+                       proxy_pass ${protocol}://${project_name}-blue:${app_port}; \
+                   {{ end }} \
+               {{ end }}  \
+               proxy_set_header Host \$http_host; \
+               proxy_set_header X-Scheme \$scheme; \
+               proxy_set_header X-Forwarded-Protocol \$scheme; \
+               proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
+               proxy_set_header X-Real-IP \$remote_addr; \
+               proxy_http_version 1.1; \
+               proxy_read_timeout 300s; \
+               proxy_connect_timeout 75s; \
+           }" "${nginx_template_file}"
+   else
+
+     sed -i -e "s/!#{USE_NGINX_RESTRICTED_LOCATION}//" "${nginx_template_file}"
+
+   fi
 }
 
-create_nginx_contingency_conf(){
+save_nginx_contingency_template_from_origin(){
 
    local proxy_hostname=
 
@@ -98,24 +168,100 @@ create_nginx_contingency_conf(){
     fi
 
 
-   echo "[NOTICE] NGINX template (.docker/nginx/ctmpl/${protocol}/nginx.conf.ctmpl) is now being created."
+   local nginx_contingency_template_temp_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency"
+   local nginx_contingency_template_blue_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency.blue"
+   local nginx_contingency_template_green_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency.green"
+
+   echo "[NOTICE] NGINX template (${nginx_contingency_template_temp_file}) is now being created."
 
    sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
        -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
-       .docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.contingency.origin > .docker/nginx/ctmpl/${protocol}/nginx.conf.contingency
+       .docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.contingency.origin > ${nginx_contingency_template_temp_file}
 
-    echo "" >> .docker/nginx/ctmpl/${protocol}/nginx.conf.contingency
+    echo "" >> ${nginx_contingency_template_temp_file}
 
     for i in "${additional_ports[@]}"
     do
          sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
               -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
               -e "s|!#{additional_port}|${i}|g" \
-             .docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.contingency.origin >> .docker/nginx/ctmpl/${protocol}/nginx.conf.contingency
+             .docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.contingency.origin >> ${nginx_contingency_template_temp_file}
 
-         echo "" >> .docker/nginx/ctmpl/${protocol}/nginx.conf.contingency
+         echo "" >> ${nginx_contingency_template_temp_file}
     done
+
+
+    sed -i -e "s|!#{EXPOSE_PORT}|${expose_port}|g" \
+       -e "s|!#{APP_PORT}|${app_port}|g" \
+       -e "s|!#{PROJECT_NAME}|${project_name}|g" \
+       -e "s|!#{CONSUL_KEY}|${consul_key}|g" \
+       -e "s|!#{NGINX_CLIENT_MAX_BODY_SIZE}|${nginx_client_max_body_size}|g" \
+       ${nginx_contingency_template_temp_file}
+
+
+
+      if [[ ${use_nginx_restricted_location} = 'true' ]]; then
+
+        sed -i -e "/!#{USE_NGINX_RESTRICTED_LOCATION}/c \
+            location ${nginx_restricted_location} { \
+                add_header Pragma no-cache; \
+                add_header Cache-Control no-cache; \
+        \
+                                auth_basic           \"Restricted\"; \
+                                auth_basic_user_file /etc/nginx/custom-files/.htpasswd; \
+        \
+                proxy_pass ${protocol}://${project_name}-!#{APP_STATE}:${app_port}; \
+                proxy_set_header Host \$http_host; \
+                proxy_set_header X-Scheme \$scheme; \
+                proxy_set_header X-Forwarded-Protocol \$scheme; \
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
+                proxy_set_header X-Real-IP \$remote_addr; \
+                proxy_http_version 1.1; \
+                proxy_read_timeout 300s; \
+                proxy_connect_timeout 75s; \
+            }" ${nginx_contingency_template_temp_file}
+
+      else
+
+        sed -i -e "s/!#{USE_NGINX_RESTRICTED_LOCATION}//" ${nginx_contingency_template_temp_file}
+
+      fi
+
+
+    echo "[NOTICE] Creating 'nginx.conf.contingency.blue', 'nginx.conf.contingency.green''."
+    cp -f ${nginx_contingency_template_temp_file} ${nginx_contingency_template_blue_file}
+    sed -i -e "s/!#{APP_STATE}/blue/" ${nginx_contingency_template_blue_file}
+    cp -f ${nginx_contingency_template_temp_file} ${nginx_contingency_template_green_file}
+    sed -i -e "s/!#{APP_STATE}/green/" ${nginx_contingency_template_green_file}
+
 }
+
+save_nginx_logrotate_template_from_origin(){
+
+   echo "[NOTICE] NGINX LOGROTATE template (.docker/nginx/template/logrotate/nginx) is now being created."
+
+   sed -e "s|!#{NGINX_LOGROTATE_FILE_NUMBER}|${nginx_logrotate_file_number}|g" \
+       -e "s|!#{NGINX_LOGROTATE_FILE_SIZE}|${nginx_logrotate_file_size}|g" \
+       -e "s|!#{SHARED_VOLUME_GROUP_NAME}|${shared_volume_group_name}|g" \
+       .docker/nginx/origin/logrotate/nginx > .docker/nginx/template/logrotate/nginx
+
+}
+
+
+save_nginx_main_template_from_origin(){
+
+   echo "[NOTICE] NGINX Main template (.docker/nginx/template/nginx.conf.main) is now being created."
+
+   local main_origin_file=$(set_origin_file ".docker/nginx/origin/nginx.conf.main.origin.customized" \
+                                       ".docker/nginx/origin/nginx.conf.main.origin")
+
+   echo "[DEBUG] ${main_origin_file} will be processed into Template (.docker/nginx/template/nginx.conf.main)"
+
+   cp -f ${main_origin_file} .docker/nginx/template/nginx.conf.main
+
+}
+
+
 
 load_nginx_docker_image(){
 
@@ -147,5 +293,39 @@ nginx_down_and_up(){
 
    echo "[NOTICE] Up NGINX Container."
    PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
+
+}
+
+check_nginx_templates_integrity(){
+
+  echo "[NOTICE] Now we'll create a temporary NGINX image to test parsed settings in '.docker/nginx/template/ctmpl'"
+  docker build --build-arg DISABLE_CACHE=${CUR_TIME} --build-arg protocol="${protocol}" --build-arg shared_volume_group_id="${shared_volume_group_id}" --build-arg shared_volume_group_name="${shared_volume_group_name}" --tag ${project_name}-nginx-test -f ./.docker/nginx/Dockerfile -m ${docker_build_memory_usage} . || exit 1
+  echo "[NOTICE] Now we'll create a temporary NGINX container to test parsed settings in '.docker/nginx/template/ctmpl'"
+  docker stop ${project_name}-nginx-test || echo ""
+  docker rm ${project_name}-nginx-test || echo ""
+  docker run -d -it --name ${project_name}-nginx-test \
+    -e TZ=Asia/Seoul \
+    -e SERVICE_NAME=nginx \
+    --network=consul \
+    --env-file .env \
+    ${project_name}-nginx-test:latest
+
+  sleep 3
+
+  echo "[NOTICE] Now we'll run 'nginx -t' to test '${project_name}-nginx-test'"
+  output=$(docker exec ${project_name}-nginx-test nginx -t 2>&1 || echo "[ERROR] ${project_name}-nginx-test failed to run. But don't worry. this is testing just before restarting Nginx. Check settings in '.docker/nginx/origin,'")
+
+  if echo "$output" | grep -q "successful"; then
+      echo "[NOTICE] Testing for NGINX configuration test was successful. Now we'll apply it to the real NGINX Container."
+      docker stop ${project_name}-nginx-test || echo ""
+      docker rm ${project_name}-nginx-test || echo ""
+  else
+      echo "[ERROR] NGINX configuration test failed. But don't worry. this is testing just before restarting NGINX. Check settings in '.docker/nginx/origin,'"
+      echo "Output:"
+      echo "$output"
+      docker stop ${project_name}-nginx-test || echo ""
+      docker rm ${project_name}-nginx-test || echo ""
+      exit 1
+  fi
 
 }

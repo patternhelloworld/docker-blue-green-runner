@@ -13,7 +13,7 @@ server {
          add_header Pragma no-cache;
          add_header Cache-Control no-cache;
 
-         proxy_pass http://$proxy_hostname:!#{additional_port};
+         proxy_pass http://!#{proxy_hostname}:!#{additional_port};
 
          proxy_set_header Host $http_host;
          proxy_set_header X-Scheme $scheme;

@@ -28,7 +28,7 @@ http {
     geo $apply_limit {
     default $binary_remote_addr;
         10.10.0.0/16    '';
-        192.168.0.1/32  '';
+        192.168.0.0/16  '';
     }
 
     limit_req_zone $apply_limit zone=depend_rate_limit:20m rate=10r/s;

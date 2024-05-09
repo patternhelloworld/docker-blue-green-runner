@@ -194,6 +194,7 @@ cache_non_dependent_global_vars() {
   docker_build_args=$(get_value_from_env "DOCKER_BUILD_ARGS")
 
   consul_key_value_store=$(get_value_from_env "CONSUL_KEY_VALUE_STORE")
+  consul_key=$(echo ${consul_key_value_store} | cut -d "/" -f6)\\/$(echo ${consul_key_value_store} | cut -d "/" -f7)
 
   app_health_check_path=$(get_value_from_env "APP_HEALTH_CHECK_PATH")
   bad_app_health_check_pattern=$(get_value_from_env "BAD_APP_HEALTH_CHECK_PATTERN")
@@ -250,6 +251,8 @@ cache_non_dependent_global_vars() {
 
   docker_build_memory_usage=$(get_value_from_env "DOCKER_BUILD_MEMORY_USAGE")
 
+  nginx_client_max_body_size=$(get_value_from_env "NGINX_CLIENT_MAX_BODY_SIZE")
+
   use_nginx_restricted_location=$(get_value_from_env "USE_NGINX_RESTRICTED_LOCATION")
   nginx_restricted_location=$(get_value_from_env "NGINX_RESTRICTED_LOCATION")
 
@@ -272,6 +275,12 @@ cache_non_dependent_global_vars() {
   shared_volume_group_id=$(get_value_from_env "SHARED_VOLUME_GROUP_ID")
   uids_belonging_to_shared_volume_group_id=$(get_value_from_env "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID")
   shared_volume_group_name=$(get_value_from_env "SHARED_VOLUME_GROUP_NAME")
+
+  nginx_logrotate_file_size=$(get_value_from_env "NGINX_LOGROTATE_FILE_SIZE")
+  nginx_logrotate_file_number=$(get_value_from_env "NGINX_LOGROTATE_FILE_NUMBER")
+
+  use_my_own_nginx_origin=$(get_value_from_env "USE_MY_OWN_NGINX_ORIGIN")
+
 }
 
 cache_global_vars() {
