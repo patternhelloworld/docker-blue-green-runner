@@ -83,7 +83,7 @@ save_nginx_ctmpl_template_from_origin(){
     local app_origin_file=$(set_origin_file ".docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin.customized" \
                                         ".docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin")
 
-    echo "[DEBUG] ${app_origin_file} will be processed into Template (${nginx_template_file})"
+    echo "[DEBUG] ${app_origin_file} will be added to Template (${nginx_template_file})"
 
     sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
         -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
@@ -96,20 +96,23 @@ save_nginx_ctmpl_template_from_origin(){
     local additionals_origin_file=$(set_origin_file ".docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin.customized" \
                                         ".docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin")
 
-    echo "[DEBUG] ${additionals_origin_file} will be processed into Template (${nginx_template_file})"
+    echo "[DEBUG] ${additionals_origin_file} will be added to Template (${nginx_template_file})"
 
-    for i in "${additional_ports[@]}"
-    do
+    if [ ${#additional_ports[@]} -eq 0 ]; then
+        echo "[DEBUG] However, no additional_ports found. it will not be added to ${nginx_template_file}"
+    else
+      for i in "${additional_ports[@]}"
+      do
 
-         sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
-             -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
-             -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
-             -e "s|!#{additional_port}|${i}|g" \
-             "${additionals_origin_file}" >> "${nginx_template_file}"
+           sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
+               -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
+               -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
+               -e "s|!#{additional_port}|${i}|g" \
+               "${additionals_origin_file}" >> "${nginx_template_file}"
 
-         echo "" >> ${nginx_template_file}
-    done
-
+           echo "" >> ${nginx_template_file}
+      done
+    fi
 
    sed -i -e "s|!#{EXPOSE_PORT}|${expose_port}|g" \
        -e "s|!#{APP_PORT}|${app_port}|g" \
