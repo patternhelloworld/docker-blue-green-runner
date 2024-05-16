@@ -4,6 +4,8 @@ set -eu
 git config apply.whitespace nowarn
 git config core.filemode false
 
+source ./validator.sh
+
 to_lower() {
     echo "$1" | tr '[:upper:]' '[:lower:]'
 }
@@ -277,8 +279,13 @@ cache_non_dependent_global_vars() {
   shared_volume_group_name=$(get_value_from_env "SHARED_VOLUME_GROUP_NAME")
 
   nginx_logrotate_file_size=$(get_value_from_env "NGINX_LOGROTATE_FILE_SIZE")
+  if [[ $(validate_file_size "$nginx_logrotate_file_size") == "false" ]]; then
+    echo "[WARNING] NGINX_LOGROTATE_FILE_SIZE in .env has an incorrect format. (value: $nginx_logrotate_file_size, correct examples: 10K, 1M, 100K, etc. Expected behavior: Logrotate won't work). However, this is NOT a serious issue. We will continue the process."
+  fi
   nginx_logrotate_file_number=$(get_value_from_env "NGINX_LOGROTATE_FILE_NUMBER")
-
+  if [[ $(validate_number "$nginx_logrotate_file_number") == "false" ]]; then
+    echo "[WARNING] NGINX_LOGROTATE_FILE_NUMBER in .env has an incorrect format. (value: $nginx_logrotate_file_number, correct examples: 5,10,101..., etc. Expected behavior: Logrotate won't work). However, this is NOT a serious issue. We will continue the process."
+  fi
   use_my_own_nginx_origin=$(get_value_from_env "USE_MY_OWN_NGINX_ORIGIN")
 
 }
