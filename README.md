@@ -273,6 +273,7 @@ sudo bash run.sh
 
 ![img.png](/documents/images/img3.png)
 
+- The ``origin`` folder is where you can modify original Nginx conf files.
 - Create the five yellow-highlighted files ending with 'ctmpl.origin.customized' by copying the originals ending with 'ctmpl.origin.'
 - You don't have to create all five files; just create the ones you need.
 - In the .env file, set this to 'true'
@@ -283,20 +284,21 @@ NGINX_RESTART=true
 ```
 - For reference, the files you just created are ignored by git, so there won't be any issues when you run the following:
 ```shell
+# Check if the source codes of Runner is manipulated.
 bash check-source-integrity.sh
 ```
-- Don't worry. **Starting from v5.0.0**, if NGINX_RESTART is set to 'true', the Runner will test your configuration using ``nginx -t`` in a temporary container before recreating the NGINX container. If the test fails, the process stops, preventing any side effects on your currently running app.
+- Then, run ``(sudo) bash run.sh``. **Starting from v5.0.0**, if NGINX_RESTART is set to 'true', the Runner will test your configuration using ``nginx -t`` in a temporary container before recreating the NGINX container. If the test fails, the process stops, preventing any side effects on your currently running app.
 - Don't touch any file in ``.docker/nginx/template``. They are just ones in ready to be injected into the NGINX Image in Dockerfile.
-
-### Ecosystem of NGINX Configuration
-- ``Origin`` -(processed with the .env)-> ``Template`` -(docker build)-> ``Image`` -(running entrypoint.sh)-> ``Container``
-- Other cases, such as ``.docker/nginx/origin/logroate/nginx``
+- Process of NGINX Configuration
+  - ``Origin`` -(processed with the .env)-> ``Template`` -(docker build)-> ``Docker Image`` -(running entrypoint.sh)-> ``Docker Container``
+- NGINX Logrotate 
+  - ``.docker/nginx/origin/logroate/nginx``
 - ENV Spel 
   - A syntax that brings values from the .env file throughout the ecosystem.
   - ``!#{ value here }`` 
 ![img4.png](/documents/images/img4.png)
 
-### NGINX Contingency
+### NGINX Contingency Function
 - In the event of a Consul failure, the NGINX Contingency module takes over and operates NGINX autonomously. This ensures uninterrupted service by allowing NGINX to function independently.
 
 ### Terms
