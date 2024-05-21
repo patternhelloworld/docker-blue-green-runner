@@ -2,7 +2,7 @@
 
 > One Simple Zero-Downtime Blue-Green Deployment Starting from your Dockerfiles
 
-Deploying web projects should be [simple, with high availability and security](https://github.com/Andrew-Kang-G/docker-blue-green-runner#emergency).
+Deploying web projects should be [simple, with high availability and security](https://github.com/Andrew-Kang-G/docker-blue-green-runner?tab=readme-ov-file#Quick-Guide-on-Usage).
 
 - Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest commit of the 'main' branch.
 - In production, place your project in a separate folder, not in the samples folder, as they are just examples.  
