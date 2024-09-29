@@ -29,7 +29,7 @@ services:
     container_name: registrator
     command: -internal consul://consul:8500
     privileged: true
-    image: gliderlabs/registrator:v7
+    image: gliderlabs/registrator:master
     restart: always
     links:
       - consul
