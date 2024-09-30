@@ -5,7 +5,7 @@
 Deploying web projects should be [simple, with high availability and security](https://github.com/Andrew-Kang-G/docker-blue-green-runner?tab=readme-ov-file#Quick-Guide-on-Usage).
 
 - Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest commit of the 'main' branch.
-- In production, place your project in a separate folder, not in the samples folder, as they are just examples.  
+- In production, place your project in a separate folder, not in the samples folder, as they are just examples.
 
 ## Table of Contents
 - [Features](#Features)
@@ -48,6 +48,7 @@ Deploying web projects should be [simple, with high availability and security](h
 - Do NOT build or run 'local' & 'real' at the same time (There's no reason to do so, but just in case... They have the same name of the image and container)
 - You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
 - I have located the sample folders included in this project; however, I recommend locating your projects in external folders and using absolute paths at all times.
+- The latest ``yq`` version causes problems, and has been fixed to ``v4.35.1``.
 
 
 ## Quick Start with Samples

@@ -343,12 +343,24 @@ cache_global_vars() {
 
 
 check_yq_installed(){
-    command -v yq >/dev/null 2>&1 ||
-    { echo >&2 "[ERROR] yq is NOT installed. Proceed with installing it.";
+    required_version="4.35.1"
 
-      sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-      sudo chmod a+x /usr/local/bin/yq
-    }
+    # Check if yq is installed
+    if ! command -v yq >/dev/null 2>&1; then
+        echo >&2 "[ERROR] yq is NOT installed. Please install yq version $required_version manually."
+        echo >&2 "You can download it from the following URL:"
+        echo >&2 "https://github.com/mikefarah/yq/releases/download/v$required_version/yq_linux_amd64"
+        exit 1
+    else
+        # Check if installed version is not 4.35.1
+        installed_version=$(yq --version | grep -oP 'version v\K[0-9.]+')
+        if [ "$installed_version" != "$required_version" ]; then
+            echo >&2 "[ERROR] yq version is $installed_version. Please install yq version $required_version manually."
+            echo >&2 "You can download it from the following URL:"
+            echo >&2 "https://github.com/mikefarah/yq/releases/download/v$required_version/yq_linux_amd64"
+            exit 1
+        fi
+    fi
 }
 
 
