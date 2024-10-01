@@ -24,7 +24,16 @@ Deploying web projects should be [simple, with high availability and security](h
   - [Upgrade](#upgrade)
   - [Fully Customizing NGINX Configuration](#fully-customizing-nginx-configuration)
   - [NGINX Contingency Function](#nginx-contingency-function)
-- [Structure](#structure)
+  - [Terms](#terms)
+  - [Log Levels](#log-levels)
+  - [Check States](#check-states)
+  - [Emergency](#emergency)
+  - [Security](#Security)
+  - [Running & Stopping Multiple Projects](#running--stopping-multiple-projects)
+  - [Consul](#consul)
+  - [USE_NGINX_RESTRICTION on .env](#use_nginx_restriction-on-env)
+  - [Advanced](#advanced)
+- [Process Summary](#process-summary)
 - [Gitlab Container Registry](#gitlab-container-registry)
   - [Upload Image (CI/CD Server -> Git)](#upload-image-cicd-server---git)
   - [Download Image (Git -> Production Server)](#download-image-git---production-server)
@@ -39,10 +48,10 @@ Deploying web projects should be [simple, with high availability and security](h
 
 ## Features
 
-- Pure Docker (No Need for Binary Installation Files and Complex Configurations)
+- ``Pure Docker`` (No Need for Binary Installation Files and Complex Configurations)
   - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq(v4.35.1)`` installed.
   - So, this is available for both non-cloud and cloud environments. You only need one machine.
-- With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [consul-template](https://github.com/hashicorp/consul-template) and [Nginx](https://github.com/nginx/nginx).
+- With your ``.env, project, and its sole Dockerfile``, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [consul-template](https://github.com/hashicorp/consul-template) and [Nginx](https://github.com/nginx/nginx).
 
     
 ![consists-of.png](/documents/images/consists-of.png )
@@ -57,11 +66,12 @@ Deploying web projects should be [simple, with high availability and security](h
 
 ### OS
 
-- If this module operates well on WSL2, there should be no issues using it on an Ubuntu Linux server, especially considering the instability of WSL2.
+- If this module operates well on WSL2 in WIN, there should be no issues using it on an Ubuntu Linux server, especially considering the instability of WSL2.
 - If you are using WSL2 in WIN10 (not WIN11), which has the CRLF issue, you should run `bash prevent-crlf.sh` twice, and then execute the required `.sh` file.
   - The error message you might encounter is `$'\r': command not found`.
-- When using WSL2 on Windows, I recommend cloning the project into the WSL area (`\\wsl$\Ubuntu\home`) instead of `C:\`.
+- When using WSL2, I recommend cloning the project into the WSL area (`\\wsl$\Ubuntu\home`) instead of `C:\`.
 - **Summary**: Linux is more stable than WSL2, and WSL2 is not recommended for production environments.
+  
 
 ### Docker Considerations
 
@@ -73,6 +83,10 @@ Deploying web projects should be [simple, with high availability and security](h
 
 - The image or Dockerfile in your application must include the `bash` and `curl` commands, as demonstrated in the `./samples/spring-sample-h-auth` folder as an example.
 - Do **not** build or run 'local' and 'real' environments simultaneously, as both share the same image and container names.
+  - ```shell
+    # In your .env,
+    APP_ENV=real
+  
 
 ### Permissions and File Structure
 
@@ -364,7 +378,7 @@ For all echo messages or properties .env, the following terms indicate...
 - ``ERROR``: Although the current deployment has not been halted, there is a clear error.
 - ``EMERGENCY``: A level of risk that halts the current deployment.
 
-### Check states
+### Check States
 - Run the following command.
 ```shell
 bash check-current-states.sh
@@ -373,7 +387,6 @@ bash check-current-states.sh
 [DEBUG] ! Checked which (Blue OR Green) is currently running... (Final Check) : blue_score : 130, green_score : 27, state : blue, new_state : green, state_for_emergency : blue, new_upstream : https://PROJECT_NAME:8300.
 ```
 - The higher the score a state receives, the more likely it is to be the currently running state. So the updated App should be deployed as the non-occupied state(new_state).
-
 
 ### Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
@@ -453,7 +466,7 @@ bash check-source-integrity.sh
 - https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication
 - Create ```.htpasswd``` on ```./.docker/nginx/custom-files``` if you would like use the settings. This is useful when you apply security to API Doc Modules such as Spring-Rest-Docs.
 
-## Advanced
+### Advanced
 - Customizing ```docker-compose.yml```
   - Docker-Blue-Green-Runner uses your App's only ```Dockerfile```, NOT ```docker-compose```.
   - You can set 'DOCKER_COMPOSE_ENVIRONMENT' on .env to change environments when your container is up.
@@ -463,132 +476,43 @@ bash check-source-integrity.sh
     - **For the properties of 'environment, volumes', use .env instead of setting them on the yml.**
     - Set ```USE_MY_OWN_APP_YML=true``` on .env
     - ```bash run.sh```
+    
+## Process Summary
 
-## Structure
-```shell
-  # [A] Get mandatory variables
-  check_necessary_commands
-  cache_global_vars
-  # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
-  local initially_cached_old_state=${state}
-  check_env_integrity
-
-  echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
-
-  # [A-1] Set mandatory files
-  ## App
-  initiate_docker_compose_file
-  apply_env_service_name_onto_app_yaml
-  apply_docker_compose_environment_onto_app_yaml
-  if [[ ${app_env} == 'real' ]]; then
-    apply_docker_compose_volumes_onto_app_real_yaml
-  fi
-  if [[ ${skip_building_app_image} != 'true' ]]; then
-    backup_app_to_previous_images
-  fi
-  ## Nginx
-  if [[ ${nginx_restart} == 'true' ]]; then
-    initiate_nginx_docker_compose_file
-    apply_env_service_name_onto_nginx_yaml
-    apply_ports_onto_nginx_yaml
-    apply_docker_compose_volumes_onto_app_nginx_yaml
-    save_nginx_ctmpl_template_from_origin
-    save_nginx_contingency_template_from_origin
-    backup_nginx_to_previous_images
-  fi
-
-  # [A-2] Set 'Shared Volume Group'
-  local add_host_users_to_shared_volume_group_re=$(add_host_users_to_host_group ${shared_volume_group_id} ${shared_volume_group_name} ${uids_belonging_to_shared_volume_group_id} | tail -n 1) || echo "[WARNING] Running 'add_host_users_to_shared_volume_group' failed.";
-  if [[ ${add_host_users_to_shared_volume_group_re} = 'false' ]]; then
-    echo "[WARNING] Running 'add_host_users_to_host_group'(SHARED) failed."
-  fi
-
-  # [A-3] Etc.
-  if [[ ${app_env} == 'local' ]]; then
-      give_host_group_id_full_permissions
-  fi
-  if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
-    terminate_whole_system
-  fi
-
-  # [B] Build Docker images for the App, Nginx, Consul
-  if [[ ${skip_building_app_image} != 'true' ]]; then
-    load_app_docker_image
-  fi
-  if [ ${consul_restart} = "true" ]; then
-    load_consul_docker_image
-  fi
-  if [ ${nginx_restart} = "true" ]; then
-    load_nginx_docker_image
-  fi
-
-  if [[ ${only_building_app_image} == 'true' ]]; then
-    echo "[NOTICE] Successfully built the App image : ${new_state}" && exit 0
-  fi
-
-  local cached_new_state=${new_state}
-  cache_all_states
-  if [[ ${cached_new_state} != "${new_state}" ]]; then
-    (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
-  fi
-  ```
-- Integrity Check is conducted at this point.
-  - **Internal Integrity Check** ( in the function 'load_all_containers')
-    - Internal Connection Check
-      - Use the open-source ./wait-for-it.sh
-    - Internal Health Check
-      - Use your App's health check URL (Check, on .env, HEALTH_CHECK related variables)
-  - **External Integrity Check**  ( in the function 'check_availability_out_of_container')
-    - External HttpStatus Check
-
-```shell
-
-# [C] docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
-load_all_containers
-
-# [D] Set Consul
-./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
-
-# [E] External Integrity Check, if fails, 'emergency-nginx-down-and-up.sh' will be run.
-re=$(check_availability_out_of_container | tail -n 1);
-if [[ ${re} != 'true' ]]; then
-echo "[WARNING] ! ${new_state}'s availability issue found. Now we are going to run 'emergency-nginx-down-and-up.sh' immediately."
-bash emergency-nginx-down-and-up.sh
-
-re=$(check_availability_out_of_container | tail -n 1);
-if [[ ${re} != 'true' ]]; then
-  echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh. (result value : ${re})" && exit 1
-fi
-fi
+- Term Reference 
+  - ``All`` means below is "App", "Nginx", "Consul&Registrator".
+  - ``(Re)Load`` means ``docker run.... OR docker-compose up``.
+  - ``State`` is ``Blue`` or ``Green``
+  - More is on [Terms](#terms)
+- Load Consul & Registrator, then the App, and finally Nginx to prevent upstream errors.
 
 
-# [F] Finalizing the process : from this point on, regarded as "success".
-if [[ ${skip_building_app_image} != 'true' ]]; then
-backup_to_new_images
-fi
+```mermaid
+graph TD;
+  A[Initialize and Set Variables] --> B[Backup All Images]
+  B --> C[Check the .env File Integrity]
+  C --> D[Build All Images]
+  D --> E[Create Consul Network]
+  E --> F{Reload Consul if Required}
+  F -- Yes --> G[Reload Consul]
+  F -- No --> H[Load Your App]
+  G --> H[Load Your App]
+  H --> I[Check App Integrity]
+  I --> J{Reload Nginx if Required}
+  J -- Yes --> K[Check Nginx Template Integrity by Running a Test Container]
+  J -- No --> L[Check All Containers' Health]
+  K --> L[Check All Containers' Health]
+  L --> M{Set New State Using Consul Template}
+  M -- Fails --> O[Run Nginx Contingency Plan]
+  M -- Success --> N[External Integrity Check]
+  O --> N[External Integrity Check]
+  N -- Fails --> P[Rollback App if Needed]
+  N -- Success --> Q["Remove the Opposite State (Blue or Green) from the Running Containers"]
+  P --> Q["Remove the Opposite State from the Running Containers"]
+  Q --> R[Clean Up Dangling Images]
+  R --> S[Deployment Complete]
 
-echo "[DEBUG] state : ${state}, new_state : ${new_state}, initially_cached_old_state : ${initially_cached_old_state}"
-
-echo "[NOTICE] For safety, finally check Consul pointing before stopping the previous container (${initially_cached_old_state})."
-local consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
-if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
-if [[ ${orchestration_type} != 'stack' ]]; then
-  docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
-  echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
-else
-   docker stack rm ${project_name}-${initially_cached_old_state}
-   echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
-fi
-else
-echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
-fi
-
-echo "[NOTICE] Delete <none>:<none> images."
-docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
-
-echo "[NOTICE] APP_URL : ${app_url}"
 ```
-
 ## Gitlab Container Registry
 
 ### Upload Image (CI/CD Server -> Git)
