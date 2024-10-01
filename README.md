@@ -23,15 +23,16 @@ Deploying web projects should be [simple, with high availability and security](h
     - [Important ENVs That Require Restarting NGINX](#important-envs-that-require-restarting-nginx)
   - [Upgrade](#upgrade)
   - [Fully Customizing NGINX Configuration](#fully-customizing-nginx-configuration)
-    - [NGINX Contingency Function](#nginx-contingency-function)
+  - [NGINX Contingency Function](#nginx-contingency-function)
 - [Structure](#structure)
 - [Gitlab Container Registry](#gitlab-container-registry)
+  - [Upload Image (CI/CD Server -> Git)](#upload-image-cicd-server---git)
+  - [Download Image (Git -> Production Server)](#download-image-git---production-server)
 - [Extra Information](#extra-information)
   - [Test](#test)
   - [Check Source Integrity of 'Docker-Blue-Green-Runner'](#check-source-integrity-of-docker-blue-green-runner)
   - [Concurrent Running for this App](#concurrent-running-for-this-app)
   - [Docker Swarm](#docker-swarm)
-
 
 
 ---
@@ -590,9 +591,18 @@ echo "[NOTICE] APP_URL : ${app_url}"
 
 ## Gitlab Container Registry
 
-On .env, let me explain this.
-
-- CASE 1. DOWNLOAD IMAGE
+### Upload Image (CI/CD Server -> Git)
+  - In case you run the command ``push-to-git.sh``, ``docker-blue-green-runner`` pushes one of ``Blue or Green`` images which is currently running to the address above of the Gitlab Container Registry.
+  - This case is not related to ``GIT_IMAGE_LOAD_FROM``.
+  - REFERENCE
+    - You can easily create your own Gitlab Docker with https://github.com/patternknife/docker-gitlab-ce-runner
+    - ``GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME, PASSWORD`` are registered on 'Project Access Tokens'.
+    - ``docker login failed to verify certificate: x509: certificate signed by unknown authority`` Error
+      - The error "failed to verify certificate: x509: certificate signed by unknown authority" typically occurs when the Docker client is unable to trust the SSL certificate presented by the Docker registry (in this case, your GitLab Docker registry).
+      - Solution
+        - Place your CA's root certificate (.crt file) in /usr/local/share/ca-certificates/ and run sudo update-ca-certificates.
+      
+### Download Image (Git -> Production Server)
   ```shell
   GIT_IMAGE_LOAD_FROM=build
   GIT_IMAGE_LOAD_FROM_HOST=mysite.com:5050
@@ -608,16 +618,8 @@ On .env, let me explain this.
     consul_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-consul:${git_image_version}"
     registrator_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-registrator:${git_image_version}"
     ``` 
-- CASE 2. PUSH IMAGE
-  - In case you run the command ``push-to-git.sh``, ``docker-blue-green-runner`` pushes one of ``Blue or Green`` images which is currently running to the address above of the Gitlab Container Registry.
-  - This case is not related to ``GIT_IMAGE_LOAD_FROM``.
-- REFERENCE
-  - You can easily create your own Gitlab Docker with https://github.com/Andrew-Kang-G/docker-gitlab-ce-runner
-  - ``GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME, PASSWORD`` are registered on 'Project Access Tokens'.
-  - ``docker login failed to verify certificate: x509: certificate signed by unknown authority`` Error
-    - The error "failed to verify certificate: x509: certificate signed by unknown authority" typically occurs when the Docker client is unable to trust the SSL certificate presented by the Docker registry (in this case, your GitLab Docker registry).
-    - Solution
-      - Place your CA's root certificate (.crt file) in /usr/local/share/ca-certificates/ and run sudo update-ca-certificates.
+
+
 
 ## Extra Information
 
