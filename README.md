@@ -8,21 +8,39 @@ Deploying web projects should be [simple, with high availability and security](h
 - In production, place your project in a separate folder, not in the samples folder, as they are just examples.
 
 ## Table of Contents
-- [Features](#Features)
-- [Requirements](#Requirements)
-- [Quick Start with Samples](#Quick-Start-with-Samples)
-- [Quick Guide on Usage](#Quick-Guide-on-Usage)
-- [Structure](#Structure)
-- [Gitlab Container Registry](#Gitlab-Container-Registry)
-- [Extra Information](#Extra-Information)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick Start with Samples](#quick-start-with-samples)
+  - [Provided Samples](#provided-samples)
+  - [How to Start with a Node Sample (Local)](#how-to-start-with-a-node-sample-local)
+  - [How to Start with a PHP Sample (Real, HTTPS self-signed SSL)](#how-to-start-with-a-php-sample-real-https-self-signed-ssl)
+  - [How to Start with a PHP Sample (Local)](#how-to-start-with-a-php-sample-local)
+  - [How to Start with a Java Spring-Boot Sample (Local)](#how-to-start-with-a-java-spring-boot-sample-local)
+  - [How to Start with a Java Spring-Boot Sample (Real, HTTPS commercial SSL)](#how-to-start-with-a-java-spring-boot-sample-real-https-commercial-ssl)
+- [Quick Guide on Usage](#quick-guide-on-usage)
+  - [Information on Environment Variables](#information-on-environment-variables)
+    - [APP_URL](#app_url)
+    - [Important ENVs That Require Restarting NGINX](#important-envs-that-require-restarting-nginx)
+  - [Upgrade](#upgrade)
+  - [Fully Customizing NGINX Configuration](#fully-customizing-nginx-configuration)
+    - [NGINX Contingency Function](#nginx-contingency-function)
+- [Structure](#structure)
+- [Gitlab Container Registry](#gitlab-container-registry)
+- [Extra Information](#extra-information)
+  - [Test](#test)
+  - [Check Source Integrity of 'Docker-Blue-Green-Runner'](#check-source-integrity-of-docker-blue-green-runner)
+  - [Concurrent Running for this App](#concurrent-running-for-this-app)
+  - [Docker Swarm](#docker-swarm)
+
+
 
 ---
 
 ## Features
 
 - Pure Docker (No Need for Binary Installation Files and Complex Configurations)
-  - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq`` installed.
-  
+  - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq(v4.35.1)`` installed.
+  - So, this is available for both non-cloud and cloud environments. You only need one machine.
 - With your project and its sole Dockerfile, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [consul-template](https://github.com/hashicorp/consul-template) and [Nginx](https://github.com/nginx/nginx).
 
     
@@ -35,32 +53,52 @@ Deploying web projects should be [simple, with high availability and security](h
 
 ## Requirements
 
-- Mainly tested on WIN10 WSL2 & Ubuntu 22.04.3 LTS, Docker (24.0), Docker-Compose (2.18)
-  - If this module operates well on WSL2, then there should be no issues using it on an Ubuntu Linux server considering the instability of WSL2.
-  - If you are using WSL2, which has the CRLF issue, you should run ```bash prevent-crlf.sh``` twice, and then run the .sh file you need.
-  - The error message is `` $'\r': command not found``
-- In case you are using WSL2 on Win, I recommend cloning the project into the WSL area (``\\wsl$\Ubuntu\home``) instead of ``C:\``.
-- In summary, Linux is way better than WSL2. Nobody would use WSL2 for production.
-- No Container in Container
-  - >Do not use Docker-Blue-Green-Runner in containers such as CircleCI. These builders operate within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes. This issue is highlighted in [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3)
-  - Dockerized Jenkins as well
-- The image or Dockerfile in your app must contain "bash" & "curl" commands, which are shown in ``./samples/spring-sample-h-auth`` folder as an example.
-- Do NOT build or run 'local' & 'real' at the same time (There's no reason to do so, but just in case... They have the same name of the image and container)
-- You can achieve your goal by running ```bash run.sh```, but when coming across any permission issue run ```sudo bash run.sh```
-- I have located the sample folders included in this project; however, I recommend locating your projects in external folders and using absolute paths at all times.
-- The latest ``yq`` version causes problems, and has been fixed to ``v4.35.1``.
+
+### OS
+
+- If this module operates well on WSL2, there should be no issues using it on an Ubuntu Linux server, especially considering the instability of WSL2.
+- If you are using WSL2 in WIN10 (not WIN11), which has the CRLF issue, you should run `bash prevent-crlf.sh` twice, and then execute the required `.sh` file.
+  - The error message you might encounter is `$'\r': command not found`.
+- When using WSL2 on Windows, I recommend cloning the project into the WSL area (`\\wsl$\Ubuntu\home`) instead of `C:\`.
+- **Summary**: Linux is more stable than WSL2, and WSL2 is not recommended for production environments.
+
+### Docker Considerations
+
+- **No Container in Container**:
+  - Do not use Docker-Blue-Green-Runner inside containers, such as those provided by CircleCI or Dockerized Jenkins. These builders run within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes.
+  - This issue is highlighted in the [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3).
+
+### Application Requirements
+
+- The image or Dockerfile in your application must include the `bash` and `curl` commands, as demonstrated in the `./samples/spring-sample-h-auth` folder as an example.
+- Do **not** build or run 'local' and 'real' environments simultaneously, as both share the same image and container names.
+
+### Permissions and File Structure
+
+- You can run your project with `bash run.sh`, but if you encounter any permission issues, use `sudo bash run.sh`.
+- Although the sample folders are included in this project, it is recommended that you place your own projects in external directories and always use absolute paths.
+
+
+
+## Dependencies
+
+| Library Name                          | Required Version | Auto Installation | Additional Considerations                                                                                                      |
+|---------------------------------------|----------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| git                                   | N/A            | Manual            | -                                                                                                                              |
+| bash                                  | N/A            | Manual            | -                                                                                                                              |
+| curl                                  | N/A            | Manual            | -                                                                                                                              |
+| yq                                    | 4.35.1         | Manual            | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
+| consul (docker image)                 | 1.14.11        | Auto              | An error occurred due to a payload format issue while the lastest version of it was communicating with gliderlabs/registrator. |
+| gliderlabs/registrator (docker image) | master         | Auto              |                                                                                                                                |
+| nginx (docker image)                  | latest         | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |
+| docker                                | 24~27          | Manual            | I think too old versions could cause problems, and the lastest version v27.x causes only a warning message.                    |
+| docker-compose                        | 2              | Manual            | I think too old versions could cause problems, and the v2 is recommended.                                                      |
+
+- Although issues with wrong versions of these libraries can cause errors, there are several safety mechanisms in place to prevent the server from being interrupted. For example, when you run run.sh, early on it checks: 1) the existence of the required libraries, 2) the NGINX Contingency Function section below, and 3) in case of restarting Nginx (NGINX_RESTART=true in .env), a preliminary check for integrity (check_nginx_templates_integrity in use-nginx.sh).
 
 
 ## Quick Start with Samples
-```shell
-# Set this to 'real' in the .env file for production environments.
-APP_ENV=real
 
-# The 'real' setting requires defining 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES'.
-DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
-
-# If APP_ENV is set to 'local', as specified in 'docker-compose-app-local-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".  
-````
 ### Provided Samples
 |         | Local (Development) | Real (Production) |
 |---------|---------------------|-------------------|
@@ -205,7 +243,7 @@ sudo bash run.sh
 - ```shell
   APP_URL=http://localhost:<--!host-port-number!-->
   PROJECT_PORT=<--!common-port-number!--> OR 
-  PROJECT_PORT=[<--!host-host-port-number!-->,<--!new-project-port-number!-->]
+  PROJECT_PORT=[<--!host-port-number!-->,<--!new-project-port-number!-->]
   ```
   - Additionally, the APP_URL parameter is used for 'check_availability_out_of_container' at [Structure](#Structure)
   - You can set it as https://localhost:13000 or https://your-domain:13000 for production environments. (Both configurations are acceptable)
@@ -217,6 +255,13 @@ sudo bash run.sh
   - In case USE_COMMERCIAL_SSL is 'false', the Runner generates self-signed SSL certificates. However, you should set any name for ``COMMERCIAL_SSL_NAME``.
 
 ```shell
+# Set this to 'real' in the .env file for production environments.
+APP_ENV=real
+
+# The 'real' setting requires defining 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES'.
+DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
+
+# If APP_ENV is set to 'local', as specified in 'docker-compose-app-local-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".
 # [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. 
 # This option should be used when upgrading the Runner. See the "Upgrade" section below.
 NGINX_RESTART=false
@@ -237,7 +282,8 @@ DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/
 # 2) false :[Request]--> https (external network) -->Nginx--> https (internal network) --> App
 REDIRECT_HTTPS_TO_HTTP=true
 ```
-#### [IMPORTANT] ENVs that require 'NGINX_RESTART=true' to be set, otherwise changes will not be reflected.
+#### [IMPORTANT] ENVs that require restarting NGINX.
+##### Set 'NGINX_RESTART=true', otherwise changes will not be reflected.
 ```shell
 APP_URL
 PROJECT_PORT
@@ -576,10 +622,16 @@ On .env, let me explain this.
 ## Extra Information
 
 ### Test
+- Currently, it is definitely insufficient, and I will continue to add more.
 ```shell
 # Tests should be conducted in the folder
 cd tests/spring-sample-h-auth
 sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
+```
+
+### Check Source Integrity of 'Docker-Blue-Green-Runner'
+```shell
+git status # If any changes are detected, the source code may be corrupted.
 ```
 
 ### Concurrent Running for this App
