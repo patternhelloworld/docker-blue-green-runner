@@ -13,9 +13,12 @@
 /shared/system-logs/*
 !/shared/system-logs/.gitkeep
 
-.idea
+**/.idea
 /.env
 /.env.ready.*
+
+# misc
+**/.DS_Store
 
 /docker-compose-*-nginx.yml
 /docker-compose-*-local.yml
