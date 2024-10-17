@@ -1,9 +1,6 @@
 #!/bin/bash
 set -eu
 
-git config apply.whitespace nowarn
-git config core.filemode false
-
 source ./validator.sh
 
 to_lower() {
@@ -389,15 +386,19 @@ check_gnu_sed_installed() {
         exit 1
     fi
 
-    # Get the sed binary path
-    sed_path=$(command -v sed)
-
-    # Check if the path contains "gnu" (GNU sed usually installed in /usr/local/opt/gnu-sed)
-    if [[ "$sed_path" == *"gnu"* ]]; then
-        echo "[INFO] GNU sed is installed and ready to use."
+    # Try to check sed version to confirm if it's GNU sed
+    if sed --version >/dev/null 2>&1; then
+        if sed --version | grep -q "GNU"; then
+            echo "[INFO] GNU sed is installed and ready to use."
+        else
+            echo >&2 "[WARNING] The installed sed is not GNU sed."
+            echo >&2 "It seems you're using a different version of sed, which behaves differently."
+            exit 1
+        fi
     else
-        echo >&2 "[WARNING] The installed sed is not GNU sed."
-        echo >&2 "It seems you're using BSD sed, which behaves differently."
+        # If --version option is not supported, assume it's not GNU sed
+        echo >&2 "[WARNING] sed does not support the --version parameter."
+        echo >&2 "It seems you're using BSD sed or another non-GNU version."
         exit 1
     fi
 }
