@@ -164,7 +164,7 @@ set_expose_and_app_port(){
 
 cache_non_dependent_global_vars() {
 
-  check_necessary_commands
+  check_git_docker_compose_commands_exist
 
   HOST_IP=$(get_value_from_env "HOST_IP")
 
@@ -363,6 +363,87 @@ check_yq_installed(){
     fi
 }
 
+check_gnu_grep_installed() {
+    # Check if grep is installed
+    if ! command -v grep >/dev/null 2>&1; then
+        echo >&2 "[ERROR] grep is NOT installed. Please install GNU grep."
+        exit 1
+    fi
+
+    # Check if the installed grep supports -P option (GNU grep)
+    if ! grep -P '' <<< '' >/dev/null 2>&1; then
+        echo >&2 "[WARNING] The installed grep does not support the '-P' option."
+        echo >&2 "[INFO] This is likely because the installed grep is not GNU grep."
+        echo >&2 "Please install GNU grep using Homebrew:"
+        exit 1
+    else
+        echo "[INFO] GNU grep is installed and ready to use with the '-P' option."
+    fi
+}
+
+
+check_gnu_sed_installed() {
+    # Check if sed is installed
+    if ! command -v sed >/dev/null 2>&1; then
+        echo >&2 "[ERROR] sed is NOT installed. Please install GNU sed."
+        exit 1
+    fi
+
+    # Get the sed binary path
+    sed_path=$(command -v sed)
+
+    # Check if the path contains "gnu" (GNU sed usually installed in /usr/local/opt/gnu-sed)
+    if [[ "$sed_path" == *"gnu"* ]]; then
+        echo "[INFO] GNU sed is installed and ready to use."
+    else
+        echo >&2 "[WARNING] The installed sed is not GNU sed."
+        echo >&2 "It seems you're using BSD sed, which behaves differently."
+        exit 1
+    fi
+}
+
+check_bash_version() {
+    # Check if bash is installed
+    if ! command -v bash >/dev/null 2>&1; then
+        echo >&2 "[ERROR] Bash is NOT installed. Please install GNU bash."
+        exit 1
+    fi
+
+    # Get the current bash version
+    current_version=$(bash --version | head -n 1 | grep -oP '\d+\.\d+\.\d+')
+
+    # Define the required minimum version (4.4.0)
+    required_version="4.4.0"
+
+    # Function to compare version numbers
+    version_compare() {
+        # Split version numbers by .
+        IFS='.' read -r -a current <<< "$1"
+        IFS='.' read -r -a required <<< "$2"
+
+        # Compare major, minor, and patch versions
+        for i in 0 1 2; do
+            if [[ ${current[i]:-0} -lt ${required[i]:-0} ]]; then
+                return 1
+            elif [[ ${current[i]:-0} -gt ${required[i]:-0} ]]; then
+                return 0
+            fi
+        done
+        return 0
+    }
+
+    # Compare current and required version
+    if ! version_compare "$current_version" "$required_version"; then
+        echo >&2 "[ERROR] Bash version is $current_version. Please upgrade to GNU Bash $required_version or higher."
+        echo >&2 "You can install the latest version of bash using Homebrew:"
+        echo >&2 "  brew install bash"
+        echo >&2 "After installation, set the new bash as your default shell:"
+        echo >&2 "  sudo chsh -s /usr/local/bin/bash"
+        exit 1
+    else
+        echo "[INFO] GNU Bash version $current_version is installed and ready to use."
+    fi
+}
 
 get_value_from_env(){
 
@@ -463,7 +544,7 @@ concat_safe_port() {
 
 
 
-check_necessary_commands(){
+check_git_docker_compose_commands_exist(){
 
   command -v git >/dev/null 2>&1 ||
   { echo >&2 "[ERROR] git NOT installed. Exiting...";

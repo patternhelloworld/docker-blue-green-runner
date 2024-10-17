@@ -274,8 +274,8 @@ check_availability_inside_container(){
         echo "[NOTICE] ${retry_count} round health check (curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
         response=$(docker exec ${container_name} sh -c "curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
 
-        down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
-        up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
+        down_count=$(echo ${response} | grep -Ei ${bad_app_health_check_pattern} | wc -l)
+        up_count=$(echo ${response} | grep -Ei ${good_app_health_check_pattern} | wc -l)
 
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
@@ -380,8 +380,8 @@ check_availability_inside_container_speed_mode(){
         echo "[NOTICE] [Blue OR Green Alive Check : Currently ${check_state}] ${retry_count} round health check (curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
         response=$(docker exec ${container_name} sh -c "curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}") || echo "[WARNING] [Blue OR Green Alive Check : Currently ${check_state}] Failed in Health Check. But, this function is for checking which container is running. we don't exit."   >&2
 
-        down_count=$(echo ${response} | egrep -i ${bad_app_health_check_pattern} | wc -l)
-        up_count=$(echo ${response} | egrep -i ${good_app_health_check_pattern} | wc -l)
+        down_count=$(echo ${response} | grep -Ei ${bad_app_health_check_pattern} | wc -l)
+        up_count=$(echo ${response} | grep -Ei ${good_app_health_check_pattern} | wc -l)
 
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
@@ -419,7 +419,7 @@ check_availability_out_of_container(){
   for retry_count in {1..6}
   do
     status=$(curl ${app_url}/${app_health_check_path} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
-    available_status_cnt=$(echo ${status} | egrep -i '^2[0-9]+|3[0-9]+$' | wc -l)
+    available_status_cnt=$(echo ${status} | grep -Ei '^2[0-9]+|3[0-9]+$' | wc -l)
 
     if [[ ${available_status_cnt} -lt 1 ]]; then
 
@@ -456,7 +456,7 @@ check_availability_out_of_container_speed_mode(){
   for retry_count in {1..3}
   do
     status=$(curl ${app_url}/${app_health_check_path} -o /dev/null -k -Isw '%{http_code}' --connect-timeout 10)
-    available_status_cnt=$(echo ${status} | egrep -i '^2[0-9]+|3[0-9]+$' | wc -l)
+    available_status_cnt=$(echo ${status} | grep -Ei '^2[0-9]+|3[0-9]+$' | wc -l)
 
     if [[ ${available_status_cnt} -lt 1 ]]; then
 

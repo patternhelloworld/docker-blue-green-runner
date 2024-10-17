@@ -9,7 +9,7 @@ git config core.filemode false || echo "[WARN] A supporting command 'git config 
 source ./util.sh
 source ./use-app.sh
 
-check_necessary_commands
+check_git_docker_compose_commands_exist
 cache_global_vars
 
 with_nginx="${1:-}"
