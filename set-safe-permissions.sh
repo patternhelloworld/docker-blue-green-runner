@@ -1,4 +1,9 @@
 #!/bin/bash
+set -eu
+
+source ./util.sh
+check_gnu_sed_installed
+
 sudo sed -i -e "s/\r$//g" $(basename $0) || sed -i -e "s/\r$//g" $(basename $0)
 sudo chmod 770 *
 sudo chmod 770 .env.*

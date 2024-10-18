@@ -1,6 +1,11 @@
 #!/bin/bash
-sudo sed -i -e "s/\r$//g" $(basename $0)
-set -e
+set -eu
+
+source ./util.sh
+check_bash_version
+check_gnu_grep_installed
+check_gnu_sed_installed
+check_git_docker_compose_commands_exist
 
 git config apply.whitespace nowarn
 git config core.filemode false
@@ -10,8 +15,7 @@ bash prevent-crlf.sh
 git config apply.whitespace nowarn
 git config core.filemode false
 
-sleep 3
-source ./util.sh
+sleep 2
 
 cache_non_dependent_global_vars
 

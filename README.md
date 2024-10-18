@@ -70,7 +70,7 @@ Deploying web projects should be [simple, with high availability and security](h
 - If you are using WSL2 in WIN10 (not WIN11), which has the CRLF issue, you should run `bash prevent-crlf.sh` twice, and then execute the required `.sh` file.
   - The error message you might encounter is `$'\r': command not found`.
 - When using WSL2, I recommend cloning the project into the WSL area (`\\wsl$\Ubuntu\home`) instead of `C:\`.
-- Available on macOS as long as GNU-based libraries are installed
+- Available on MacOS as long as GNU-based libraries are installed. See the 'Dependencies' section for more details.
 - **Summary**: Linux is more stable than WSL2, and WSL2 is not recommended for production environments.
   
 

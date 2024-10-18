@@ -13,7 +13,7 @@ bash prevent-crlf.sh
 git config apply.whitespace nowarn
 git config core.filemode false
 
-sleep 3
+sleep 2
 
 source ./use-nginx.sh
 

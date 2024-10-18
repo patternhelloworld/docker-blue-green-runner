@@ -338,7 +338,6 @@ cache_global_vars() {
 
 }
 
-
 check_yq_installed(){
     required_version="4.35.1"
 
@@ -446,6 +445,24 @@ check_bash_version() {
     fi
 }
 
+check_git_docker_compose_commands_exist(){
+
+  command -v git >/dev/null 2>&1 ||
+  { echo >&2 "[ERROR] git NOT installed. Exiting...";
+    exit 1
+  }
+
+  if ! docker info > /dev/null 2>&1; then
+    echo "[ERROR] docker is NOT run. Exiting..."
+    exit 1
+  fi
+
+  if ! docker-compose --version > /dev/null 2>&1; then
+      echo "[ERROR] docker-compose is NOT installed. Exiting..."
+      exit 1
+  fi
+}
+
 get_value_from_env(){
 
   if [ ! -f ".env" ]; then
@@ -543,25 +560,6 @@ concat_safe_port() {
 }
 
 
-
-
-check_git_docker_compose_commands_exist(){
-
-  command -v git >/dev/null 2>&1 ||
-  { echo >&2 "[ERROR] git NOT installed. Exiting...";
-    exit 1
-  }
-
-  if ! docker info > /dev/null 2>&1; then
-    echo "[ERROR] docker is NOT run. Exiting..."
-    exit 1
-  fi
-
-  if ! docker-compose --version > /dev/null 2>&1; then
-      echo "[ERROR] docker-compose is NOT installed. Exiting..."
-      exit 1
-  fi
-}
 check_command_in_container_or_fail(){
   # 컨테이너 이름 또는 ID
   CONTAINER_NAME=${1}

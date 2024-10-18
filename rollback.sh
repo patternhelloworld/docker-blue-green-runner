@@ -1,12 +1,20 @@
-#!/usr/bin/env bash
+#!/bin/bash
+set -eu
+
+source ./util.sh
+check_bash_version
+check_gnu_grep_installed
+check_gnu_sed_installed
+check_git_docker_compose_commands_exist
+
 sudo sed -i -e "s/\r$//g" $(basename $0)
-set -e
+
 echo "[NOTICE] To prevent CRLF errors in scripts based on the Windows operating system, currently performing CRLF to LF conversion."
 sudo bash prevent-crlf.sh
 git config apply.whitespace nowarn || echo "[WARN] A supporting command 'git config apply.whitespace nowarn' has NOT been run."
 git config core.filemode false || echo "[WARN] A supporting command 'git config core.filemode false' has NOT been run."
 
-source ./util.sh
+
 source ./use-app.sh
 
 check_git_docker_compose_commands_exist

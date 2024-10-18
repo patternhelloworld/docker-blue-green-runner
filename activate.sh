@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-set -e
-sudo sed -i -e "s/\r$//g" $(basename $0)
+# This is a private shell script. Do NOT use this directly.
+set -eu
 
 source ./util.sh
 source ./use-app.sh
