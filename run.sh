@@ -1,6 +1,15 @@
 #!/bin/bash
-sudo sed -i -e "s/\r$//g" $(basename $0) || sed -i -e "s/\r$//g" $(basename $0)
+# set -e: This option tells the script to exit immediately if any command returns a non-zero status (i.e., if a command fails). This prevents the script from continuing execution when an error occurs, making it easier to catch issues early.
+# set -u: This option causes the script to throw an error and stop if it tries to use an undefined variable. This helps catch typos or missing variable definitions that could lead to unexpected behavior.
 set -eu
+
+source ./util.sh
+check_bash_version
+check_gnu_grep_installed
+check_gnu_sed_installed
+check_git_docker_compose_commands_exist
+
+check_yq_installed
 
 sudo chmod a+x *.sh
 
@@ -10,7 +19,7 @@ git config apply.whitespace nowarn
 git config core.filemode false
 
 sleep 3
-source ./util.sh
+
 source ./use-app.sh
 source ./use-nginx.sh
 source ./use-consul.sh
@@ -169,7 +178,6 @@ backup_to_new_images(){
 _main() {
 
   # [A] Get mandatory variables
-  check_necessary_commands
   cache_global_vars
   # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
   local initially_cached_old_state=${state}
@@ -204,9 +212,14 @@ _main() {
   fi
 
   # [A-2] Set 'Shared Volume Group'
-  local add_host_users_to_shared_volume_group_re=$(add_host_users_to_host_group ${shared_volume_group_id} ${shared_volume_group_name} ${uids_belonging_to_shared_volume_group_id} | tail -n 1) || echo "[WARNING] Running 'add_host_users_to_shared_volume_group' failed.";
-  if [[ ${add_host_users_to_shared_volume_group_re} = 'false' ]]; then
-    echo "[WARNING] Running 'add_host_users_to_host_group'(SHARED) failed."
+  # Detect the platform (Linux or Mac)
+  if [[ "$(uname)" == "Darwin" ]]; then
+      echo "[NOTICE] Running on Mac. Skipping 'add_host_users_to_host_group' as dscl is used for user and group management."
+  else
+    local add_host_users_to_shared_volume_group_re=$(add_host_users_to_host_group ${shared_volume_group_id} ${shared_volume_group_name} ${uids_belonging_to_shared_volume_group_id} | tail -n 1) || echo "[WARNING] Running 'add_host_users_to_shared_volume_group' failed.";
+    if [[ ${add_host_users_to_shared_volume_group_re} = 'false' ]]; then
+      echo "[WARNING] Running 'add_host_users_to_host_group'(SHARED) failed."
+    fi
   fi
 
   # [A-3] Etc.

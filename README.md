@@ -70,6 +70,7 @@ Deploying web projects should be [simple, with high availability and security](h
 - If you are using WSL2 in WIN10 (not WIN11), which has the CRLF issue, you should run `bash prevent-crlf.sh` twice, and then execute the required `.sh` file.
   - The error message you might encounter is `$'\r': command not found`.
 - When using WSL2, I recommend cloning the project into the WSL area (`\\wsl$\Ubuntu\home`) instead of `C:\`.
+- Available on MacOS as long as GNU-based libraries are installed. See the 'Dependencies' section for more details.
 - **Summary**: Linux is more stable than WSL2, and WSL2 is not recommended for production environments.
   
 
@@ -98,19 +99,21 @@ Deploying web projects should be [simple, with high availability and security](h
 ## Dependencies
 
 | Library Name                          | Required Version | Auto Installation | Additional Considerations                                                                                                      |
-|---------------------------------------|----------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| git                                   | N/A            | Manual            | -                                                                                                                              |
-| bash                                  | N/A            | Manual            | -                                                                                                                              |
-| curl                                  | N/A            | Manual            | -                                                                                                                              |
-| yq                                    | 4.35.1         | Manual            | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
-| consul (docker image)                 | 1.14.11        | Auto              | An error occurred due to a payload format issue while the lastest version of it was communicating with gliderlabs/registrator. |
-| gliderlabs/registrator (docker image) | master         | Auto              |                                                                                                                                |
-| nginx (docker image)                  | latest         | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |
-| docker                                | 24~27          | Manual            | I think too old versions could cause problems, and the lastest version v27.x causes only a warning message.                    |
-| docker-compose                        | 2              | Manual            | I think too old versions could cause problems, and the v2 is recommended.                                                      |
+|---------------------------------------|------------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| git                                   | N/A              | Manual            | -                                                                                                                              |
+| bash                                  | 4.4 at least     | Manual            | -                                                                                                                              |
+| curl                                  | N/A              | Manual            | -                                                                                                                              |
+| yq                                    | 4.35.1           | Manual            | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
+| consul (docker image)                 | 1.14.11          | Auto              | An error occurred due to a payload format issue while the lastest version of it was communicating with gliderlabs/registrator. |
+| gliderlabs/registrator (docker image) | master           | Auto              |                                                                                                                                |
+| nginx (docker image)                  | latest           | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |
+| docker                                | 24~27            | Manual            | I think too old versions could cause problems, and the lastest version v27.x causes only a warning message.                    |
+| docker-compose                        | 2                | Manual            | I think too old versions could cause problems, and the v2 is recommended.                                                      |
 
 - Although issues with wrong versions of these libraries can cause errors, there are several safety mechanisms in place to prevent the server from being interrupted. For example, when you run run.sh, early on it checks: 1) the existence of the required libraries, 2) the NGINX Contingency Function section below, and 3) in case of restarting Nginx (NGINX_RESTART=true in .env), a preliminary check for integrity (check_nginx_templates_integrity in use-nginx.sh).
-
+- For ``docker-compose``, if you use a version above v2.25.0, you will see a warning message: ``[WARN] The attribute 'version' is obsolete and will be ignored. Please remove it to avoid potential confusion``. You can ignore it at this point.
+- For MAC users, ``GNU-based bash, sed, grep`` should be installed.
+- For MAC users, ``SHARED_VOLUME_GROUP_*`` on .env are skipped.
 
 ## Quick Start with Samples
 

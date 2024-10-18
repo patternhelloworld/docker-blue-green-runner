@@ -1,15 +1,13 @@
-#!/usr/bin/env bash
-sudo sed -i -e "s/\r$//g" $(basename $0)
-echo "[NOTICE] To prevent CRLF errors in scripts based on the Windows operating system, currently performing CRLF to LF conversion."
-bash prevent-crlf.sh
-git config apply.whitespace nowarn
-git config core.filemode false
+#!/bin/bash
+set -eu
 
 source ./util.sh
+check_bash_version
+check_gnu_grep_installed
+check_gnu_sed_installed
+check_git_docker_compose_commands_exist
 
 cache_global_vars
-
-set -e
 
 set_safe_filemode_on_app() {
     for volume in "${docker_compose_real_selective_volumes[@]}"; do

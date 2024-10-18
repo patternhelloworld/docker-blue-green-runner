@@ -1,8 +1,11 @@
 #!/bin/bash
-sudo sed -i -e "s/\r$//g" $(basename $0)
 set -eu
 
-sudo chmod a+x *.sh
+source ./util.sh
+check_bash_version
+check_gnu_grep_installed
+check_gnu_sed_installed
+check_git_docker_compose_commands_exist
 
 echo "[NOTICE] Substituting CRLF with LF to prevent possible CRLF errors..."
 bash prevent-crlf.sh
@@ -10,10 +13,10 @@ git config apply.whitespace nowarn
 git config core.filemode false
 
 sleep 3
-source ./util.sh
+
 source ./use-nginx.sh
 # Load necessary things from util.sh
-check_necessary_commands
+
 cache_global_vars
 check_env_integrity
 

@@ -13,7 +13,6 @@ apply_env_service_name_onto_nginx_yaml(){
 }
 apply_ports_onto_nginx_yaml(){
 
-   if [[ ${nginx_restart} == 'true' ]]; then
 
      check_yq_installed
 
@@ -26,8 +25,6 @@ apply_ports_onto_nginx_yaml(){
         [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
         yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
      done
-
-   fi
 
 }
 apply_docker_compose_volumes_onto_app_nginx_yaml(){

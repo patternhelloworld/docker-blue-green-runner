@@ -1,9 +1,6 @@
 #!/bin/bash
 set -eu
 
-git config apply.whitespace nowarn
-git config core.filemode false
-
 source ./validator.sh
 
 to_lower() {
@@ -164,7 +161,7 @@ set_expose_and_app_port(){
 
 cache_non_dependent_global_vars() {
 
-  check_necessary_commands
+  check_git_docker_compose_commands_exist
 
   HOST_IP=$(get_value_from_env "HOST_IP")
 
@@ -341,7 +338,6 @@ cache_global_vars() {
 
 }
 
-
 check_yq_installed(){
     required_version="4.35.1"
 
@@ -363,6 +359,109 @@ check_yq_installed(){
     fi
 }
 
+check_gnu_grep_installed() {
+    # Check if grep is installed
+    if ! command -v grep >/dev/null 2>&1; then
+        echo >&2 "[ERROR] grep is NOT installed. Please install GNU grep."
+        exit 1
+    fi
+
+    # Check if the installed grep supports -P option (GNU grep)
+    if ! grep -P '' <<< '' >/dev/null 2>&1; then
+        echo >&2 "[WARNING] The installed grep does not support the '-P' option."
+        echo >&2 "[INFO] This is likely because the installed grep is not GNU grep."
+        echo >&2 "Please install GNU grep using Homebrew:"
+        exit 1
+    else
+        echo "[INFO] GNU grep is installed and ready to use with the '-P' option."
+    fi
+}
+
+
+check_gnu_sed_installed() {
+    # Check if sed is installed
+    if ! command -v sed >/dev/null 2>&1; then
+        echo >&2 "[ERROR] sed is NOT installed. Please install GNU sed."
+        exit 1
+    fi
+
+    # Try to check sed version to confirm if it's GNU sed
+    if sed --version >/dev/null 2>&1; then
+        if sed --version | grep -q "GNU"; then
+            echo "[INFO] GNU sed is installed and ready to use."
+        else
+            echo >&2 "[WARNING] The installed sed is not GNU sed."
+            echo >&2 "It seems you're using a different version of sed, which behaves differently."
+            exit 1
+        fi
+    else
+        # If --version option is not supported, assume it's not GNU sed
+        echo >&2 "[WARNING] sed does not support the --version parameter."
+        echo >&2 "It seems you're using BSD sed or another non-GNU version."
+        exit 1
+    fi
+}
+
+check_bash_version() {
+    # Check if bash is installed
+    if ! command -v bash >/dev/null 2>&1; then
+        echo >&2 "[ERROR] Bash is NOT installed. Please install GNU bash."
+        exit 1
+    fi
+
+    # Get the current bash version
+    current_version=$(bash --version | head -n 1 | grep -oP '\d+\.\d+\.\d+')
+
+    # Define the required minimum version (4.4.0)
+    required_version="4.4.0"
+
+    # Function to compare version numbers
+    version_compare() {
+        # Split version numbers by .
+        IFS='.' read -r -a current <<< "$1"
+        IFS='.' read -r -a required <<< "$2"
+
+        # Compare major, minor, and patch versions
+        for i in 0 1 2; do
+            if [[ ${current[i]:-0} -lt ${required[i]:-0} ]]; then
+                return 1
+            elif [[ ${current[i]:-0} -gt ${required[i]:-0} ]]; then
+                return 0
+            fi
+        done
+        return 0
+    }
+
+    # Compare current and required version
+    if ! version_compare "$current_version" "$required_version"; then
+        echo >&2 "[ERROR] Bash version is $current_version. Please upgrade to GNU Bash $required_version or higher."
+        echo >&2 "You can install the latest version of bash using Homebrew:"
+        echo >&2 "  brew install bash"
+        echo >&2 "After installation, set the new bash as your default shell:"
+        echo >&2 "  sudo chsh -s /usr/local/bin/bash"
+        exit 1
+    else
+        echo "[INFO] GNU Bash version $current_version is installed and ready to use."
+    fi
+}
+
+check_git_docker_compose_commands_exist(){
+
+  command -v git >/dev/null 2>&1 ||
+  { echo >&2 "[ERROR] git NOT installed. Exiting...";
+    exit 1
+  }
+
+  if ! docker info > /dev/null 2>&1; then
+    echo "[ERROR] docker is NOT run. Exiting..."
+    exit 1
+  fi
+
+  if ! docker-compose --version > /dev/null 2>&1; then
+      echo "[ERROR] docker-compose is NOT installed. Exiting..."
+      exit 1
+  fi
+}
 
 get_value_from_env(){
 
@@ -461,25 +560,6 @@ concat_safe_port() {
 }
 
 
-
-
-check_necessary_commands(){
-
-  command -v git >/dev/null 2>&1 ||
-  { echo >&2 "[ERROR] git NOT installed. Exiting...";
-    exit 1
-  }
-
-  if ! docker info > /dev/null 2>&1; then
-    echo "[ERROR] docker is NOT run. Exiting..."
-    exit 1
-  fi
-
-  if ! docker-compose --version > /dev/null 2>&1; then
-      echo "[ERROR] docker-compose is NOT installed. Exiting..."
-      exit 1
-  fi
-}
 check_command_in_container_or_fail(){
   # 컨테이너 이름 또는 ID
   CONTAINER_NAME=${1}

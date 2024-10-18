@@ -1,10 +1,5 @@
-#!/usr/bin/env bash
-sudo sed -i -e "s/\r$//g" $(basename $0)
-echo "[NOTICE] To prevent CRLF errors in scripts based on the Windows operating system, currently performing CRLF to LF conversion."
-bash prevent-crlf.sh
-
-set -e
-
+#!/bin/bash
+# This is a private shell script. Do NOT use this directly.
 source ./util.sh
 
 app_env=$(get_value_from_env "APP_ENV")
@@ -21,9 +16,6 @@ docker exec ${project_name}-nginx curl -X PUT -d ${state} ${consul_key_value_sto
    docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.contingency.${state} /etc/nginx/conf.d/nginx.conf
    docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Contingency Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
 }
-
-
-
 
 echo "[NOTICE] Stopping the ${new_state} ${orchestration_type}"
 if [[ ${orchestration_type} != 'stack' ]]; then
