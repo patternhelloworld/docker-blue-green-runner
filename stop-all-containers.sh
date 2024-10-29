@@ -1,5 +1,5 @@
 #!/bin/bash
-source ./util.sh
+source use-common.sh
 check_bash_version
 check_gnu_grep_installed
 check_gnu_sed_installed
@@ -23,6 +23,11 @@ echo "[NOTICE] Delete all containers and networks related to the project. Ignore
 
 docker-compose -f docker-compose-${project_name}-${app_env}.yml down || echo "[DEBUG] A-L"
 docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[DEBUG] N"
+
+docker container stop ${project_name}-blue || echo "[DEBUG] A-L 2"
+docker container rm ${project_name}-blue || echo "[DEBUG] A-L 3"
+docker container stop ${project_name}-green || echo "[DEBUG] A-L 4"
+docker container rm ${project_name}-green || echo "[DEBUG] A-L 5"
 
 docker stack rm ${project_name}-blue || echo "[DEBUG] F"
 docker stack rm ${project_name}-green || echo "[DEBUG] F-2"

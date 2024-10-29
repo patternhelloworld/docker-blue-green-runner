@@ -1,6 +1,6 @@
 # Docker-Blue-Green-Runner
 
-> One Simple Zero-Downtime Blue-Green Deployment Starting from your Dockerfiles
+> One Simple Zero-Downtime Blue-Green Deployment with your Dockerfiles
 
 Deploying web projects should be [simple, with high availability and security](https://github.com/Andrew-Kang-G/docker-blue-green-runner?tab=readme-ov-file#Quick-Guide-on-Usage).
 
@@ -9,6 +9,7 @@ Deploying web projects should be [simple, with high availability and security](h
 
 ## Table of Contents
 - [Features](#features)
+- [Why would I use this over Traefik?](#why-would-i-use-this-over-traefik)
 - [Requirements](#requirements)
 - [Quick Start with Samples](#quick-start-with-samples)
   - [Provided Samples](#provided-samples)
@@ -40,9 +41,9 @@ Deploying web projects should be [simple, with high availability and security](h
 - [Extra Information](#extra-information)
   - [Test](#test)
   - [Check Source Integrity of 'Docker-Blue-Green-Runner'](#check-source-integrity-of-docker-blue-green-runner)
+  - [Structure](#structure)
   - [Concurrent Running for this App](#concurrent-running-for-this-app)
   - [Docker Swarm](#docker-swarm)
-
 
 ---
 
@@ -51,7 +52,7 @@ Deploying web projects should be [simple, with high availability and security](h
 - ``Pure Docker`` (No Need for Binary Installation Files and Complex Configurations)
   - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq(v4.35.1)`` installed.
   - So, this is available for both non-cloud and cloud environments. You only need one machine.
-- With your ``.env, project, and its sole Dockerfile``, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [consul-template](https://github.com/hashicorp/consul-template) and [Nginx](https://github.com/nginx/nginx).
+- With your ``.env, project, and its sole Dockerfile``, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [consul-template](https://github.com/hashicorp/consul-template) and [Nginx](https://github.com/nginx/nginx). Just run ``bash run.sh``.
 
     
 ![consists-of.png](/documents/images/consists-of.png )
@@ -60,6 +61,23 @@ Deploying web projects should be [simple, with high availability and security](h
 - Focus on zero-downtime deployment on a single machine.
   - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios where only one or two machines are available.
   - However, ``for deployments involving more machines, traditional Layer 4 (L4) load-balancer using servers could be utilized.``
+
+## Why would I use this over Traefik?
+
+- **Unpredictable Errors in Reverse Proxy**
+  - Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
+    - https://stackoverflow.com/questions/76660749/traefik-404-page-not-found-when-use-https
+    - https://community.traefik.io/t/getting-bad-gateway-404-page-when-supposed-to-route-to-container-port-8443/20398
+  - Docker-Blue-Green-Runner manipulates NGINX configuration files directly to ensure container accessibility. It also tests configuration files by launching a test NGINX Docker instance, and if an NGINX config update via Consul-Template fails, Contingency Plan provided is activated to ensure connectivity to your containers.
+  - Additionally, the code is written in shell script, making it easier to trace the exact code section where an error occurs (as opposed to working with a binary).
+
+- **From Scratch**
+  - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." This script covers the entire process from Dockerfile build to server deployment from scratch.
+  - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which can introduce the types of errors mentioned above.
+
+- **Speed**
+  - NGINX generally offers faster performance, though I acknowledge that Traefik's robust features can offset this advantage.
+
 
 ## Requirements
 
@@ -150,13 +168,15 @@ sudo bash run.sh
 
 
 ### How to Start with a PHP Sample (Real, HTTPS self-signed SSL)
-- Check the port number 8080 available before getting this started.
+- Check the port number 8081 available before getting this started.
 
 Differences between ``./samples/laravel-crud-boilerplate/Dockerfile.local`` and ``./samples/laravel-crud-boilerplate/Dockerfile.real``
 
 1) Staging build : (Local - no, Real - yes to reduce the size of the image)
 2) Volume for the whole project : (Local - yes, Real - no. copy the whole project only one time)
 3) SSL : (Local - not required, Real - yes, you can. as long as you set APP_URL on .env starting with 'https')
+
+- The runner detects file names of ``Dockefile`` or ``Dockerfile.${app_env}``
 
 A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
@@ -172,16 +192,16 @@ docker-compose up -d
 # Go back to the root
 cd ../../
 cp -f .env.php.real .env
-# For WIN WSL2, \r on shell scripts can cause issues.
+# For WIN 10 WSL2, \r on shell scripts can cause issues.
 sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/real/run.sh
 # In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
 sudo bash run.sh
 ```
-Open https://localhost:8080 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
+Open https://localhost:8081 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
 ### How to Start with a PHP Sample (Local).
-- Check the port number 8080 available before getting this started.
+- Check the port number 8081 available before getting this started.
 
 A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
@@ -538,7 +558,7 @@ graph TD;
   GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD=12345
   GIT_IMAGE_VERSION=1.0.0
   ```
-  - ``GIT_IMAGE_LOAD_FROM`` is 'build', ``docker-blue-green-runner`` builds your ``Dockerfile``, while it is 'registry', the runner downloads ``app, nginx, consul, registrator`` from such as the example code on ``util.sh``.
+  - ``GIT_IMAGE_LOAD_FROM`` is 'build', ``docker-blue-green-runner`` builds your ``Dockerfile``, while it is 'registry', the runner downloads ``app, nginx, consul, registrator`` from such as the example code on ``use-common.sh``.
     ```shell
     app_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-app:${git_image_version}"
     nginx_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-nginx:${git_image_version}"
@@ -563,12 +583,18 @@ sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
 git status # If any changes are detected, the source code may be corrupted.
 ```
 
+### Structure
+
+#### Use-[Module].sh
+- Here, 'Use' is not related to Hooks commonly used in front-end frameworks like React. Instead, it is more similar to Traits in PHP."
+
 ### Concurrent Running for this App
 - Running ```sudo bash *.sh``` concurrently for the **same** project at the same time, is NOT safe.
 - Running ```sudo bash *.sh``` concurrently for **different** projects at the same time, is safe.
 
 ### Docker Swarm
 
+- Beta version. which is supposed to be improved in v6.
 - 'ORCHESTRATION_TYPE=stack' is currently experimental, keep 'ORCHESTRATION_TYPE=compose' as it is in the production stage.
   - However, you would test the docker swarm, run the command. It is currently tested for the Java sample.
     - ```shell

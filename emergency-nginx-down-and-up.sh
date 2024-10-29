@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-source ./util.sh
+source use-common.sh
 
 check_bash_version
 check_gnu_grep_installed
@@ -20,7 +20,7 @@ source ./use-nginx.sh
 cache_global_vars
 check_env_integrity
 
-# Eventually, it will be activated as 'state_a' in ./activate.sh, and unless specifically specified parameters as below,
+# Eventually, it will be activated as 'state_a' in ./nginx-blue-green-nginx-blue-green-activate.sh, and unless specifically specified parameters as below,
 # Nginx should be reconfigured with the existing state (from 'cache_global_vars').
 state_a=${state_for_emergency}
 state_b=${state_for_emergency}
@@ -40,4 +40,4 @@ echo "[NOTICE] Finally, !! Deploy the App as !! ${state_a} !!, we will now deplo
 # run
 nginx_down_and_up
 # activate : blue or green
-./activate.sh ${state_a} ${state_b} ${state_upstream} ${consul_key_value_store}
+./nginx-blue-green-activate.sh ${state_a} ${state_b} ${state_upstream} ${consul_key_value_store}

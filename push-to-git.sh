@@ -5,7 +5,7 @@ set -e
 git config apply.whitespace nowarn
 git config core.filemode false
 
-source ./util.sh
+source use-common.sh
 
 _main() {
 
@@ -33,6 +33,8 @@ _main() {
   docker push ${nginx_image_name_in_registry}  || exit 1
   echo "[DEBUG] Run : docker rmi -f ${nginx_image_name_in_registry}"
   docker rmi ${nginx_image_name_in_registry}  || exit 1
+  
+
 
   echo "[DEBUG] Run : docker tag hashicorp/consul:1.14.11 ${consul_image_name_in_registry}}"
   docker tag hashicorp/consul:1.14.11 ${consul_image_name_in_registry}  || exit 1

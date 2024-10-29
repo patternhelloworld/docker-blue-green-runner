@@ -5,7 +5,6 @@ services:
     image: '${PROJECT_NAME}-nginx:latest'
     restart: always
     environment:
-      - TZ=Asia/Seoul
       - SERVICE_NAME=nginx
     env_file:
       - .env
