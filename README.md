@@ -161,6 +161,10 @@ cd ../../
 # Copy the local environment settings to the main .env file.
 cp -f .env.node.local .env
 # If 'host.docker.internal' is not available, change 'host.docker.internal' in the ./.env file to your host IP.
+# If you would like the exposed port to be 80, correct two properties in .env to be the following.
+## APP_URL=http://localhost:80
+## PROJECT_PORT=[80,3000]
+
 # NOTE: The Health Check stage may take longer initially as the "node_modules" are not installed in the sample project.
 sudo bash run.sh
 
