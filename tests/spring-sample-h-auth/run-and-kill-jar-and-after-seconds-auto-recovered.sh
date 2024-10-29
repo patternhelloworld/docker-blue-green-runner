@@ -21,7 +21,7 @@ else
 fi
 
 sleep 3
-source ./util.sh
+source ./use-common.sh
 source ./use-app.sh
 
 cache_global_vars

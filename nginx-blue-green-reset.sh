@@ -1,6 +1,6 @@
 #!/bin/bash
 # This is a private shell script. Do NOT use this directly.
-source ./util.sh
+source use-common.sh
 
 app_env=$(get_value_from_env "APP_ENV")
 project_name=$(get_value_from_env "PROJECT_NAME")
@@ -10,7 +10,7 @@ consul_key_value_store=$1
 state=$2
 new_state=$3
 
-echo "[NOTICE] Point Nginx back to ${state} from reset.sh."
+echo "[NOTICE] Point Nginx back to ${state} from nginx-blue-green-reset.sh."
 docker exec ${project_name}-nginx curl -X PUT -d ${state} ${consul_key_value_store} > /dev/null || {
    echo "[ERROR] Setting ${state} on '/etc/nginx/conf.d/nginx.conf' directly according to the Nginx Contingency Plan."
    docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.contingency.${state} /etc/nginx/conf.d/nginx.conf

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-source ./util.sh
+source use-common.sh
 check_bash_version
 check_gnu_grep_installed
 check_gnu_sed_installed
@@ -20,8 +20,8 @@ source ./use-app.sh
 check_git_docker_compose_commands_exist
 cache_global_vars
 
-with_nginx="${1:-}"
-if [[ "$with_nginx" == "1" ]]; then
+with_edge_router_nginx="${1:-}"
+if [[ "$with_edge_router_nginx" == "1" ]]; then
     nginx_restart=true
 else
     nginx_restart=false
@@ -44,7 +44,7 @@ if [[ $(check_availability_inside_container ${new_state} 60 5 | tail -n 1) != 't
   echo "[ERROR] Failed to rollback to the ${new_state} container." && exit 1
 fi
 
-# Nginx Rollback
+# Rollback Process
 if [[ ${nginx_restart} == 'true' ]]; then
   echo "[NOTICE] Change the 'previous' tagged Nginx image to the 'latest' tagged image."
   docker tag ${project_name}-nginx:previous ${project_name}-nginx:latest || echo "[NOTICE] ${project_name}-nginx:previous image does NOT exist."
@@ -53,9 +53,11 @@ if [[ ${nginx_restart} == 'true' ]]; then
 
   echo "[NOTICE] Run 'emergency-nginx-restart.sh' "
   bash emergency-nginx-restart.sh
+else
+  echo "[NOTICE] Nginx will NOT be restarted according to the parameter : ${with_edge_route}"
 fi
 
-./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
+./nginx-blue-green-activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
 
 if [[ ${orchestration_type} != 'stack' ]]; then

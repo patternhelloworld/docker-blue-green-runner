@@ -3,7 +3,7 @@
 # set -u: This option causes the script to throw an error and stop if it tries to use an undefined variable. This helps catch typos or missing variable definitions that could lead to unexpected behavior.
 set -eu
 
-source ./util.sh
+source use-common.sh
 check_bash_version
 check_gnu_grep_installed
 check_gnu_sed_installed
@@ -64,6 +64,7 @@ backup_nginx_to_previous_images(){
 
 }
 
+
 give_host_group_id_full_permissions(){
 
   # By default, all volume folders are granted 'permission for the user's group of the host (not the root user, but the current user)'.
@@ -119,10 +120,11 @@ load_all_containers(){
   fi
 
   # Therefore, it is safer to restart the containers in the order of Consul -> App -> Nginx.
+
   if [[ ${consul_restart} == 'true' ]]; then
-
       consul_down_and_up
-
+  else
+    echo "[NOTICE] As CONSUL_RESTART in .env is NOT true, Consul won't be restarted."
   fi
 
 
@@ -154,14 +156,16 @@ load_all_containers(){
     #fi
  # fi
 
-
   if [[ ${nginx_restart} == 'true' ]]; then
       check_nginx_templates_integrity
       nginx_down_and_up
+  else
+      echo "[NOTICE] As NGINX_RESTART in .env is NOT 'true' (NGINX_RESTART : ${nginx_restart}), there will be NO downtime, which becomes 'zero-downtime'."
   fi
 
-  check_necessary_supporting_containers_loaded || (echo "[ERROR] Failed in loading necessary supporting containers." && exit 1)
-  check_supporting_containers_loaded || (echo "[ERROR] Failed in loading supporting containers. We will conduct the Nginx Contingency Plan.")
+  check_edge_routing_containers_loaded || (echo "[ERROR] Failed in loading necessary supporting containers." && exit 1)
+
+  check_common_containers_loaded || (echo "[ERROR] Failed in loading supporting containers. We will conduct the Nginx Contingency Plan.")
 
 }
 
@@ -211,6 +215,7 @@ _main() {
     backup_nginx_to_previous_images
   fi
 
+
   # [A-2] Set 'Shared Volume Group'
   # Detect the platform (Linux or Mac)
   if [[ "$(uname)" == "Darwin" ]]; then
@@ -234,6 +239,8 @@ _main() {
   if [[ ${skip_building_app_image} != 'true' ]]; then
     load_app_docker_image
   fi
+
+
   if [[ ${consul_restart} == 'true' ]]; then
     load_consul_docker_image
   fi
@@ -245,6 +252,7 @@ _main() {
     echo "[NOTICE] Successfully built the App image : ${new_state}" && exit 0
   fi
 
+
   local cached_new_state=${new_state}
   cache_all_states
   if [[ ${cached_new_state} != "${new_state}" ]]; then
@@ -255,7 +263,7 @@ _main() {
   load_all_containers
 
   # [D] Set Consul
-  ./activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
+  ./nginx-blue-green-activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
   # [E] External Integrity Check, if fails, 'emergency-nginx-down-and-up.sh' will be run.
   re=$(check_availability_out_of_container | tail -n 1);
@@ -266,10 +274,9 @@ _main() {
 
     re=$(check_availability_out_of_container | tail -n 1);
     if [[ ${re} != 'true' ]]; then
-
       echo "[ERROR] Failed to call app_url on .env outside the container. Consider running bash rollback.sh OR check your !firewall. (result value : ${re})" && exit 1
-
     fi
+
   fi
 
 

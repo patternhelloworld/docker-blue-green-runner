@@ -2,7 +2,7 @@
 # This is a private shell script. Do NOT use this directly.
 set -eu
 
-source ./util.sh
+source use-common.sh
 source ./use-app.sh
 
 #cache_global_vars
@@ -99,7 +99,7 @@ while [ 1 ]; do
           fi
 
           if [[ ${is_run} == 'yes' ]]; then
-            ./reset.sh ${consul_key_value_store} ${old_state} ${new_state}
+            ./nginx-blue-green-reset.sh ${consul_key_value_store} ${old_state} ${new_state}
           else
             echo "[WARNING] We won't revert, as ${old_state} is NOT running as well."
           fi

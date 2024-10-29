@@ -9,10 +9,9 @@ initiate_nginx_docker_compose_file(){
   echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
 }
 apply_env_service_name_onto_nginx_yaml(){
-  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YAML as ${project_name}." && exit 1)
+  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YML as ${project_name}." && exit 1)
 }
 apply_ports_onto_nginx_yaml(){
-
 
      check_yq_installed
 
@@ -284,16 +283,26 @@ load_nginx_docker_image(){
 
 }
 
-nginx_down_and_up(){
-
-   echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, terminate Nginx container and network."
+nginx_down(){
 
    echo "[NOTICE] Stop & Remove NGINX Container."
    docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] The previous Nginx Container has been stopped & removed, if exists."
 
+}
+
+nginx_up(){
+
    echo "[NOTICE] Up NGINX Container."
    PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
 
+}
+
+nginx_down_and_up(){
+
+   echo "[NOTICE] As !NGINX_RESTART is true, which means there will be a short-downtime for Nginx, terminate Nginx container and network."
+
+   nginx_down
+   nginx_up
 }
 
 check_nginx_templates_integrity(){
@@ -305,7 +314,6 @@ check_nginx_templates_integrity(){
   stop_and_remove_container "${project_name}-nginx-test"
 
   docker run -d -it --name ${project_name}-nginx-test \
-    -e TZ=Asia/Seoul \
     -e SERVICE_NAME=nginx \
     --network=consul \
     --env-file .env \
