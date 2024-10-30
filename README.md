@@ -13,6 +13,7 @@ Deploying web projects should be [simple, with high availability and security](h
 - [Requirements](#requirements)
 - [Quick Start with Samples](#quick-start-with-samples)
   - [Provided Samples](#provided-samples)
+  - [How to Start with a React Guide (Real)](#how-to-start-with-a-react-guide-real)
   - [How to Start with a Node Sample (Local)](#how-to-start-with-a-node-sample-local)
   - [How to Start with a PHP Sample (Real, HTTPS self-signed SSL)](#how-to-start-with-a-php-sample-real-https-self-signed-ssl)
   - [How to Start with a PHP Sample (Local)](#how-to-start-with-a-php-sample-local)
@@ -141,6 +142,10 @@ Deploying web projects should be [simple, with high availability and security](h
 | Node.js | O                   | not yet           |
 | PHP     | O                   | O                 |
 | Java    | O                   | O                 |
+| React   | X                   | O                 |
+
+### How to Start with a React Guide (Real)
+[Link : Deploy your static React project](Deploy-React-Project-with-DBGR.md)
 
 ### How to Start with a Node Sample (Local)
 - Check the port number 13000 available before getting this started.

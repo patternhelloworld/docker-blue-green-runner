@@ -87,7 +87,11 @@
     # ex. /docs/api-app.html
     NGINX_RESTRICTED_LOCATION=xxx
     
-    REDIRECT_HTTPS_TO_HTTP=false
+  # If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
+    # 1) true : [Request]--> https (external network) -->Nginx--> http (internal network) --> App
+    # 2) false :[Request]--> https (external network) -->Nginx--> httpS (internal network) --> App
+    # !!! [IMPORTANT] As your App container below is Http, this should be set to 'true'.
+    REDIRECT_HTTPS_TO_HTTP=true
     
     NGINX_LOGROTATE_FILE_NUMBER=7
     NGINX_LOGROTATE_FILE_SIZE=1M
@@ -100,7 +104,7 @@
     USE_MY_OWN_NGINX_ORIGIN=false
   ```
 ### Locate your commercial SSLs in the folder ``docker-blue-green-runner/.docker/ssl``. See the comments in the ``.env`` above.  
-
+- For me, I have used GoDaddy, https://dearsikandarkhan.medium.com/ssl-godaddy-csr-create-on-mac-osx-4401c47fd94c .
 ## Your App-Side work
 
 ### Dockerfile
@@ -194,4 +198,4 @@ ENTRYPOINT bash /entrypoint.sh
 
         ``` 
 ## Run
-- Execute ``sudo bash run.sh`` after each ``git pull`` on your project for production updates.
+- Check your firewall & Execute ``sudo bash run.sh`` after each ``git pull`` on your project for production updates.

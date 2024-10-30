@@ -281,7 +281,7 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP. (*Response : ${response}), (${container_name}, *Log (print max 25 lines) : $(docker logs --tail 25 ${container_name})"  >&2
+            echo "[WARNING] Unable to determine the response of the health check or the status is not UP, or Check the REDIRECT_HTTPS_TO_HTTP param in .env (*Response : ${response}), (${container_name}, *Log (print max 25 lines) : $(docker logs --tail 25 ${container_name})"  >&2
 
         else
              echo "[NOTICE] Internal health check of the application succeeded. (*Response: ${response})"  >&2
