@@ -54,7 +54,8 @@ Deploying web projects should be [simple, with high availability and security](h
   - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq(v4.35.1)`` installed.
   - So, this is available for both non-cloud and cloud environments. You only need one machine.
 - With your ``.env, project, and its sole Dockerfile``, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [consul-template](https://github.com/hashicorp/consul-template) and [Nginx](https://github.com/nginx/nginx). Just run ``bash run.sh``.
-
+  - 'wait-for-it' can be a reliable tool to ensure your container is fully up and ready before proceeding with dependencies or further operations.
+  - Using 'consul-template' allows your application to dynamically switch to blue or green deployments. Implementing an Nginx Contingency Plan can provide an added layer of stability to handle potential issues gracefully.
     
 ![consists-of.png](/documents/images/consists-of.png )
    
@@ -145,7 +146,7 @@ Deploying web projects should be [simple, with high availability and security](h
 | React   | X                   | O                 |
 
 ### How to Start with a React Guide (Real)
-[Link : Deploy your static React project](Deploy-React-Project-with-DBGR.md)
+[Link : Deploy your static React project](documents/Deploy-React-Project-with-DBGR.md)
 
 ### How to Start with a Node Sample (Local)
 - Check the port number 13000 available before getting this started.

@@ -2,7 +2,7 @@
 
 ## The Goal
 - External -> Docker-Blue-Green-Runner (443 port) -> Your App (8360 port)
-- For a perfectly static React app, your application should include NGINX, which requires more setup compared to something like Spring Boot, which can be run directly from the command line, or use Next.js.
+- For a perfectly static React app, your application should include NGINX, which requires more setup compared to something like Spring Boot, which can be run directly from the command line, or you wouldn't love that, use Next.js.
 
 ## Locate projects
 - Clone the project https://github.com/patternhelloworld/docker-blue-green-runner at  to ``/var/projects/docker-blue-green-runner`` (the path is not important; adjust as per your setup).
@@ -10,6 +10,12 @@
 
 ## Runner-side work
 ### Create a .env file in the Runner's Root Directory
+#### Points
+- ``443`` indicated below
+- ``DOCKER_BUILD_ARGS`` for your Dockerfile
+- ``DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES`` for your Volumes.
+- ``REDIRECT_HTTPS_TO_HTTP``
+- .env file
 - ```dotenv
     HOST_IP=host.docker.internal
     APP_ENV=real
@@ -110,13 +116,14 @@
 ### Dockerfile
 - At ``/var/projects/your-app``, write the following.
 - The ARG below PROJECT_ROOT_IN_CONTAINER is passed from the above during the building process.
+
 ```Dockerfile
 FROM node:18.20.4-slim AS build
 
 ARG PROJECT_ROOT_IN_CONTAINER
 
 RUN mkdir -p $PROJECT_ROOT_IN_CONTAINER
-COPY . $PROJECT_ROOT_IN_CONTAINER
+COPY .. $PROJECT_ROOT_IN_CONTAINER
 WORKDIR $PROJECT_ROOT_IN_CONTAINER
 RUN export NODE_OPTIONS="--max-old-space-size=2048"
 RUN whereis npm && alias npm='node --max_old_space_size=2048 /usr/local/bin/npm'
@@ -137,7 +144,7 @@ COPY --chown=nginx --from=build $PROJECT_ROOT_IN_CONTAINER/dist/ $PROJECT_ROOT_I
 USER root
 WORKDIR $PROJECT_ROOT_IN_CONTAINER
 
-COPY ./.docker/ssl /etc/nginx/ssl
+COPY ../.docker/ssl /etc/nginx/ssl
 
 COPY ./.docker/entrypoint.sh /entrypoint.sh
 RUN chmod a+x /entrypoint.sh
