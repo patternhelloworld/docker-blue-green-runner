@@ -9,7 +9,6 @@ Deploying web projects should be [simple, with high availability and security](h
 
 ## Table of Contents
 - [Features](#features)
-- [Why would I use this over Traefik?](#why-would-i-use-this-over-traefik)
 - [Requirements](#requirements)
 - [Quick Start with Samples](#quick-start-with-samples)
   - [Provided Samples](#provided-samples)
@@ -50,59 +49,36 @@ Deploying web projects should be [simple, with high availability and security](h
 
 ## Features
 
-- ``Pure Docker`` (No Need for Binary Installation Files and Complex Configurations)
-  - On Linux, you only need to have ``docker, docker-compose`` and some helping libraries such as ``git, curl, bash, yq(v4.35.1)`` installed.
-  - So, this is available for both non-cloud and cloud environments. You only need one machine.
-- With your ``.env, project, and its sole Dockerfile``, Docker-Blue-Green-Runner manages the remainder of the Continuous Deployment (CD) process with [wait-for-it](https://github.com/vishnubob/wait-for-it), [consul-template](https://github.com/hashicorp/consul-template) and [Nginx](https://github.com/nginx/nginx). Just run ``bash run.sh``.
-  - 'wait-for-it' can be a reliable tool to ensure your container is fully up and ready before proceeding with dependencies or further operations.
-  - Using 'consul-template' allows your application to dynamically switch to blue or green deployments. Implementing an Nginx Contingency Plan can provide an added layer of stability to handle potential issues gracefully.
-    
-![consists-of.png](/documents/images/consists-of.png )
-   
-
-- Focus on zero-downtime deployment on a single machine.
-  - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios where only one or two machines are available.
-  - However, ``for deployments involving more machines, traditional Layer 4 (L4) load-balancer using servers could be utilized.``
-
-## Why would I use this over Traefik?
-
-- **Unpredictable Errors in Reverse Proxy**
-  - Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
+- **No Unpredictable Errors in Reverse Proxy and Deployment**
+  - If any error occurs in the app or router, deployment is halted to prevent any impact on the existing deployment
+  - For example, Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
     - https://stackoverflow.com/questions/76660749/traefik-404-page-not-found-when-use-https
     - https://community.traefik.io/t/getting-bad-gateway-404-page-when-supposed-to-route-to-container-port-8443/20398
-  - Docker-Blue-Green-Runner manipulates NGINX configuration files directly to ensure container accessibility. It also tests configuration files by launching a test NGINX Docker instance, and if an NGINX config update via Consul-Template fails, Contingency Plan provided is activated to ensure connectivity to your containers.
-  - Additionally, the code is written in shell script, making it easier to trace the exact code section where an error occurs (as opposed to working with a binary).
+  - Manipulates NGINX configuration files directly to ensure container accessibility. It also tests configuration files by launching a test NGINX Docker instance, and if an NGINX config update via Consul-Template fails, Contingency Plan provided is activated to ensure connectivity to your containers.
 
 - **From Scratch**
   - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." This script covers the entire process from Dockerfile build to server deployment from scratch.
   - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which can introduce the types of errors mentioned above.
 
-- **Speed**
-  - NGINX generally offers faster performance, though I acknowledge that Traefik's robust features can offset this advantage.
+- Focus on zero-downtime deployment on a single machine.
+  - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios where only one or two machines are available.
+  - However, ``for deployments involving more machines, traditional Layer 4 (L4) load-balancer using servers could be utilized.``
 
 
 ## Requirements
 
-
 ### OS
 
-- If this module operates well on WSL2 in WIN, there should be no issues using it on an Ubuntu Linux server, especially considering the instability of WSL2.
-- If you are using WSL2 in WIN10 (not WIN11), which has the CRLF issue, you should run `bash prevent-crlf.sh` twice, and then execute the required `.sh` file.
-  - The error message you might encounter is `$'\r': command not found`.
-- When using WSL2, I recommend cloning the project into the WSL area (`\\wsl$\Ubuntu\home`) instead of `C:\`.
-- Available on MacOS as long as GNU-based libraries are installed. See the 'Dependencies' section for more details.
-- **Summary**: Linux is more stable than WSL2, and WSL2 is not recommended for production environments.
+- Linux based OS such as Ubuntu, CentOS, WIN WSL and MacOS
+  - If you are using WSL2 in WIN10 (not WIN11), which has the CRLF issue, you should run `bash prevent-crlf.sh` twice, and then execute the required `.sh` file.
+    - The error message you might encounter is `$'\r': command not found`.
+  - When using WSL2, I recommend cloning the project into the WSL area (`\\wsl$\Ubuntu\home`) instead of `C:\`.
+  - Available on MacOS as long as GNU-based libraries are installed. See the 'Dependencies' section for more details.
+
   
-
-### Docker Considerations
-
-- **No Container in Container**:
-  - Do not use Docker-Blue-Green-Runner inside containers, such as those provided by CircleCI or Dockerized Jenkins. These builders run within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes.
-  - This issue is highlighted in the [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3).
-
 ### Application Requirements
 
-- The image or Dockerfile in your application must include the `bash` and `curl` commands, as demonstrated in the `./samples/spring-sample-h-auth` folder as an example.
+- The image or Dockerfile in your application should include the `bash` and `curl` commands, as demonstrated in the `./samples/spring-sample-h-auth` folder as an example.
 - Do **not** build or run 'local' and 'real' environments simultaneously, as both share the same image and container names.
   - ```shell
     # In your .env,
@@ -111,9 +87,15 @@ Deploying web projects should be [simple, with high availability and security](h
 
 ### Permissions and File Structure
 
-- You can run your project with `bash run.sh`, but if you encounter any permission issues, use `sudo bash run.sh`.
+- You can run your project with `bash run.sh`, but if you encounter any permission issues, run `sudo bash run.sh`.
 - Although the sample folders are included in this project, it is recommended that you place your own projects in external directories and always use absolute paths.
 
+
+### Docker Considerations
+
+- **No Container in Container**:
+  - Do not use Docker-Blue-Green-Runner inside containers, such as those provided by CircleCI or Dockerized Jenkins. These builders run within their own container environments, making it difficult for Docker-Blue-Green-Runner to utilize volumes.
+  - This issue is highlighted in the [CircleCI discussion on 'docker-in-docker-not-mounting-volumes'](https://discuss.circleci.com/t/docker-in-docker-not-mounting-volumes/14037/3).
 
 
 ## Dependencies
