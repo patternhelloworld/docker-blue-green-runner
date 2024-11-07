@@ -58,6 +58,7 @@ Deploying web projects should be [simple, with high availability and security](h
 
 - **From Scratch**
   - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." This script covers the entire process from Dockerfile build to server deployment from scratch.
+  - This means you can easily migrate to another server with just the files mentioned above.
   - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which can introduce the types of errors mentioned above.
 
 - Focus on zero-downtime deployment on a single machine.
