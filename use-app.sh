@@ -272,7 +272,7 @@ check_availability_inside_container(){
 
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
-        echo "[NOTICE] ${retry_count} round health check (curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
+        echo -e "\033[1;35m[NOTICE] ${retry_count} round health check (curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout: ${3} sec)\033[0m" >&2
         response=$(docker exec ${container_name} sh -c "curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
 
         down_count=$(echo ${response} | grep -Ei ${bad_app_health_check_pattern} | wc -l)
@@ -281,7 +281,14 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP, or Check the REDIRECT_HTTPS_TO_HTTP param in .env (*Response : ${response}), (${container_name}, *Log (print max 25 lines) : $(docker logs --tail 25 ${container_name})"  >&2
+            echo -e "\033[1;35m[WARNING] Unable to determine the health check response, or the status is not UP. Please check the following:\033[0m
+            \033[1;35m1) Verify the REDIRECT_HTTPS_TO_HTTP parameter in .env\033[0m
+            \033[1;35m2) Confirm your app's database connection\033[0m
+            \033[1;35m3) Review your health check settings in .env.\033[0m
+            \033[1;35m*Response:\033[0m ${response}
+            \033[1;35m*Container:\033[0m ${container_name}
+            \033[1;35m*Logs (last 25 lines):\033[0m $(docker logs --tail 25 ${container_name})" >&2
+
 
         else
              echo "[NOTICE] Internal health check of the application succeeded. (*Response: ${response})"  >&2

@@ -2,12 +2,11 @@
 
 > One Simple Zero-Downtime Blue-Green Deployment with your Dockerfiles
 
-Deploying web projects should be [simple, with high availability and security](https://github.com/Andrew-Kang-G/docker-blue-green-runner?tab=readme-ov-file#Quick-Guide-on-Usage).
-
 - Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest commit of the 'main' branch.
 - In production, place your project in a separate folder, not in the samples folder, as they are just examples.
 
 ## Table of Contents
+- [Process Summary](#process-summary)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Quick Start with Samples](#quick-start-with-samples)
@@ -34,7 +33,6 @@ Deploying web projects should be [simple, with high availability and security](h
   - [Consul](#consul)
   - [USE_NGINX_RESTRICTION on .env](#use_nginx_restriction-on-env)
   - [Advanced](#advanced)
-- [Process Summary](#process-summary)
 - [Gitlab Container Registry](#gitlab-container-registry)
   - [Upload Image (CI/CD Server -> Git)](#upload-image-cicd-server---git)
   - [Download Image (Git -> Production Server)](#download-image-git---production-server)
@@ -46,6 +44,44 @@ Deploying web projects should be [simple, with high availability and security](h
   - [Docker Swarm](#docker-swarm)
 
 ---
+
+## Process Summary
+
+- Term Reference
+  - ``All`` means below is "App", "Nginx", "Consul&Registrator".
+  - ``(Re)Load`` means ``docker run.... OR docker-compose up``.
+  - ``State`` is ``Blue`` or ``Green``
+  - More is on [Terms](#terms)
+- Load Consul & Registrator, then the App, and finally Nginx to prevent upstream errors.
+
+
+```mermaid
+graph TD;
+  A[Initialize and Set Variables] --> B[Backup All Images]
+  B --> C[Check the .env File Integrity]
+  C --> D[Build All Images]
+  D --> E[Create Consul Network]
+  E --> F{Reload Consul if Required}
+  F -- Yes --> G[Reload Consul]
+  F -- No --> H[Load Your App]
+  G --> H[Load Your App]
+  H --> I[Check App Integrity]
+  I --> J{Reload Nginx if Required}
+  J -- Yes --> K[Check Nginx Template Integrity by Running a Test Container]
+  J -- No --> L[Check All Containers' Health]
+  K --> L[Check All Containers' Health]
+  L --> M{Set New State Using Consul Template}
+  M -- Fails --> O[Run Nginx Contingency Plan]
+  M -- Success --> N[External Integrity Check]
+  O --> N[External Integrity Check]
+  N -- Fails --> P[Rollback App if Needed]
+  N -- Success --> Q["Remove the Opposite State (Blue or Green) from the Running Containers"]
+  P --> Q["Remove the Opposite State from the Running Containers"]
+  Q --> R[Clean Up Dangling Images]
+  R --> S[Deployment Complete]
+
+```
+![img5.png](/documents/images/img5.png)
 
 ## Features
 
@@ -492,43 +528,8 @@ bash check-source-integrity.sh
     - **For the properties of 'environment, volumes', use .env instead of setting them on the yml.**
     - Set ```USE_MY_OWN_APP_YML=true``` on .env
     - ```bash run.sh```
-    
-## Process Summary
-
-- Term Reference 
-  - ``All`` means below is "App", "Nginx", "Consul&Registrator".
-  - ``(Re)Load`` means ``docker run.... OR docker-compose up``.
-  - ``State`` is ``Blue`` or ``Green``
-  - More is on [Terms](#terms)
-- Load Consul & Registrator, then the App, and finally Nginx to prevent upstream errors.
 
 
-```mermaid
-graph TD;
-  A[Initialize and Set Variables] --> B[Backup All Images]
-  B --> C[Check the .env File Integrity]
-  C --> D[Build All Images]
-  D --> E[Create Consul Network]
-  E --> F{Reload Consul if Required}
-  F -- Yes --> G[Reload Consul]
-  F -- No --> H[Load Your App]
-  G --> H[Load Your App]
-  H --> I[Check App Integrity]
-  I --> J{Reload Nginx if Required}
-  J -- Yes --> K[Check Nginx Template Integrity by Running a Test Container]
-  J -- No --> L[Check All Containers' Health]
-  K --> L[Check All Containers' Health]
-  L --> M{Set New State Using Consul Template}
-  M -- Fails --> O[Run Nginx Contingency Plan]
-  M -- Success --> N[External Integrity Check]
-  O --> N[External Integrity Check]
-  N -- Fails --> P[Rollback App if Needed]
-  N -- Success --> Q["Remove the Opposite State (Blue or Green) from the Running Containers"]
-  P --> Q["Remove the Opposite State from the Running Containers"]
-  Q --> R[Clean Up Dangling Images]
-  R --> S[Deployment Complete]
-
-```
 ## Gitlab Container Registry
 
 ### Upload Image (CI/CD Server -> Git)

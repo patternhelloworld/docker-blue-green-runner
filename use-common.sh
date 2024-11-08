@@ -4,6 +4,55 @@ set -eu
 source ./validator.sh
 source ./use-states.sh
 
+
+display_checkpoint_message() {
+    local message=$1
+    printf "\033[1;34m[CHECKPOINT] %s\033[0m\n" "$message"  # Display message in bold blue
+}
+
+# Function to display a transition message between states in a Blue-Green deployment
+display_planned_transition() {
+    local current_state=$1
+    local target_state=$2
+
+    # Clear the screen and set text to bold blue
+    echo -e "\033[1;34m"  # Bold blue text
+
+    echo "─────────────────────────────"
+    echo "  Current State (${current_state})"
+    echo "─────────────────────────────"
+    echo "              |"
+    echo "     >> Transition planned <<"
+    echo "              v"
+    echo "─────────────────────────────"
+    echo "  Target State (${target_state})"
+    echo "─────────────────────────────"
+    echo -e "\033[0m"  # Reset text style
+}
+
+display_immediate_transition() {
+    local current_state=$1
+    local target_state=$2
+
+    # Display the state transition diagram with a bold blue message
+    echo -e "\033[1;34m"  # Bold blue text
+
+    echo "─────────────────────────────"
+    echo "  Current State (${current_state})"
+    echo "─────────────────────────────"
+    echo "              |"
+    echo "    >> Immediate Transition <<"
+    echo "              v"
+    echo "─────────────────────────────"
+    echo "  Target State (${target_state})"
+    echo "─────────────────────────────"
+    echo -e "\033[0m"  # Reset text style
+    echo -e "\033[1;32m"  # Bold green text for emphasis
+    echo ">>> Transition to ${target_state} is now being executed <<<"
+    echo -e "\033[0m"  # Reset text style
+}
+
+
 to_lower() {
     echo "$1" | tr '[:upper:]' '[:lower:]'
 }
