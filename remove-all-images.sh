@@ -2,6 +2,7 @@
 set -eu
 
 source use-common.sh
+check_yq_installed
 check_bash_version
 check_gnu_grep_installed
 check_gnu_sed_installed
