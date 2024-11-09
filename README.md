@@ -142,7 +142,7 @@ graph TD;
 | git                                   | N/A              | Manual            | -                                                                                                                              |
 | bash                                  | 4.4 at least     | Manual            | -                                                                                                                              |
 | curl                                  | N/A              | Manual            | -                                                                                                                              |
-| yq                                    | 4.35.1           | Manual            | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
+| yq                                    | 4.35.1           | Auto              | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
 | consul (docker image)                 | 1.14.11          | Auto              | An error occurred due to a payload format issue while the lastest version of it was communicating with gliderlabs/registrator. |
 | gliderlabs/registrator (docker image) | master           | Auto              |                                                                                                                                |
 | nginx (docker image)                  | 1.25.4           | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |

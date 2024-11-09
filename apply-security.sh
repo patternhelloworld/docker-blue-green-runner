@@ -32,7 +32,24 @@ sudo chmod 750 *.sh || echo "[WARN] Running chmod 750 *.sh failed."
 sudo chmod 770 *.yml || echo "[WARN] Running chmod 770 *.yml failed."
 sudo chmod 740 .env.* || echo "[WARN] Running chmod 740 .env.* failed."
 sudo chmod 740 .env || echo "[WARN] Running chmod 740 .env failed."
+sudo chmod -R 750 bin || echo "[WARN] Running chmod 750 for the bin folder"
 sudo chmod 770 .gitignore || echo "[WARN] Running chmod 770 .gitignore failed."
 sudo chmod -R 770 .docker/ || echo "[WARN] Running chmod -R 770 .docker/ failed."
-sudo chown -R 0:${shared_volume_group_id} .docker/ || echo "[WARN] Running chgrp ${shared_volume_group_id} .docker/ failed."
-set_safe_filemode_on_app
+# Check if the OS is not Darwin (macOS) before running the command
+if [[ "$(uname)" != "Darwin" ]]; then
+    sudo chown -R 0:${shared_volume_group_id} .docker/ || echo "[WARN] Running chgrp ${shared_volume_group_id} .docker/ failed."
+else
+    echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
+fi
+
+if [[ "$(uname)" != "Darwin" ]]; then
+    sudo chown -R 0:${shared_volume_group_id} bin/ || echo "[WARN] Running chgrp ${shared_volume_group_id} bin/ failed."
+else
+    echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
+fi
+
+if [[ "$(uname)" != "Darwin" ]]; then
+    set_safe_filemode_on_app
+else
+    echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
+fi
