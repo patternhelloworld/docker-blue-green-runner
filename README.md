@@ -325,6 +325,19 @@ sudo bash run.sh
 # Set this to 'real' in the .env file for production environments.
 APP_ENV=real
 
+# This path is used for both internal and external health checks.
+# Note: Do not include a leading slash ("/") at the start of the path.
+# Example: "api/v1/health" (correct), "/api/v1/health" (incorrect)
+APP_HEALTH_CHECK_PATH=api/v1/health
+
+# The BAD & GOOD conditions are checked using an "AND" condition.
+# To ignore the "BAD_APP_HEALTH_CHECK_PATTERN", set it to a non-existing value (e.g., "###lsdladc").
+BAD_APP_HEALTH_CHECK_PATTERN=DOWN
+
+# Pattern required for a successful health check.
+GOOD_APP_HEALTH_CHECK_PATTERN=UP
+
+
 # The 'real' setting requires defining 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES'.
 DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
 # Check if the host folder or file exists
