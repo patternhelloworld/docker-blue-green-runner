@@ -35,14 +35,14 @@ apply_env_service_name_onto_app_yaml(){
   check_yq_installed
 
   if [[ ${orchestration_type} == 'stack' ]]; then
-      yq -i "with(.services; with_entries(select(.key ==\"*-${new_state}\") | .key |= \"${project_name}-${new_state}\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
-     # yq eval '(.services.[] | select(.image == "${PROJECT_NAME}:blue")).image |= \"${project_name}-blue\"' -i docker-${orchestration_type}-${project_name}-blue.yml  || (echo "[ERROR] Failed to apply image : ${project_name}-blue in the app YAML." && exit 1)
-      yq -i "(.services.\"${project_name}-${new_state}\").image = \"${project_name}:${new_state}\"" -i docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply image : ${project_name}-${new_state} in the app YAML." && exit 1)
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-${new_state}\") | .key |= \"${project_name}-${new_state}\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+     # bin/yq eval '(.services.[] | select(.image == "${PROJECT_NAME}:blue")).image |= \"${project_name}-blue\"' -i docker-${orchestration_type}-${project_name}-blue.yml  || (echo "[ERROR] Failed to apply image : ${project_name}-blue in the app YAML." && exit 1)
+      bin/yq -i "(.services.\"${project_name}-${new_state}\").image = \"${project_name}:${new_state}\"" -i docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply image : ${project_name}-${new_state} in the app YAML." && exit 1)
   else
       echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-${orchestration_type}-${project_name}-${app_env}.yml."
-      yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
       sleep 2
-      yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
   fi
 
 }
@@ -61,12 +61,12 @@ apply_docker_compose_environment_onto_app_yaml(){
 
    for state in "${states[@]}"
    do
-       yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-${orchestration_type}-${project_name}-${app_env}.yml
-       yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
+       bin/yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-${orchestration_type}-${project_name}-${app_env}.yml
+       bin/yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
 
-       for ((i=1; i<=$(echo ${docker_compose_environment} | yq eval 'length'); i++))
+       for ((i=1; i<=$(echo ${docker_compose_environment} | bin/yq eval 'length'); i++))
         do
-           yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].value')'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
+           bin/yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | bin/yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | bin/yq -r 'to_entries | .['$((i-1))'].value')'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
         done
    done
 
@@ -107,11 +107,11 @@ apply_docker_compose_volumes_onto_app_real_yaml(){
 
    for state in "${states[@]}"
    do
-       #yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-${orchestration_type}-${project_name}-real.yml
+       #bin/yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-${orchestration_type}-${project_name}-real.yml
 
       for volume in "${docker_compose_real_selective_volumes[@]}"
       do
-          yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-${orchestration_type}-${project_name}-real.yml
+          bin/yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-${orchestration_type}-${project_name}-real.yml
       done
    done
 
@@ -126,9 +126,9 @@ make_docker_build_arg_strings(){
 
    local re=""
 
-   for ((i=1; i<=$(echo ${docker_build_args} | yq eval 'length'); i++))
+   for ((i=1; i<=$(echo ${docker_build_args} | bin/yq eval 'length'); i++))
    do
-       re="${re} --build-arg $(echo ${docker_build_args} | yq -r 'to_entries | .['$((i-1))'].key')=$(echo ${docker_build_args} | yq -r 'to_entries | .['$((i-1))'].value')"
+       re="${re} --build-arg $(echo ${docker_build_args} | bin/yq -r 'to_entries | .['$((i-1))'].key')=$(echo ${docker_build_args} | bin/yq -r 'to_entries | .['$((i-1))'].value')"
    done
 
    echo ${re}

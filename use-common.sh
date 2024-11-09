@@ -65,8 +65,8 @@ set_expose_and_app_port(){
   fi
 
   if echo "${1}" | grep -Eq '^\[[0-9]+,[0-9]+\]$'; then
-      expose_port=$(echo "$project_port" | yq e '.[0]' -)
-      app_port=$(echo "$project_port" | yq e '.[1]' -)
+      expose_port=$(echo "$project_port" | bin/yq e '.[0]' -)
+      app_port=$(echo "$project_port" | bin/yq e '.[1]' -)
   else
       expose_port="$project_port"
       app_port="$project_port"
@@ -255,24 +255,66 @@ cache_global_vars() {
 
 check_yq_installed(){
     required_version="4.35.1"
+    yq_path="bin/yq"
 
-    # Check if yq is installed
-    if ! command -v yq >/dev/null 2>&1; then
-        echo >&2 "[ERROR] yq is NOT installed. Please install yq version $required_version manually."
-        echo >&2 "You can download it from the following URL:"
-        echo >&2 "https://github.com/mikefarah/yq/releases/download/v$required_version/yq_linux_amd64"
-        exit 1
+    # Function to download yq
+    download_yq() {
+        echo "[NOTICE] Downloading bin/yq version $required_version..." >&2
+
+        # Detect OS and architecture
+        ARCH=$(uname -m)
+        OS=$(uname | tr '[:upper:]' '[:lower:]')
+
+        # Determine the correct bin/yq binary based on architecture
+        case "$OS-$ARCH" in
+            linux-x86_64)
+                YQ_BINARY="yq_linux_amd64"
+                ;;
+            linux-aarch64)
+                YQ_BINARY="yq_linux_arm64"
+                ;;
+            linux-armv7l | linux-armhf)
+                YQ_BINARY="yq_linux_arm"
+                ;;
+            linux-i386 | linux-i686)
+                YQ_BINARY="yq_linux_386"
+                ;;
+            darwin-x86_64)
+                YQ_BINARY="yq_darwin_amd64"
+                ;;
+            darwin-arm64)
+                YQ_BINARY="yq_darwin_arm64"
+                ;;
+            *)
+                echo >&2 "[ERROR] Unsupported OS or architecture: $OS-$ARCH"
+                exit 1
+                ;;
+        esac
+
+        DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v$required_version/$YQ_BINARY"
+
+        # Download yq
+        curl -L "$DOWNLOAD_URL" -o "$yq_path"
+        chmod +x "$yq_path"
+        echo "[NOTICE] bin/yq version $required_version from $DOWNLOAD_URL has been downloaded to $yq_path." >&2
+    }
+
+    # Check if bin/yq is installed in the bin directory
+    if [ ! -f "$yq_path" ]; then
+        echo "[WARNING] bin/yq is not found in $yq_path. Downloading..." >&2
+        download_yq
     else
-        # Check if installed version is not 4.35.1
-        installed_version=$(yq --version | grep -oP 'version v\K[0-9.]+')
+        # Check if installed bin/yq version is the required version
+        installed_version=$("$yq_path" --version | grep -oP 'version v\K[0-9.]+')
         if [ "$installed_version" != "$required_version" ]; then
-            echo >&2 "[ERROR] yq version is $installed_version. Please install yq version $required_version manually."
-            echo >&2 "You can download it from the following URL:"
-            echo >&2 "https://github.com/mikefarah/yq/releases/download/v$required_version/yq_linux_amd64"
-            exit 1
+            echo "[WARNING] bin/yq version is $installed_version, which is not the required version $required_version." >&2
+            download_yq
+        else
+            echo "[NOTICE] bin/yq version $required_version is already installed in $yq_path." >&2
         fi
     fi
 }
+
 
 check_gnu_grep_installed() {
     # Check if grep is installed

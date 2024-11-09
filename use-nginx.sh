@@ -9,20 +9,20 @@ initiate_nginx_docker_compose_file(){
   echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
 }
 apply_env_service_name_onto_nginx_yaml(){
-  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YML as ${project_name}." && exit 1)
+  bin/yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YML as ${project_name}." && exit 1)
 }
 apply_ports_onto_nginx_yaml(){
 
      check_yq_installed
 
      echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
-     yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
-     yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
+     bin/yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
+     bin/yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
 
      for i in "${additional_ports[@]}"
      do
         [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
-        yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
+        bin/yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
      done
 
 }
@@ -57,7 +57,7 @@ apply_docker_compose_volumes_onto_app_nginx_yaml(){
 
     for volume in "${docker_compose_nginx_selective_volumes[@]}"
     do
-        yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-${project_name}-nginx.yml
+        bin/yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-${project_name}-nginx.yml
     done
 
 }

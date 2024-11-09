@@ -13,6 +13,10 @@
 /shared/system-logs/*
 !/shared/system-logs/.gitkeep
 
+/bin/*
+!/bin/.gitkeep
+
+
 **/.idea
 /.env
 /.env.ready.*
