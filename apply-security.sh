@@ -48,5 +48,8 @@ else
     echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
 fi
 
-
-set_safe_filemode_on_app
+if [[ "$(uname)" != "Darwin" ]]; then
+    set_safe_filemode_on_app
+else
+    echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
+fi
