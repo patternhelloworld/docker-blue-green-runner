@@ -76,7 +76,8 @@
     DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/var/projects/your-app/.docker/nginx/app.conf.ctmpl:/etc/nginx-template/app.conf.ctmpl","/var/projects/files/your-app/logs:/var/log/nginx"]
     # [IMPORTANT] Run mkdir -p /var/projects/files/nginx/logs on your host machine
     DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES=["/var/projects/files/nginx/logs:/var/log/nginx"]
-    
+    DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
+  
     NGINX_CLIENT_MAX_BODY_SIZE=50M
     
     USE_MY_OWN_APP_YML=false

@@ -72,9 +72,30 @@ apply_docker_compose_environment_onto_app_yaml(){
 
 }
 
+check_docker_compose_real_host_volumes_directories() {
+
+    local volumes=$(echo "${docker_compose_real_selective_volumes[@]}" | tr -d '[]"')
+
+    for volume in ${volumes}
+    do
+        # Extract the local directory path before the colon (:)
+        local_dir="${volume%%:*}"
+
+        # Check if the directory or file exists
+        if [[ ! -f "$local_dir" && ! -d "$local_dir" ]]; then
+            echo "[ERROR] The local path '$local_dir' specified in DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES does not exist. Exiting..."
+            exit 1
+        fi
+    done
+}
+
 apply_docker_compose_volumes_onto_app_real_yaml(){
 
    check_yq_installed
+
+   if [[ ${docker_compose_host_volume_check} == 'true' ]]; then
+      check_docker_compose_real_host_volumes_directories
+   fi
 
    echo "[NOTICE] DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES on .env is now being applied to docker-${orchestration_type}-${project_name}-real.yml."
 

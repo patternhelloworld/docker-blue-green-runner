@@ -145,7 +145,7 @@ graph TD;
 | yq                                    | 4.35.1           | Manual            | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
 | consul (docker image)                 | 1.14.11          | Auto              | An error occurred due to a payload format issue while the lastest version of it was communicating with gliderlabs/registrator. |
 | gliderlabs/registrator (docker image) | master           | Auto              |                                                                                                                                |
-| nginx (docker image)                  | latest           | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |
+| nginx (docker image)                  | 1.25.4           | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |
 | docker                                | 24~27            | Manual            | I think too old versions could cause problems, and the lastest version v27.x causes only a warning message.                    |
 | docker-compose                        | 2                | Manual            | I think too old versions could cause problems, and the v2 is recommended.                                                      |
 
@@ -327,7 +327,8 @@ APP_ENV=real
 
 # The 'real' setting requires defining 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES'.
 DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
-
+# Check if the host folder or file exists
+DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
 # If APP_ENV is set to 'local', as specified in 'docker-compose-app-local-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".
 # [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. 
 # This option should be used when upgrading the Runner. See the "Upgrade" section below.

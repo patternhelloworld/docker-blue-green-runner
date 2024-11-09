@@ -22,7 +22,7 @@ display_planned_transition() {
     echo "  Current State (${current_state})"
     echo "─────────────────────────────"
     echo "              |"
-    echo "     >> Transition planned <<"
+    echo "  >> Transition planned <<"
     echo "              v"
     echo "─────────────────────────────"
     echo "  Target State (${target_state})"
@@ -41,7 +41,7 @@ display_immediate_transition() {
     echo "  Current State (${current_state})"
     echo "─────────────────────────────"
     echo "              |"
-    echo "    >> Immediate Transition <<"
+    echo "  >> Immediate Transition <<"
     echo "              v"
     echo "─────────────────────────────"
     echo "  Target State (${target_state})"
@@ -135,6 +135,7 @@ cache_non_dependent_global_vars() {
   fi
 
   docker_compose_nginx_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES")
+  docker_compose_host_volume_check=$(get_value_from_env "DOCKER_COMPOSE_HOST_VOLUME_CHECK")
 
   docker_layer_corruption_recovery=$(get_value_from_env "DOCKER_LAYER_CORRUPTION_RECOVERY")
 
