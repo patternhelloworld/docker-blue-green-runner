@@ -2,8 +2,6 @@
 
 > One Simple Zero-Downtime Blue-Green Deployment with your Dockerfiles
 
-- Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest commit of the 'main' branch.
-- In production, place your project in a separate folder, not in the samples folder, as they are just examples.
 
 ## Table of Contents
 - [Process Summary](#process-summary)
@@ -310,9 +308,9 @@ sudo bash run.sh
 - ```shell
   APP_URL=http://localhost:<--!host-port-number!-->
   PROJECT_PORT=<--!common-port-number!--> OR 
-  PROJECT_PORT=[<--!host-port-number!-->,<--!new-project-port-number!-->]
+  PROJECT_PORT=[<--!host-port-number!-->,<--!internal-project-port-number!-->]
   ```
-  - Additionally, the APP_URL parameter is used for 'check_availability_out_of_container' at [Structure](#Structure)
+  - Additionally, the `APP_URL` parameter is used for the ["External Integrity Check"](#process-summary) process.
   - You can set it as https://localhost:13000 or https://your-domain:13000 for production environments. (Both configurations are acceptable)
   - Moreover, the Runner parses the protocol (http or https), and if it is https, it checks for SSL certificates in the .docker/ssl directory on the host according to the following settings:
   - ```shell

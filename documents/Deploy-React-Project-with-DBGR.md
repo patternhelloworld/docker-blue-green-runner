@@ -17,14 +17,26 @@
 - ``REDIRECT_HTTPS_TO_HTTP``
 - .env file
 - ```dotenv
+    # Leave as it is
     HOST_IP=host.docker.internal
+    # Set this to 'real' in the .env file for production environments.
+    # This affects 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES' below
+    # If this is set to 'local', the whole projects is set to be Volumed.
     APP_ENV=real
     
     # It is recommended to enter your formal URL or IP, such as https://test.com, for the 'check_availability_out_of_container' test in the 'run.sh' script.
     # Both https://your-app.com:443 and https://localhost:443 are valid
+    # Docker-Blue-Runner recognizes if your App requires SSL in the Nginx router if this starts with 'https'.
+    # This URL is used for the "External Integrity Check" process.
     APP_URL=https://localhost:443
     
-    USE_COMMERCIAL_SSL=false
+    # APP_URL=http://localhost:<--!host-port-number!-->
+    # PROJECT_PORT=<--!common-port-number!--> OR
+    # PROJECT_PORT=[<--!host-port-number!-->,<--!internal-project-port-number!-->]
+    PROJECT_PORT=[443,8360]
+    # In case USE_COMMERCIAL_SSL is 'false', the Runner generates self-signed SSL certificates. However, you should set any name for ``COMMERCIAL_SSL_NAME``.
+    # In case it is 'true', locate your commercial SSLs in the folder docker-blue-green-runner/.docker/ssl. See the comments in the .env above.
+    USE_COMMERCIAL_SSL=true
     # Your domain name is recommended. The files 'your-app.com.key', 'your-app.com.crt', and 'your-app.com.chained.crt' should be in place.
     COMMERCIAL_SSL_NAME=your-app.com
     
@@ -59,31 +71,43 @@
     DOCKER_FILE_LOCATION=/var/projects/your-app
     
     # This is for integrating health checkers such as "https://www.baeldung.com/spring-boot-actuators"
-    APP_HEALTH_CHECK_PATH=login
-    BAD_APP_HEALTH_CHECK_PATTERN=xxxxxxx
-    GOOD_APP_HEALTH_CHECK_PATTERN=Head
+    # This path is used for both internal and external health checks.
+    # Note: Do not include a leading slash ("/") at the start of the path.
+    # Example: "api/v1/health" (correct), "/api/v1/health" (incorrect)
+    APP_HEALTH_CHECK_PATH=api/v1/health
+    
+    # The BAD & GOOD conditions are checked using an "AND" condition.
+    # To ignore the "BAD_APP_HEALTH_CHECK_PATTERN", set it to a non-existing value (e.g., "###lsdladc").
+    BAD_APP_HEALTH_CHECK_PATTERN=DOWN
+    
+    # Pattern required for a successful health check.
+    GOOD_APP_HEALTH_CHECK_PATTERN=UP
+    
+    # The following trick is just for skipping the check.
+    # APP_HEALTH_CHECK_PATH=login
+    # BAD_APP_HEALTH_CHECK_PATTERN=xxxxxxx
+    # GOOD_APP_HEALTH_CHECK_PATTERN=Head
     
     
     # This is for environment variables for docker-compose-app-${app_env}.
     DOCKER_COMPOSE_ENVIRONMENT={"TZ":"Asia/Seoul"}
-    # This goes with "docker build ... in the 'run.sh' script file", and the command always contain "HOST_IP" and "APP_ENV" above.
-    # docker exec -it CONTAINER_NAME cat /var/log/env_build_args.log
-    # The name "PROJECT_ROOT_IN_CONTAINER" is simply a convention used with your Dockerfile. You can change it if desired.
+    # [IMPORTANT] You can pass any variable to Step 2 of your Dockerfile using DOCKER_BUILD_ARGS, e.g., DOCKER_BUILD_ARGS={"PROJECT_ROOT_IN_CONTAINER":"/app"}."
     DOCKER_BUILD_ARGS={"PROJECT_ROOT_IN_CONTAINER":"/app"}
     # In the case of "REAL," the project is not synchronized in its entirety. The source codes that are required for only production are injected.
-    # For SSL, the host folder is recommended to be './.docker/ssl' to be synchronized with 'docker-compose-nginx-original.yml'
+    # For SSL, the host folder is recommended to be './.docker/ssl' to be synchronized with 'docker-compose-nginx-original.yml'.
     # [IMPORTANT] Run mkdir -p /var/projects/files/your-app/logs on your host machine
     DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/var/projects/your-app/.docker/nginx/app.conf.ctmpl:/etc/nginx-template/app.conf.ctmpl","/var/projects/files/your-app/logs:/var/log/nginx"]
     # [IMPORTANT] Run mkdir -p /var/projects/files/nginx/logs on your host machine
     DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES=["/var/projects/files/nginx/logs:/var/log/nginx"]
     DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
-  
+    
     NGINX_CLIENT_MAX_BODY_SIZE=50M
     
     USE_MY_OWN_APP_YML=false
     
     SKIP_BUILDING_APP_IMAGE=false
     
+    # Docker-Swarm(stack) is currently a beta version. Use 'compose'.
     ORCHESTRATION_TYPE=compose
     
     ONLY_BUILDING_APP_IMAGE=false
@@ -94,7 +118,7 @@
     # ex. /docs/api-app.html
     NGINX_RESTRICTED_LOCATION=xxx
     
-  # If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
+    # If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
     # 1) true : [Request]--> https (external network) -->Nginx--> http (internal network) --> App
     # 2) false :[Request]--> https (external network) -->Nginx--> httpS (internal network) --> App
     # !!! [IMPORTANT] As your App container below is Http, this should be set to 'true'.
@@ -103,7 +127,7 @@
     NGINX_LOGROTATE_FILE_NUMBER=7
     NGINX_LOGROTATE_FILE_SIZE=1M
     
-    # You can change the values below. These settings for security related to ``set-safe-permissions.sh`` at the root of Docker-Blue-Green-Runner. 
+    # You can change the values below. These settings for security related to ``set-safe-permissions.sh`` at the root of Docker-Blue-Green-Runner.
     SHARED_VOLUME_GROUP_ID=1559
     SHARED_VOLUME_GROUP_NAME=mba-shared-volume-group
     UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID=1000,1001
