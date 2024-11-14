@@ -35,14 +35,14 @@ apply_env_service_name_onto_app_yaml(){
   check_yq_installed
 
   if [[ ${orchestration_type} == 'stack' ]]; then
-      yq -i "with(.services; with_entries(select(.key ==\"*-${new_state}\") | .key |= \"${project_name}-${new_state}\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
-     # yq eval '(.services.[] | select(.image == "${PROJECT_NAME}:blue")).image |= \"${project_name}-blue\"' -i docker-${orchestration_type}-${project_name}-blue.yml  || (echo "[ERROR] Failed to apply image : ${project_name}-blue in the app YAML." && exit 1)
-      yq -i "(.services.\"${project_name}-${new_state}\").image = \"${project_name}:${new_state}\"" -i docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply image : ${project_name}-${new_state} in the app YAML." && exit 1)
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-${new_state}\") | .key |= \"${project_name}-${new_state}\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+     # bin/yq eval '(.services.[] | select(.image == "${PROJECT_NAME}:blue")).image |= \"${project_name}-blue\"' -i docker-${orchestration_type}-${project_name}-blue.yml  || (echo "[ERROR] Failed to apply image : ${project_name}-blue in the app YAML." && exit 1)
+      bin/yq -i "(.services.\"${project_name}-${new_state}\").image = \"${project_name}:${new_state}\"" -i docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply image : ${project_name}-${new_state} in the app YAML." && exit 1)
   else
       echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-${orchestration_type}-${project_name}-${app_env}.yml."
-      yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
       sleep 2
-      yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
   fi
 
 }
@@ -61,20 +61,41 @@ apply_docker_compose_environment_onto_app_yaml(){
 
    for state in "${states[@]}"
    do
-       yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-${orchestration_type}-${project_name}-${app_env}.yml
-       yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
+       bin/yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-${orchestration_type}-${project_name}-${app_env}.yml
+       bin/yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
 
-       for ((i=1; i<=$(echo ${docker_compose_environment} | yq eval 'length'); i++))
+       for ((i=1; i<=$(echo ${docker_compose_environment} | bin/yq eval 'length'); i++))
         do
-           yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | yq -r 'to_entries | .['$((i-1))'].value')'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
+           bin/yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | bin/yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | bin/yq -r 'to_entries | .['$((i-1))'].value')'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
         done
    done
 
 }
 
+check_docker_compose_real_host_volumes_directories() {
+
+    local volumes=$(echo "${docker_compose_real_selective_volumes[@]}" | tr -d '[]"')
+
+    for volume in ${volumes}
+    do
+        # Extract the local directory path before the colon (:)
+        local_dir="${volume%%:*}"
+
+        # Check if the directory or file exists
+        if [[ ! -f "$local_dir" && ! -d "$local_dir" ]]; then
+            echo "[ERROR] The local path '$local_dir' specified in DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES does not exist. Exiting..."
+            exit 1
+        fi
+    done
+}
+
 apply_docker_compose_volumes_onto_app_real_yaml(){
 
    check_yq_installed
+
+   if [[ ${docker_compose_host_volume_check} == 'true' ]]; then
+      check_docker_compose_real_host_volumes_directories
+   fi
 
    echo "[NOTICE] DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES on .env is now being applied to docker-${orchestration_type}-${project_name}-real.yml."
 
@@ -86,11 +107,11 @@ apply_docker_compose_volumes_onto_app_real_yaml(){
 
    for state in "${states[@]}"
    do
-       #yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-${orchestration_type}-${project_name}-real.yml
+       #bin/yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-${orchestration_type}-${project_name}-real.yml
 
       for volume in "${docker_compose_real_selective_volumes[@]}"
       do
-          yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-${orchestration_type}-${project_name}-real.yml
+          bin/yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-${orchestration_type}-${project_name}-real.yml
       done
    done
 
@@ -105,9 +126,9 @@ make_docker_build_arg_strings(){
 
    local re=""
 
-   for ((i=1; i<=$(echo ${docker_build_args} | yq eval 'length'); i++))
+   for ((i=1; i<=$(echo ${docker_build_args} | bin/yq eval 'length'); i++))
    do
-       re="${re} --build-arg $(echo ${docker_build_args} | yq -r 'to_entries | .['$((i-1))'].key')=$(echo ${docker_build_args} | yq -r 'to_entries | .['$((i-1))'].value')"
+       re="${re} --build-arg $(echo ${docker_build_args} | bin/yq -r 'to_entries | .['$((i-1))'].key')=$(echo ${docker_build_args} | bin/yq -r 'to_entries | .['$((i-1))'].value')"
    done
 
    echo ${re}
@@ -132,14 +153,36 @@ load_app_docker_image() {
     echo "[NOTICE] Build the image with ${docker_file_location}/${docker_file_name} (using cache)"
     local env_build_args=$(make_docker_build_arg_strings)
     echo "[NOTICE] DOCKER_BUILD_ARGS on the .env : ${env_build_args}"
+    echo "[NOTICE] DOCKER_BUILD_LABELS on the .env : ${docker_build_labels}"
+
+    # Convert DOCKER_BUILD_LABELS to Docker --label arguments
+    local label_args=""
+    IFS=',' read -r -a labels <<< "$docker_build_labels"
+
+    for label in "${labels[@]}"; do
+      # Ensure labels are in correct format (e.g., key=value)
+      formatted_label=$(echo "$label" | sed -e 's/^\[//' -e 's/\]$//' -e 's/^"//' -e 's/"$//' | xargs)
+
+      # Only add to label_args if formatted_label is not empty
+      if [[ -n "$formatted_label" ]]; then
+        label_args+="--label $formatted_label "
+      fi
+    done
+
+    # Trim whitespace and check if label_args is just "--label"
+    if [[ $(echo "$label_args" | xargs) == "--label" ]]; then
+      label_args=""
+    fi
+
+    echo "[NOTICE] Final DOCKER_BUILD_LABELS on the .env : ${label_args} "
 
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
        echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
-       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
+       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest ${label_args} --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
        cd -
     else
        echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
-       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
+       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest ${label_args} --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
        cd -
     fi
 
@@ -252,6 +295,7 @@ check_availability_inside_container(){
 
   echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${container_name}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${container_name} (compose), docker service ps ${project_name}-${check_state}_${project_name}-${check_state} (stack) ' to check the status."   >&2
   echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Current status (inside Container) : \n $(docker logs ${container_name})"   >&2
+  echo "[NOTICE] wait_for_it ( https://github.com/vishnubob/wait-for-it ) will do the Check"  >&2
   local wait_for_it_re=$(docker exec -w ${project_location} ${container_name} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
   if [[ $? != 0 ]]; then
       echo "[ERROR] Failed in getting the correct return from wait-for-it.sh. (${wait_for_it_re})" >&2
@@ -272,7 +316,7 @@ check_availability_inside_container(){
 
       for (( retry_count = 1; retry_count <= ${total_cnt}; retry_count++ ))
       do
-        echo "[NOTICE] ${retry_count} round health check (curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout : ${3} sec)"  >&2
+        echo -e "\033[1;35m[NOTICE] ${retry_count} round health check (curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path})... (timeout: ${3} sec)\033[0m" >&2
         response=$(docker exec ${container_name} sh -c "curl -s -k ${app_https_protocol}://$(concat_safe_port localhost)/${app_health_check_path} --connect-timeout ${3}")
 
         down_count=$(echo ${response} | grep -Ei ${bad_app_health_check_pattern} | wc -l)
@@ -281,7 +325,14 @@ check_availability_inside_container(){
         if [[ ${down_count} -ge 1 || ${up_count} -lt 1 ]]
         then
 
-            echo "[WARNING] Unable to determine the response of the health check or the status is not UP, or Check the REDIRECT_HTTPS_TO_HTTP param in .env (*Response : ${response}), (${container_name}, *Log (print max 25 lines) : $(docker logs --tail 25 ${container_name})"  >&2
+            echo -e "\033[1;35m[WARNING] Unable to determine the health check response, or the status is not UP. Please check the following:\033[0m
+            \033[1;35m1) Verify the REDIRECT_HTTPS_TO_HTTP parameter in .env\033[0m
+            \033[1;35m2) Confirm your app's database connection\033[0m
+            \033[1;35m3) Review your health check settings in .env.\033[0m
+            \033[1;35m*Response:\033[0m ${response}
+            \033[1;35m*Container:\033[0m ${container_name}
+            \033[1;35m*Logs (last 25 lines):\033[0m $(docker logs --tail 25 ${container_name})" >&2
+
 
         else
              echo "[NOTICE] Internal health check of the application succeeded. (*Response: ${response})"  >&2

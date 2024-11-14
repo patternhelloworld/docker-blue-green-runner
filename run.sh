@@ -4,12 +4,15 @@
 set -eu
 
 source use-common.sh
+
+display_checkpoint_message "Checking versions for supporting libraries...(1%)"
+
 check_bash_version
 check_gnu_grep_installed
 check_gnu_sed_installed
+check_yq_installed
 check_git_docker_compose_commands_exist
 
-check_yq_installed
 
 sudo chmod a+x *.sh
 
@@ -18,7 +21,7 @@ sudo bash prevent-crlf.sh
 git config apply.whitespace nowarn
 git config core.filemode false
 
-sleep 3
+sleep 1
 
 source ./use-app.sh
 source ./use-nginx.sh
@@ -181,16 +184,25 @@ backup_to_new_images(){
 
 _main() {
 
-  # [A] Get mandatory variables
+  display_checkpoint_message "Initializing mandatory variables... (2%)"
+
   cache_global_vars
   # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
   local initially_cached_old_state=${state}
   check_env_integrity
 
-  echo "[NOTICE] Finally, !! Deploy the App as !! ${new_state} !!, we will now deploy '${project_name}' in a way of 'Blue-Green'"
+  display_checkpoint_message "Deployment target between Blue and Green has been decided... (3%)"
+  display_planned_transition "$initially_cached_old_state" "$new_state"
+  sleep 2
 
-  # [A-1] Set mandatory files
+  if [[ "${git_image_load_from}" == "build" && -n "${project_git_sha}" && -n "${docker_build_sha_insert_git_root}" ]]; then
+      commit_message=$(get_commit_message "$project_git_sha" "$docker_build_sha_insert_git_root")
+      display_checkpoint_message "Will build this GIT version: $project_git_sha : $commit_message"
+      sleep 1
+  fi
+
   ## App
+  display_checkpoint_message "Setting up the app configuration 'yml' for orchestration type: ${orchestration_type}... (6%)"
   initiate_docker_compose_file
   apply_env_service_name_onto_app_yaml
   apply_docker_compose_environment_onto_app_yaml
@@ -200,8 +212,13 @@ _main() {
   if [[ ${skip_building_app_image} != 'true' ]]; then
     backup_app_to_previous_images
   fi
+
+
   ## Nginx
   if [[ ${nginx_restart} == 'true' ]]; then
+
+    display_checkpoint_message "Since 'nginx_restart' is set to 'true', configuring the Nginx 'yml' for orchestration type: ${orchestration_type}... (7%)"
+
     initiate_nginx_docker_compose_file
     apply_env_service_name_onto_nginx_yaml
     apply_ports_onto_nginx_yaml
@@ -216,7 +233,9 @@ _main() {
   fi
 
 
-  # [A-2] Set 'Shared Volume Group'
+  display_checkpoint_message "Performing additional steps before building images... (10%)"
+
+  # Set 'Shared Volume Group'
   # Detect the platform (Linux or Mac)
   if [[ "$(uname)" == "Darwin" ]]; then
       echo "[NOTICE] Running on Mac. Skipping 'add_host_users_to_host_group' as dscl is used for user and group management."
@@ -227,7 +246,7 @@ _main() {
     fi
   fi
 
-  # [A-3] Etc.
+  # Etc.
   if [[ ${app_env} == 'local' ]]; then
       give_host_group_id_full_permissions
   fi
@@ -235,18 +254,23 @@ _main() {
     terminate_whole_system
   fi
 
-  # [B] Build Docker images for the App, Nginx, Consul
-  if [[ ${skip_building_app_image} != 'true' ]]; then
-    load_app_docker_image
-  fi
 
+
+  if [[ ${skip_building_app_image} != 'true' ]]; then
+      display_checkpoint_message "Building Docker image for the app... ('skip_building_app_image' is set to false) (12%)"
+      load_app_docker_image
+  fi
 
   if [[ ${consul_restart} == 'true' ]]; then
-    load_consul_docker_image
+      display_checkpoint_message "Building Docker image for Consul... ('consul_restart' is set to true) (14%)"
+      load_consul_docker_image
   fi
+
   if [[ ${nginx_restart} == 'true' ]]; then
-    load_nginx_docker_image
+      display_checkpoint_message "Building Docker image for Nginx... ('nginx_restart' is set to true) (16%)"
+      load_nginx_docker_image
   fi
+
 
   if [[ ${only_building_app_image} == 'true' ]]; then
     echo "[NOTICE] Successfully built the App image : ${new_state}" && exit 0
@@ -259,17 +283,21 @@ _main() {
     (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
   fi
 
-  # [C] docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
+  # docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
+  display_checkpoint_message "Starting docker-compose for App, Nginx, and Consul, followed by an internal integrity check for the app... (40%)"
   load_all_containers
 
-  # [D] Set Consul
+
+  display_checkpoint_message "Reached the transition point... (65%)"
+  display_immediate_transition ${state} ${new_state}
   ./nginx-blue-green-activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
 
   # [E] External Integrity Check, if fails, 'emergency-nginx-down-and-up.sh' will be run.
+  display_checkpoint_message "Performing external integrity check. If it fails, 'emergency-nginx-down-and-up.sh' will be executed... (87%)"
   re=$(check_availability_out_of_container | tail -n 1);
   if [[ ${re} != 'true' ]]; then
 
-    echo "[WARNING] ! ${new_state}'s availability issue found. Now we are going to run 'emergency-nginx-down-and-up.sh' immediately."
+    display_checkpoint_message "[WARNING] ! ${new_state}'s availability issue found. Now we are going to run 'emergency-nginx-down-and-up.sh' immediately."
     bash emergency-nginx-down-and-up.sh
 
     re=$(check_availability_out_of_container | tail -n 1);
@@ -281,6 +309,7 @@ _main() {
 
 
   # [F] Finalizing the process : from this point on, regarded as "success".
+  display_checkpoint_message "Finalizing the process. From this point, the deployment will be regarded as successful. (99%)"
   if [[ ${skip_building_app_image} != 'true' ]]; then
     backup_to_new_images
   fi
@@ -290,6 +319,7 @@ _main() {
   echo "[NOTICE] For safety, finally check Consul pointing before stopping the previous container (${initially_cached_old_state})."
   local consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
   if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
+
     if [[ ${orchestration_type} != 'stack' ]]; then
       docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
       echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
@@ -297,14 +327,17 @@ _main() {
        docker stack rm ${project_name}-${initially_cached_old_state}
        echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
     fi
+
+    display_checkpoint_message "CURRENT APP_URL: ${app_url}. Run 'bash check-current-states.sh' whenever you want to check the deployment status and Git SHA."
+    print_git_sha_and_message "${project_name}-${new_state}" "$docker_build_sha_insert_git_root"
+
+    echo "[NOTICE] Delete <none>:<none> images."
+    docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
+
   else
     echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
   fi
 
-  echo "[NOTICE] Delete <none>:<none> images."
-  docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
-
-  echo "[NOTICE] APP_URL : ${app_url}"
 }
 
 _main

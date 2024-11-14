@@ -9,32 +9,55 @@ initiate_nginx_docker_compose_file(){
   echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
 }
 apply_env_service_name_onto_nginx_yaml(){
-  yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YML as ${project_name}." && exit 1)
+  bin/yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YML as ${project_name}." && exit 1)
 }
 apply_ports_onto_nginx_yaml(){
 
      check_yq_installed
 
      echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
-     yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
-     yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
+     bin/yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
+     bin/yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
 
      for i in "${additional_ports[@]}"
      do
         [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
-        yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
+        bin/yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
      done
 
 }
+
+check_docker_compose_nginx_host_volumes_directories() {
+
+    local volumes=$(echo "${docker_compose_nginx_selective_volumes[@]}" | tr -d '[]"')
+
+    for volume in ${volumes}
+    do
+        # Extract the local directory path before the colon (:)
+        local_dir="${volume%%:*}"
+
+        # Check if the directory or file exists
+        if [[ ! -f "$local_dir" && ! -d "$local_dir" ]]; then
+            echo "[ERROR] The local path '$local_dir' specified in DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES does not exist. Exiting..."
+            exit 1
+        fi
+    done
+}
+
+
 apply_docker_compose_volumes_onto_app_nginx_yaml(){
 
    check_yq_installed
+
+    if [[ ${docker_compose_host_volume_check} == 'true' ]]; then
+       check_docker_compose_nginx_host_volumes_directories
+    fi
 
    echo "[NOTICE] DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-${project_name}-nginx.yml."
 
     for volume in "${docker_compose_nginx_selective_volumes[@]}"
     do
-        yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-${project_name}-nginx.yml
+        bin/yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-${project_name}-nginx.yml
     done
 
 }
@@ -293,7 +316,7 @@ nginx_down(){
 nginx_up(){
 
    echo "[NOTICE] Up NGINX Container."
-   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure"
+   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure."
 
 }
 

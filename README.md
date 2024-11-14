@@ -2,12 +2,8 @@
 
 > One Simple Zero-Downtime Blue-Green Deployment with your Dockerfiles
 
-Deploying web projects should be [simple, with high availability and security](https://github.com/Andrew-Kang-G/docker-blue-green-runner?tab=readme-ov-file#Quick-Guide-on-Usage).
-
-- Use ``the latest Release version`` OR at least ``tagged versions`` for your production, NOT the latest commit of the 'main' branch.
-- In production, place your project in a separate folder, not in the samples folder, as they are just examples.
-
 ## Table of Contents
+- [Process Summary](#process-summary)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Quick Start with Samples](#quick-start-with-samples)
@@ -34,8 +30,7 @@ Deploying web projects should be [simple, with high availability and security](h
   - [Consul](#consul)
   - [USE_NGINX_RESTRICTION on .env](#use_nginx_restriction-on-env)
   - [Advanced](#advanced)
-- [Process Summary](#process-summary)
-- [Gitlab Container Registry](#gitlab-container-registry)
+- [GitLab Container Registry (Production)](#gitlab-container-registry-production)
   - [Upload Image (CI/CD Server -> Git)](#upload-image-cicd-server---git)
   - [Download Image (Git -> Production Server)](#download-image-git---production-server)
 - [Extra Information](#extra-information)
@@ -47,6 +42,44 @@ Deploying web projects should be [simple, with high availability and security](h
 
 ---
 
+## Process Summary
+
+- Term Reference
+  - ``All`` means below is "App", "Nginx", "Consul&Registrator".
+  - ``(Re)Load`` means ``docker run.... OR docker-compose up``.
+  - ``State`` is ``Blue`` or ``Green``
+  - More is on [Terms](#terms)
+- Load Consul & Registrator, then the App, and finally Nginx to prevent upstream errors.
+
+
+```mermaid
+graph TD;
+  A[Initialize and Set Variables] --> B[Backup All Images]
+  B --> C[Check the .env File Integrity]
+  C --> D[Build All Images]
+  D --> E[Create Consul Network]
+  E --> F{Reload Consul if Required}
+  F -- Yes --> G[Reload Consul]
+  F -- No --> H[Load Your App]
+  G --> H[Load Your App]
+  H --> I[Check App Integrity]
+  I --> J{Reload Nginx if Required}
+  J -- Yes --> K[Check Nginx Template Integrity by Running a Test Container]
+  J -- No --> L[Check All Containers' Health]
+  K --> L[Check All Containers' Health]
+  L --> M{Set New State Using Consul Template}
+  M -- Fails --> O[Run Nginx Contingency Plan]
+  M -- Success --> N[External Integrity Check]
+  O --> N[External Integrity Check]
+  N -- Fails --> P[Rollback App if Needed]
+  N -- Success --> Q["Remove the Opposite State (Blue or Green) from the Running Containers"]
+  P --> Q["Remove the Opposite State from the Running Containers"]
+  Q --> R[Clean Up Dangling Images]
+  R --> S[Deployment Complete]
+
+```
+![img5.png](/documents/images/img5.png)
+![img6.png](documents/images/img6.png)
 ## Features
 
 - **No Unpredictable Errors in Reverse Proxy and Deployment**
@@ -58,6 +91,7 @@ Deploying web projects should be [simple, with high availability and security](h
 
 - **From Scratch**
   - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." This script covers the entire process from Dockerfile build to server deployment from scratch.
+  - This means you can easily migrate to another server with just the files mentioned above.
   - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which can introduce the types of errors mentioned above.
 
 - Focus on zero-downtime deployment on a single machine.
@@ -105,10 +139,10 @@ Deploying web projects should be [simple, with high availability and security](h
 | git                                   | N/A              | Manual            | -                                                                                                                              |
 | bash                                  | 4.4 at least     | Manual            | -                                                                                                                              |
 | curl                                  | N/A              | Manual            | -                                                                                                                              |
-| yq                                    | 4.35.1           | Manual            | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
+| yq                                    | 4.35.1           | Auto              | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
 | consul (docker image)                 | 1.14.11          | Auto              | An error occurred due to a payload format issue while the lastest version of it was communicating with gliderlabs/registrator. |
 | gliderlabs/registrator (docker image) | master           | Auto              |                                                                                                                                |
-| nginx (docker image)                  | latest           | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |
+| nginx (docker image)                  | 1.25.4           | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |
 | docker                                | 24~27            | Manual            | I think too old versions could cause problems, and the lastest version v27.x causes only a warning message.                    |
 | docker-compose                        | 2                | Manual            | I think too old versions could cause problems, and the v2 is recommended.                                                      |
 
@@ -273,9 +307,9 @@ sudo bash run.sh
 - ```shell
   APP_URL=http://localhost:<--!host-port-number!-->
   PROJECT_PORT=<--!common-port-number!--> OR 
-  PROJECT_PORT=[<--!host-port-number!-->,<--!new-project-port-number!-->]
+  PROJECT_PORT=[<--!host-port-number!-->,<--!internal-project-port-number!-->]
   ```
-  - Additionally, the APP_URL parameter is used for 'check_availability_out_of_container' at [Structure](#Structure)
+  - Additionally, the `APP_URL` parameter is used for the ["External Integrity Check"](#process-summary) process.
   - You can set it as https://localhost:13000 or https://your-domain:13000 for production environments. (Both configurations are acceptable)
   - Moreover, the Runner parses the protocol (http or https), and if it is https, it checks for SSL certificates in the .docker/ssl directory on the host according to the following settings:
   - ```shell
@@ -288,9 +322,23 @@ sudo bash run.sh
 # Set this to 'real' in the .env file for production environments.
 APP_ENV=real
 
+# This path is used for both internal and external health checks.
+# Note: Do not include a leading slash ("/") at the start of the path.
+# Example: "api/v1/health" (correct), "/api/v1/health" (incorrect)
+APP_HEALTH_CHECK_PATH=api/v1/health
+
+# The BAD & GOOD conditions are checked using an "AND" condition.
+# To ignore the "BAD_APP_HEALTH_CHECK_PATTERN", set it to a non-existing value (e.g., "###lsdladc").
+BAD_APP_HEALTH_CHECK_PATTERN=DOWN
+
+# Pattern required for a successful health check.
+GOOD_APP_HEALTH_CHECK_PATTERN=UP
+
+
 # The 'real' setting requires defining 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES'.
 DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
-
+# Check if the host folder or file exists
+DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
 # If APP_ENV is set to 'local', as specified in 'docker-compose-app-local-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".
 # [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. 
 # This option should be used when upgrading the Runner. See the "Upgrade" section below.
@@ -298,6 +346,10 @@ NGINX_RESTART=false
 
 # Setting this to 'true' is not recommended for normal operation as it results in prolonged downtime.
 CONSUL_RESTART=false
+
+# Specify the location of the .git folder for your project here to enable tracking through container labels.
+# To track, simply run `bash check-current_states.sh`.
+DOCKER_BUILD_SHA_INSERT_GIT_ROOT=
 
 # Not recommended for normal operation as it leads to a long downtime.
 # If this is set to true, it entails running 'stop-all-containers.sh & remove-all-images.sh'.
@@ -402,6 +454,8 @@ bash check-current-states.sh
 [DEBUG] ! Checked which (Blue OR Green) is currently running... (Final Check) : blue_score : 130, green_score : 27, state : blue, new_state : green, state_for_emergency : blue, new_upstream : https://PROJECT_NAME:8300.
 ```
 - The higher the score a state receives, the more likely it is to be the currently running state. So the updated App should be deployed as the non-occupied state(new_state).
+  
+- ![img6.png](documents/images/img6.png)
 
 ### Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
@@ -491,44 +545,9 @@ bash check-source-integrity.sh
     - **For the properties of 'environment, volumes', use .env instead of setting them on the yml.**
     - Set ```USE_MY_OWN_APP_YML=true``` on .env
     - ```bash run.sh```
-    
-## Process Summary
-
-- Term Reference 
-  - ``All`` means below is "App", "Nginx", "Consul&Registrator".
-  - ``(Re)Load`` means ``docker run.... OR docker-compose up``.
-  - ``State`` is ``Blue`` or ``Green``
-  - More is on [Terms](#terms)
-- Load Consul & Registrator, then the App, and finally Nginx to prevent upstream errors.
 
 
-```mermaid
-graph TD;
-  A[Initialize and Set Variables] --> B[Backup All Images]
-  B --> C[Check the .env File Integrity]
-  C --> D[Build All Images]
-  D --> E[Create Consul Network]
-  E --> F{Reload Consul if Required}
-  F -- Yes --> G[Reload Consul]
-  F -- No --> H[Load Your App]
-  G --> H[Load Your App]
-  H --> I[Check App Integrity]
-  I --> J{Reload Nginx if Required}
-  J -- Yes --> K[Check Nginx Template Integrity by Running a Test Container]
-  J -- No --> L[Check All Containers' Health]
-  K --> L[Check All Containers' Health]
-  L --> M{Set New State Using Consul Template}
-  M -- Fails --> O[Run Nginx Contingency Plan]
-  M -- Success --> N[External Integrity Check]
-  O --> N[External Integrity Check]
-  N -- Fails --> P[Rollback App if Needed]
-  N -- Success --> Q["Remove the Opposite State (Blue or Green) from the Running Containers"]
-  P --> Q["Remove the Opposite State from the Running Containers"]
-  Q --> R[Clean Up Dangling Images]
-  R --> S[Deployment Complete]
-
-```
-## Gitlab Container Registry
+## Gitlab Container Registry (Production)
 
 ### Upload Image (CI/CD Server -> Git)
   - In case you run the command ``push-to-git.sh``, ``docker-blue-green-runner`` pushes one of ``Blue or Green`` images which is currently running to the address above of the Gitlab Container Registry.

@@ -4,8 +4,114 @@ set -eu
 source ./validator.sh
 source ./use-states.sh
 
+display_emphasized_message() {
+    local message=$1
+    printf "\033[1;34m%s\033[0m\n" "$message"  # Display message in bold blue
+}
+
+display_checkpoint_message() {
+    local message=$1
+    printf "\033[1;34m[CHECKPOINT] %s\033[0m\n" "$message"  # Display message in bold blue
+}
+
+# Function to display a transition message between states in a Blue-Green deployment
+display_planned_transition() {
+    local current_state=$1
+    local target_state=$2
+
+    # Clear the screen and set text to bold blue
+    echo -e "\033[1;34m"  # Bold blue text
+
+    echo "─────────────────────────────"
+    echo "  Current State (${current_state})"
+    echo "─────────────────────────────"
+    echo "              |"
+    echo "  >> Transition planned <<"
+    echo "              v"
+    echo "─────────────────────────────"
+    echo "  Target State (${target_state})"
+    echo "─────────────────────────────"
+    echo -e "\033[0m"  # Reset text style
+}
+
+display_immediate_transition() {
+    local current_state=$1
+    local target_state=$2
+
+    # Display the state transition diagram with a bold blue message
+    echo -e "\033[1;34m"  # Bold blue text
+
+    echo "─────────────────────────────"
+    echo "  Current State (${current_state})"
+    echo "─────────────────────────────"
+    echo "              |"
+    echo "  >> Immediate Transition <<"
+    echo "              v"
+    echo "─────────────────────────────"
+    echo "  Target State (${target_state})"
+    echo "─────────────────────────────"
+    echo -e "\033[0m"  # Reset text style
+    echo -e "\033[1;32m"  # Bold green text for emphasis
+    echo ">>> Transition to ${target_state} is now being executed <<<"
+    echo -e "\033[0m"  # Reset text style
+}
+
+
 to_lower() {
     echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+get_git_sha_or_none() {
+    local target_dir=$1  # Accepts the directory as the first argument
+    local sha=""
+
+    # Check if the directory exists and is a Git repository
+    if [ -d "$target_dir" ] && [ -d "$target_dir/.git" ]; then
+        # Navigate to the target directory
+        pushd "$target_dir" > /dev/null
+        # Retrieve the SHA value and store it in the variable
+        sha=$(git rev-parse HEAD)
+        # Return to the original directory
+        popd > /dev/null
+    else
+        echo "NONE"
+    fi
+
+    # Output the SHA value
+    echo "$sha"
+}
+
+# Function to retrieve the SHA label from the container
+get_container_git_sha() {
+    local container_name=$1
+    docker inspect -f '{{ index .Config.Labels "project.git.sha" }}' "$container_name" 2>/dev/null || echo ""
+}
+
+# Function to retrieve the commit message for a given SHA
+get_commit_message() {
+    local sha=$1
+    local git_location=$2
+    git -C "$git_location" log -1 --pretty=format:"%s" "$sha" 2>/dev/null || echo "Commit message NOT found (docker_build_sha_insert_git_root : $git_location)"
+}
+
+# Function to print SHA and commit message
+print_git_sha_and_message() {
+    local container_name=$1
+    local git_location=$2
+
+    # Retrieve SHA
+    local sha=$(get_container_git_sha "$container_name")
+
+    # Check if SHA was found
+    if [[ -n "$sha" ]]; then
+        # Retrieve commit message
+        local commit_message=$(get_commit_message "$sha" "$git_location")
+
+        echo "[NOTICE] Git SHA for the Current Container: $sha"
+        echo "[NOTICE] Git Commit Message for the Current SHA: $commit_message"
+    else
+        echo "[NOTICE] The 'project.git.sha' label is missing for the container '${container_name}', so the container's Git information cannot be retrieved. It appears the container was created with 'DOCKER_BUILD_SHA_INSERT_GIT_ROOT' left empty in the .env file."
+    fi
 }
 
 set_expose_and_app_port(){
@@ -16,8 +122,8 @@ set_expose_and_app_port(){
   fi
 
   if echo "${1}" | grep -Eq '^\[[0-9]+,[0-9]+\]$'; then
-      expose_port=$(echo "$project_port" | yq e '.[0]' -)
-      app_port=$(echo "$project_port" | yq e '.[1]' -)
+      expose_port=$(echo "$project_port" | bin/yq e '.[0]' -)
+      app_port=$(echo "$project_port" | bin/yq e '.[1]' -)
   else
       expose_port="$project_port"
       app_port="$project_port"
@@ -57,6 +163,19 @@ cache_non_dependent_global_vars() {
   docker_compose_environment=$(get_value_from_env "DOCKER_COMPOSE_ENVIRONMENT")
   docker_build_args=$(get_value_from_env "DOCKER_BUILD_ARGS")
 
+  # Get DOCKER_BUILD_LABELS and Git SHA
+  docker_build_labels=$(get_value_from_env "DOCKER_BUILD_LABELS")
+
+  # and Git SHA
+  docker_build_sha_insert_git_root=$(get_value_from_env "DOCKER_BUILD_SHA_INSERT_GIT_ROOT")
+
+
+  project_git_sha=""
+  if [[ -n "${docker_build_sha_insert_git_root}" ]]; then
+      project_git_sha=$(get_git_sha_or_none "${docker_build_sha_insert_git_root}")
+      docker_build_labels="${docker_build_labels},project.git.sha=${project_git_sha}"
+  fi
+
   consul_key_value_store=$(get_value_from_env "CONSUL_KEY_VALUE_STORE")
   consul_key=$(echo ${consul_key_value_store} | cut -d "/" -f6)\\/$(echo ${consul_key_value_store} | cut -d "/" -f7)
 
@@ -86,6 +205,7 @@ cache_non_dependent_global_vars() {
   fi
 
   docker_compose_nginx_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES")
+  docker_compose_host_volume_check=$(get_value_from_env "DOCKER_COMPOSE_HOST_VOLUME_CHECK")
 
   docker_layer_corruption_recovery=$(get_value_from_env "DOCKER_LAYER_CORRUPTION_RECOVERY")
 
@@ -205,24 +325,66 @@ cache_global_vars() {
 
 check_yq_installed(){
     required_version="4.35.1"
+    yq_path="bin/yq"
 
-    # Check if yq is installed
-    if ! command -v yq >/dev/null 2>&1; then
-        echo >&2 "[ERROR] yq is NOT installed. Please install yq version $required_version manually."
-        echo >&2 "You can download it from the following URL:"
-        echo >&2 "https://github.com/mikefarah/yq/releases/download/v$required_version/yq_linux_amd64"
-        exit 1
+    # Function to download yq
+    download_yq() {
+        echo "[NOTICE] Downloading bin/yq version $required_version..." >&2
+
+        # Detect OS and architecture
+        ARCH=$(uname -m)
+        OS=$(uname | tr '[:upper:]' '[:lower:]')
+
+        # Determine the correct bin/yq binary based on architecture
+        case "$OS-$ARCH" in
+            linux-x86_64)
+                YQ_BINARY="yq_linux_amd64"
+                ;;
+            linux-aarch64)
+                YQ_BINARY="yq_linux_arm64"
+                ;;
+            linux-armv7l | linux-armhf)
+                YQ_BINARY="yq_linux_arm"
+                ;;
+            linux-i386 | linux-i686)
+                YQ_BINARY="yq_linux_386"
+                ;;
+            darwin-x86_64)
+                YQ_BINARY="yq_darwin_amd64"
+                ;;
+            darwin-arm64)
+                YQ_BINARY="yq_darwin_arm64"
+                ;;
+            *)
+                echo >&2 "[ERROR] Unsupported OS or architecture: $OS-$ARCH"
+                exit 1
+                ;;
+        esac
+
+        DOWNLOAD_URL="https://github.com/mikefarah/yq/releases/download/v$required_version/$YQ_BINARY"
+
+        # Download yq
+        curl -L "$DOWNLOAD_URL" -o "$yq_path"
+        chmod +x "$yq_path"
+        echo "[NOTICE] bin/yq version $required_version from $DOWNLOAD_URL has been downloaded to $yq_path." >&2
+    }
+
+    # Check if bin/yq is installed in the bin directory
+    if [ ! -f "$yq_path" ]; then
+        echo "[WARNING] bin/yq is not found in $yq_path. Downloading..." >&2
+        download_yq
     else
-        # Check if installed version is not 4.35.1
-        installed_version=$(yq --version | grep -oP 'version v\K[0-9.]+')
+        # Check if installed bin/yq version is the required version
+        installed_version=$("$yq_path" --version | grep -oP 'version v\K[0-9.]+')
         if [ "$installed_version" != "$required_version" ]; then
-            echo >&2 "[ERROR] yq version is $installed_version. Please install yq version $required_version manually."
-            echo >&2 "You can download it from the following URL:"
-            echo >&2 "https://github.com/mikefarah/yq/releases/download/v$required_version/yq_linux_amd64"
-            exit 1
+            echo "[WARNING] bin/yq version is $installed_version, which is not the required version $required_version." >&2
+            download_yq
+        else
+            echo "[NOTICE] bin/yq version $required_version is already installed in $yq_path." >&2
         fi
     fi
 }
+
 
 check_gnu_grep_installed() {
     # Check if grep is installed
@@ -347,7 +509,7 @@ get_value_from_env(){
   value=$(echo $value | sed -e 's/\r//g')
 
   if [[ -z ${value} ]]; then
-    echo "[WARNING] ${value} for the key ${1} is empty .env." >&2
+    echo "[WARNING] The value for the key ${1} is empty (value : ${value}) .env." >&2
   fi
 
   echo ${value} # return.
@@ -391,7 +553,7 @@ check_empty_env_values(){
 
       value="$(echo -e "${value}" | sed -e 's/^[[:space:]]*|[[:space:]]*$//')"
 
-      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" ]]; then
+      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" && ${key} != "DOCKER_BUILD_LABELS" && ${key} != "DOCKER_BUILD_SHA_INSERT_GIT_ROOT" ]]; then
          empty_keys+=(${key})
       fi
 
