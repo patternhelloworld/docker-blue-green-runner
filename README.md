@@ -2,7 +2,6 @@
 
 > One Simple Zero-Downtime Blue-Green Deployment with your Dockerfiles
 
-
 ## Table of Contents
 - [Process Summary](#process-summary)
 - [Features](#features)
@@ -31,7 +30,7 @@
   - [Consul](#consul)
   - [USE_NGINX_RESTRICTION on .env](#use_nginx_restriction-on-env)
   - [Advanced](#advanced)
-- [Gitlab Container Registry](#gitlab-container-registry)
+- [GitLab Container Registry (Production)](#gitlab-container-registry-production)
   - [Upload Image (CI/CD Server -> Git)](#upload-image-cicd-server---git)
   - [Download Image (Git -> Production Server)](#download-image-git---production-server)
 - [Extra Information](#extra-information)
@@ -80,7 +79,7 @@ graph TD;
 
 ```
 ![img5.png](/documents/images/img5.png)
-
+![img6.png](documents/images/img6.png)
 ## Features
 
 - **No Unpredictable Errors in Reverse Proxy and Deployment**
@@ -348,6 +347,10 @@ NGINX_RESTART=false
 # Setting this to 'true' is not recommended for normal operation as it results in prolonged downtime.
 CONSUL_RESTART=false
 
+# Specify the location of the .git folder for your project here to enable tracking through container labels.
+# To track, simply run `bash check-current_states.sh`.
+DOCKER_BUILD_SHA_INSERT_GIT_ROOT=
+
 # Not recommended for normal operation as it leads to a long downtime.
 # If this is set to true, it entails running 'stop-all-containers.sh & remove-all-images.sh'.
 # In case your project is renamed or moved to another folder, Docker may not work properly.
@@ -451,6 +454,8 @@ bash check-current-states.sh
 [DEBUG] ! Checked which (Blue OR Green) is currently running... (Final Check) : blue_score : 130, green_score : 27, state : blue, new_state : green, state_for_emergency : blue, new_upstream : https://PROJECT_NAME:8300.
 ```
 - The higher the score a state receives, the more likely it is to be the currently running state. So the updated App should be deployed as the non-occupied state(new_state).
+  
+- ![img6.png](documents/images/img6.png)
 
 ### Emergency
 - Nginx (like when Nginx is NOT booted OR 502 error...)
@@ -542,7 +547,7 @@ bash check-source-integrity.sh
     - ```bash run.sh```
 
 
-## Gitlab Container Registry
+## Gitlab Container Registry (Production)
 
 ### Upload Image (CI/CD Server -> Git)
   - In case you run the command ``push-to-git.sh``, ``docker-blue-green-runner`` pushes one of ``Blue or Green`` images which is currently running to the address above of the Gitlab Container Registry.

@@ -153,14 +153,36 @@ load_app_docker_image() {
     echo "[NOTICE] Build the image with ${docker_file_location}/${docker_file_name} (using cache)"
     local env_build_args=$(make_docker_build_arg_strings)
     echo "[NOTICE] DOCKER_BUILD_ARGS on the .env : ${env_build_args}"
+    echo "[NOTICE] DOCKER_BUILD_LABELS on the .env : ${docker_build_labels}"
+
+    # Convert DOCKER_BUILD_LABELS to Docker --label arguments
+    local label_args=""
+    IFS=',' read -r -a labels <<< "$docker_build_labels"
+
+    for label in "${labels[@]}"; do
+      # Ensure labels are in correct format (e.g., key=value)
+      formatted_label=$(echo "$label" | sed -e 's/^\[//' -e 's/\]$//' -e 's/^"//' -e 's/"$//' | xargs)
+
+      # Only add to label_args if formatted_label is not empty
+      if [[ -n "$formatted_label" ]]; then
+        label_args+="--label $formatted_label "
+      fi
+    done
+
+    # Trim whitespace and check if label_args is just "--label"
+    if [[ $(echo "$label_args" | xargs) == "--label" ]]; then
+      label_args=""
+    fi
+
+    echo "[NOTICE] Final DOCKER_BUILD_LABELS on the .env : ${label_args} "
 
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
        echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
-       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
+       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest ${label_args} --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
        cd -
     else
        echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
-       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
+       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest ${label_args} --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
        cd -
     fi
 
@@ -273,6 +295,7 @@ check_availability_inside_container(){
 
   echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] In the ${container_name}  Container, conduct the Connection Check (localhost:${app_port} --timeout=${2}). (If this is delayed, run ' docker logs -f ${container_name} (compose), docker service ps ${project_name}-${check_state}_${project_name}-${check_state} (stack) ' to check the status."   >&2
   echo "[NOTICE] [Internal Integrity Check : will deploy ${check_state}] Current status (inside Container) : \n $(docker logs ${container_name})"   >&2
+  echo "[NOTICE] wait_for_it ( https://github.com/vishnubob/wait-for-it ) will do the Check"  >&2
   local wait_for_it_re=$(docker exec -w ${project_location} ${container_name} ./wait-for-it.sh localhost:${app_port} --timeout=${2}) || (echo "[ERROR] Failed in running (CONTAINER : ${project_location}/wait-for-it.sh)" >&2 &&  echo "false" && return)
   if [[ $? != 0 ]]; then
       echo "[ERROR] Failed in getting the correct return from wait-for-it.sh. (${wait_for_it_re})" >&2

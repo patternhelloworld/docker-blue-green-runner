@@ -4,6 +4,10 @@ set -eu
 source ./validator.sh
 source ./use-states.sh
 
+display_emphasized_message() {
+    local message=$1
+    printf "\033[1;34m%s\033[0m\n" "$message"  # Display message in bold blue
+}
 
 display_checkpoint_message() {
     local message=$1
@@ -57,6 +61,59 @@ to_lower() {
     echo "$1" | tr '[:upper:]' '[:lower:]'
 }
 
+get_git_sha_or_none() {
+    local target_dir=$1  # Accepts the directory as the first argument
+    local sha=""
+
+    # Check if the directory exists and is a Git repository
+    if [ -d "$target_dir" ] && [ -d "$target_dir/.git" ]; then
+        # Navigate to the target directory
+        pushd "$target_dir" > /dev/null
+        # Retrieve the SHA value and store it in the variable
+        sha=$(git rev-parse HEAD)
+        # Return to the original directory
+        popd > /dev/null
+    else
+        echo "NONE"
+    fi
+
+    # Output the SHA value
+    echo "$sha"
+}
+
+# Function to retrieve the SHA label from the container
+get_container_git_sha() {
+    local container_name=$1
+    docker inspect -f '{{ index .Config.Labels "project.git.sha" }}' "$container_name" 2>/dev/null || echo ""
+}
+
+# Function to retrieve the commit message for a given SHA
+get_commit_message() {
+    local sha=$1
+    local git_location=$2
+    git -C "$git_location" log -1 --pretty=format:"%s" "$sha" 2>/dev/null || echo "Commit message NOT found (docker_build_sha_insert_git_root : $git_location)"
+}
+
+# Function to print SHA and commit message
+print_git_sha_and_message() {
+    local container_name=$1
+    local git_location=$2
+
+    # Retrieve SHA
+    local sha=$(get_container_git_sha "$container_name")
+
+    # Check if SHA was found
+    if [[ -n "$sha" ]]; then
+        # Retrieve commit message
+        local commit_message=$(get_commit_message "$sha" "$git_location")
+
+        echo "[NOTICE] Git SHA for the Current Container: $sha"
+        echo "[NOTICE] Git Commit Message for the Current SHA: $commit_message"
+    else
+        echo "[NOTICE] The 'project.git.sha' label is missing for the container '${container_name}', so the container's Git information cannot be retrieved. It appears the container was created with 'DOCKER_BUILD_SHA_INSERT_GIT_ROOT' left empty in the .env file."
+    fi
+}
+
 set_expose_and_app_port(){
 
   if [[ -z ${1} ]]
@@ -105,6 +162,19 @@ cache_non_dependent_global_vars() {
 
   docker_compose_environment=$(get_value_from_env "DOCKER_COMPOSE_ENVIRONMENT")
   docker_build_args=$(get_value_from_env "DOCKER_BUILD_ARGS")
+
+  # Get DOCKER_BUILD_LABELS and Git SHA
+  docker_build_labels=$(get_value_from_env "DOCKER_BUILD_LABELS")
+
+  # and Git SHA
+  docker_build_sha_insert_git_root=$(get_value_from_env "DOCKER_BUILD_SHA_INSERT_GIT_ROOT")
+
+
+  project_git_sha=""
+  if [[ -n "${docker_build_sha_insert_git_root}" ]]; then
+      project_git_sha=$(get_git_sha_or_none "${docker_build_sha_insert_git_root}")
+      docker_build_labels="${docker_build_labels},project.git.sha=${project_git_sha}"
+  fi
 
   consul_key_value_store=$(get_value_from_env "CONSUL_KEY_VALUE_STORE")
   consul_key=$(echo ${consul_key_value_store} | cut -d "/" -f6)\\/$(echo ${consul_key_value_store} | cut -d "/" -f7)
@@ -439,7 +509,7 @@ get_value_from_env(){
   value=$(echo $value | sed -e 's/\r//g')
 
   if [[ -z ${value} ]]; then
-    echo "[WARNING] ${value} for the key ${1} is empty .env." >&2
+    echo "[WARNING] The value for the key ${1} is empty (value : ${value}) .env." >&2
   fi
 
   echo ${value} # return.
@@ -483,7 +553,7 @@ check_empty_env_values(){
 
       value="$(echo -e "${value}" | sed -e 's/^[[:space:]]*|[[:space:]]*$//')"
 
-      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" ]]; then
+      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" && ${key} != "DOCKER_BUILD_LABELS" && ${key} != "DOCKER_BUILD_SHA_INSERT_GIT_ROOT" ]]; then
          empty_keys+=(${key})
       fi
 

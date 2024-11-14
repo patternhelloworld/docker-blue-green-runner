@@ -10,9 +10,9 @@ display_checkpoint_message "Checking versions for supporting libraries...(1%)"
 check_bash_version
 check_gnu_grep_installed
 check_gnu_sed_installed
+check_yq_installed
 check_git_docker_compose_commands_exist
 
-check_yq_installed
 
 sudo chmod a+x *.sh
 
@@ -195,8 +195,14 @@ _main() {
   display_planned_transition "$initially_cached_old_state" "$new_state"
   sleep 2
 
+  if [[ "${git_image_load_from}" == "build" && -n "${project_git_sha}" && -n "${docker_build_sha_insert_git_root}" ]]; then
+      commit_message=$(get_commit_message "$project_git_sha" "$docker_build_sha_insert_git_root")
+      display_checkpoint_message "Will build this GIT version: $project_git_sha : $commit_message"
+      sleep 1
+  fi
+
   ## App
-  display_checkpoint_message "Setting up the app configuration 'yml' for orchestration type: ${orchestration_type}... (5%)"
+  display_checkpoint_message "Setting up the app configuration 'yml' for orchestration type: ${orchestration_type}... (6%)"
   initiate_docker_compose_file
   apply_env_service_name_onto_app_yaml
   apply_docker_compose_environment_onto_app_yaml
@@ -313,6 +319,7 @@ _main() {
   echo "[NOTICE] For safety, finally check Consul pointing before stopping the previous container (${initially_cached_old_state})."
   local consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
   if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
+
     if [[ ${orchestration_type} != 'stack' ]]; then
       docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
       echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
@@ -320,14 +327,17 @@ _main() {
        docker stack rm ${project_name}-${initially_cached_old_state}
        echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
     fi
+
+    display_checkpoint_message "CURRENT APP_URL: ${app_url}. Run 'bash check-current-states.sh' whenever you want to check the deployment status and Git SHA."
+    print_git_sha_and_message "${project_name}-${new_state}" "$docker_build_sha_insert_git_root"
+
+    echo "[NOTICE] Delete <none>:<none> images."
+    docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
+
   else
     echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
   fi
 
-  echo "[NOTICE] Delete <none>:<none> images."
-  docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
-
-  display_checkpoint_message "[NOTICE] APP_URL : ${app_url}"
 }
 
 _main

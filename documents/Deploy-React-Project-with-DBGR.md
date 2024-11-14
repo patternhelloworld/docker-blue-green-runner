@@ -127,7 +127,7 @@
     NGINX_LOGROTATE_FILE_NUMBER=7
     NGINX_LOGROTATE_FILE_SIZE=1M
     
-    # You can change the values below. These settings for security related to ``set-safe-permissions.sh`` at the root of Docker-Blue-Green-Runner.
+    # You can change the values below. These settings for security related to ``apply-security.sh`` at the root of Docker-Blue-Green-Runner.
     SHARED_VOLUME_GROUP_ID=1559
     SHARED_VOLUME_GROUP_NAME=mba-shared-volume-group
     UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID=1000,1001
