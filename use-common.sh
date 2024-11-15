@@ -6,13 +6,15 @@ source ./use-states.sh
 
 display_emphasized_message() {
     local message=$1
-    printf "\033[1;34m%s\033[0m\n" "$message"  # Display message in bold blue
+    printf "\033[1;32m%s\033[0m\n" "$message"  # Display message in bold green
 }
+
 
 display_checkpoint_message() {
     local message=$1
-    printf "\033[1;34m[CHECKPOINT] %s\033[0m\n" "$message"  # Display message in bold blue
+    printf "\033[38;5;214m[CHECKPOINT] %s\033[0m\n" "$message"  # Display message in orange (256-color)
 }
+
 
 # Function to display a transition message between states in a Blue-Green deployment
 display_planned_transition() {
