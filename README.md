@@ -206,80 +206,30 @@ docker-compose up -d
 cd ../../
 cp -f .env.example.php .env
 # For WIN 10 WSL2, \r on shell scripts can cause issues.
-sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/real/run.sh
+chmod +x samples/laravel-crud-boilerplate/.docker/sh/update/run.sh
+sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/run.sh
 
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
 sudo bash run.sh
 ```
 Open https://localhost:8081 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
-### How to Start with a PHP Sample (Local).
-- Check the port number 8081 available before getting this started.
 
-A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
-
-```shell
-# First, as the sample project requires MariaDB, run it separately.
-cd samples/laravel-crud-boilerplate
-docker-compose build
-docker-compose up -d 
-
-```
-
-```shell
-# Go back to the root
-cd ../../
-cp -f .env.php.local .env
-# For WIN WSL2, \r on shell scripts can cause issues.
-sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/real/local.sh
-# [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
-sudo bash run.sh
-```
-and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
-
-
-### How to Start with a Java Spring-Boot Sample (Local).
-- Check the port number 8200 available before getting this started.
-
+### How to Start with a Java Spring-Boot Sample
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
-# You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
-# and then, run ./sample/spring-sample-h-auth/.mysql/schema_all.sql
+# You can use your own MySQL8 Docker or just clone "https://github.com/patternhelloworld/docker-mysql-8"
 ```
 
 ```shell
 # In the ROOT folder,
-cp -f .env.java.local .env # or cp -f .env.example.java .env
-# For WIN WSL2, \r on shell scripts can cause issues.
- sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/local.sh
-sudo bash run.sh
-```
+cp -f .env.example.java .env
 
-
-### How to Start with a Java Spring-Boot Sample (Real, HTTPS commercial SSL).
-```shell
-# First, as the sample project requires MySQL8, run it separately.
-# You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
-# and then, run ./sample/spring-sample-h-auth/.mysql/schema_all.sql
-# Third, you must have SSLs purchased on Domain & SSL selling sites such as Godaddy and etc. 
-```
-
-```shell
-# Read comments carefully on ``.env.example.java.commercial.ssl.sample``, and you should be aware of where to put 'application.properties', 'logback-spring.xml', 'yourdomin.com.jks'
-# In the ROOT folder,
-cp -f .env.example.java.commercial.ssl.sample .env
-
-# For WIN WSL2, \r on shell scripts can cause issues.
+# For WIN 10 WSL2, \r on shell scripts can cause issues.
 sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh
 
-# Make sure to set the path of 'server.ssl.key-store' on application.properties same to be PROJECT_ROOT_IN_CONTAINER on .env. 
-cp -f samples/spring-sample-h-auth/src/main/resources/application.properties.commerical.ssl samples/spring-sample-h-auth/src/main/resources/application.properties
-
 sudo bash run.sh
 ```
-- Focus on ``` 1) .env.java.real.commercial.ssl.sample, 2) samples/spring-sample-h-auth/Dockerfile.real, which is pointing to samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh, 3) samples/spring-sample-h-auth/src/main/resources/application.properties&logback.xml```
-- In case ``APP_ENV`` on ``.env`` is 'real', the Runner points to ``Dockerfile.real`` in priority, and if it does NOT exist, the Runner points to ``Dockerfile``.
-
 
 ## Quick Guide on Usage
 
@@ -315,7 +265,6 @@ BAD_APP_HEALTH_CHECK_PATTERN=DOWN
 GOOD_APP_HEALTH_CHECK_PATTERN=UP
 
 
-# The 'real' setting requires defining 'DOCKER_COMPOSE_SELECTIVE_VOLUMES'.
 DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
 # Check if the host folder or file exists
 DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
@@ -484,7 +433,7 @@ bash emergency-consul-down-and-up.sh
 ### Security
 - In Linux, security begins with file permissions. To ensure that unauthorized users cannot access volume folders while allowing specific users on the host to access them, the following `.env` settings have been added:
 ```shell
-# You can find the implementation of the following on "How to Start with a PHP Sample (Real, HTTPS self-signed SSL)"
+# You can find the implementation of the following on "How to Start with a PHP Sample (HTTPS self-signed SSL)"
 DOCKER_BUILD_ARGS={...,"shared_volume_group_id":"1351","shared_volume_group_name":"laravel-shared-volume-group"}
 
 SHARED_VOLUME_GROUP_ID=1351
