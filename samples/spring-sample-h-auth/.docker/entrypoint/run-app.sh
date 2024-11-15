@@ -17,4 +17,4 @@ if [ -z "$4" ]; then
 fi
 
 echo "[INSIDE APP CONTAINER][NOTICE] Run : java -Xms${3}m -Xmx${4}m -XX:+PrintGCDetails -Xloggc:${2}/logs/auth-gc.log -Dspring.config.location=file:${1}/src/main/resources/application.properties -Dlogging.config=file:${1}/src/main/resources/logback-spring.xml -jar /app.jar > ${2}/logs/auth-start.log 2>&1 &"
-java -Xms${3}m -Xmx${4}m -XX:+PrintGCDetails -Xloggc:${2}/logs/auth-gc.log -Dspring.config.location=file:${1}/src/main/resources/application.properties -Dlogging.config=file:${1}/src/main/resources/logback-spring.xml -jar /app.jar > ${2}/logs/auth-start.log 2>&1 &
+java -Xms${3}m -Xmx${4}m -XX:+PrintGCDetails -Xloggc:${2}/auth-gc.log -Dspring.config.location=file:${1}/src/main/resources/application.properties  -jar /app.jar > ${2}/auth-start.log 2>&1 &

@@ -10,13 +10,13 @@ consul_down_and_up(){
     echo "[NOTICE] As !CONSUL_RESTART is true, which means there will be a short-downtime for CONSUL, terminate CONSUL container and network."
 
     echo "[NOTICE] Forcefully Stop & Remove CONSUL Container."
-    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] The previous Consul & Registrator Container has been stopped, if exists."
+    docker-compose -f docker-orchestration-consul.yml down || echo "[NOTICE] The previous Consul & Registrator Container has been stopped, if exists."
     docker container rm -f consul || echo "[NOTICE] The previous Consul Container has been removed, if exists."
     docker container rm -f registrator || echo "[NOTICE] The previous Registrator Container has been removed, if exists."
 
     echo "[NOTICE] Up CONSUL container"
     # https://github.com/hashicorp/consul/issues/17973
-    docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
+    docker-compose -p consul -f docker-orchestration-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
 
     sleep 7
 }
@@ -26,7 +26,7 @@ consul_down_and_up_with_network(){
     echo "[NOTICE] As !CONSUL_RESTART is true, which means there will be a short-downtime for CONSUL, terminate CONSUL container and network."
 
     echo "[NOTICE] Stop & Remove CONSUL Container."
-    docker-compose -f docker-compose-consul.yml down || echo "[NOTICE] The previous Consul & Registrator Container has been stopped, if exists."
+    docker-compose -f docker-orchestration-consul.yml down || echo "[NOTICE] The previous Consul & Registrator Container has been stopped, if exists."
     docker network disconnect -f consul consul && docker container stop consul && docker container rm consul || echo "[NOTICE] The previous Consul Container has been  removed, if exists."
     docker container rm -f consul || echo "[NOTICE] The previous Consul Container has been removed, if exists."
     docker container rm -f registrator || echo "[NOTICE] The previous Registrator Container has been  removed, if exists."
@@ -48,7 +48,7 @@ consul_down_and_up_with_network(){
 
     echo "[NOTICE] Up CONSUL container"
     # https://github.com/hashicorp/consul/issues/17973
-    docker-compose -p consul -f docker-compose-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
+    docker-compose -p consul -f docker-orchestration-consul.yml up -d || echo "[NOTICE] Consul has already been created. You can ignore this message."
 
     sleep 5
 

@@ -12,7 +12,7 @@ check_git_docker_compose_commands_exist
 cache_global_vars
 
 set_safe_filemode_on_app() {
-    for volume in "${docker_compose_real_selective_volumes[@]}"; do
+    for volume in "${docker_compose_selective_volumes[@]}"; do
         local local_path="${volume%%:*}"
         local_path=$(echo $local_path | sed 's/\s*\[\s*\"\s*//g')
 

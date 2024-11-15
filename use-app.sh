@@ -9,21 +9,21 @@ initiate_docker_compose_file(){
 
     if [[ ${use_my_own_app_yml} == true ]]; then
       if [[ ${orchestration_type} == 'stack' ]]; then
-         echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-${orchestration_type}-${project_name}-${app_env}-original-${new_state}-ready.yml'"
-         cp -f docker-${orchestration_type}-${project_name}-${app_env}-original-${new_state}-ready.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml" && exit 1)
-         echo "[DEBUG] successfully copied docker-${orchestration_type}-${project_name}-${app_env}-original-${new_state}-ready.yml"
+         echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-${orchestration_type}-${project_name}-original-${new_state}-ready.yml'"
+         cp -f docker-${orchestration_type}-${project_name}-original-${new_state}-ready.yml docker-${orchestration_type}-${project_name}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-${project_name}-original-ready.yml" && exit 1)
+         echo "[DEBUG] successfully copied docker-${orchestration_type}-${project_name}-original-${new_state}-ready.yml"
       else
-         echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml'"
-         cp -f docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml" && exit 1)
-         echo "[DEBUG] successfully copied docker-${orchestration_type}-${project_name}-${app_env}-original-ready.yml"
+         echo "[NOTICE] As USE_MY_OWN_APP_YML is set 'true', we will use your customized 'docker-${orchestration_type}-${project_name}-original-ready.yml'"
+         cp -f docker-${orchestration_type}-${project_name}-original-ready.yml docker-${orchestration_type}-${project_name}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-${project_name}-original-ready.yml" && exit 1)
+         echo "[DEBUG] successfully copied docker-${orchestration_type}-${project_name}-original-ready.yml"
       fi
     else
       if [[ ${orchestration_type} == 'stack' ]]; then
-         cp -f docker-${orchestration_type}-app-${app_env}-original-${new_state}.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-${app_env}-original.yml" && exit 1)
+         cp -f docker-${orchestration_type}-app-original-${new_state}.yml docker-${orchestration_type}-${project_name}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-original.yml" && exit 1)
       else
-        cp -f docker-${orchestration_type}-app-${app_env}-original.yml docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-${app_env}-original.yml" && exit 1)
+        cp -f docker-${orchestration_type}-app-original.yml docker-${orchestration_type}-${project_name}.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-original.yml" && exit 1)
       fi
-      echo "[DEBUG] successfully copied docker-${orchestration_type}-app-${app_env}-original.yml"
+      echo "[DEBUG] successfully copied docker-${orchestration_type}-app-original.yml"
     fi
 
 
@@ -35,14 +35,14 @@ apply_env_service_name_onto_app_yaml(){
   check_yq_installed
 
   if [[ ${orchestration_type} == 'stack' ]]; then
-      bin/yq -i "with(.services; with_entries(select(.key ==\"*-${new_state}\") | .key |= \"${project_name}-${new_state}\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-${new_state}\") | .key |= \"${project_name}-${new_state}\"))" docker-${orchestration_type}-${project_name}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
      # bin/yq eval '(.services.[] | select(.image == "${PROJECT_NAME}:blue")).image |= \"${project_name}-blue\"' -i docker-${orchestration_type}-${project_name}-blue.yml  || (echo "[ERROR] Failed to apply image : ${project_name}-blue in the app YAML." && exit 1)
-      bin/yq -i "(.services.\"${project_name}-${new_state}\").image = \"${project_name}:${new_state}\"" -i docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply image : ${project_name}-${new_state} in the app YAML." && exit 1)
+      bin/yq -i "(.services.\"${project_name}-${new_state}\").image = \"${project_name}:${new_state}\"" -i docker-${orchestration_type}-${project_name}.yml || (echo "[ERROR] Failed to apply image : ${project_name}-${new_state} in the app YAML." && exit 1)
   else
-      echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-${orchestration_type}-${project_name}-${app_env}.yml."
-      bin/yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
+      echo "[NOTICE] PROJECT_NAME on .env is now being applied to docker-${orchestration_type}-${project_name}.yml."
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-blue\") | .key |= \"${project_name}-blue\"))" docker-${orchestration_type}-${project_name}.yml || (echo "[ERROR] Failed to apply the blue service name in the app YAML as ${project_name}." && exit 1)
       sleep 2
-      bin/yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-${orchestration_type}-${project_name}-${app_env}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
+      bin/yq -i "with(.services; with_entries(select(.key ==\"*-green\") | .key |= \"${project_name}-green\"))" docker-${orchestration_type}-${project_name}.yml || (echo "[ERROR] Failed to apply the green service name in the app YAML as ${project_name}." && exit 1)
   fi
 
 }
@@ -51,7 +51,7 @@ apply_docker_compose_environment_onto_app_yaml(){
 
    check_yq_installed
 
-   echo "[NOTICE] DOCKER_COMPOSE_ENVIRONMENT on .env is now being applied to docker-${orchestration_type}-${project_name}-${app_env}.yml."
+   echo "[NOTICE] DOCKER_COMPOSE_ENVIRONMENT on .env is now being applied to docker-${orchestration_type}-${project_name}.yml."
 
    if [[ ${orchestration_type} == 'stack' ]]; then
     local states=("${new_state}")
@@ -61,20 +61,20 @@ apply_docker_compose_environment_onto_app_yaml(){
 
    for state in "${states[@]}"
    do
-       bin/yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-${orchestration_type}-${project_name}-${app_env}.yml
-       bin/yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
+       bin/yq -i '.services.'${project_name}'-'${state}'.environment = []' docker-${orchestration_type}-${project_name}.yml
+       bin/yq -i '.services.'${project_name}'-'${state}'.environment += "SERVICE_NAME='${state}'"' docker-${orchestration_type}-${project_name}.yml
 
        for ((i=1; i<=$(echo ${docker_compose_environment} | bin/yq eval 'length'); i++))
         do
-           bin/yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | bin/yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | bin/yq -r 'to_entries | .['$((i-1))'].value')'"' docker-${orchestration_type}-${project_name}-${app_env}.yml
+           bin/yq -i '.services.'${project_name}'-'${state}'.environment += "'$(echo ${docker_compose_environment} | bin/yq -r 'to_entries | .['$((i-1))'].key')'='$(echo ${docker_compose_environment} | bin/yq -r 'to_entries | .['$((i-1))'].value')'"' docker-${orchestration_type}-${project_name}.yml
         done
    done
 
 }
 
-check_docker_compose_real_host_volumes_directories() {
+check_docker_compose_host_volumes_directories() {
 
-    local volumes=$(echo "${docker_compose_real_selective_volumes[@]}" | tr -d '[]"')
+    local volumes=$(echo "${docker_compose_selective_volumes[@]}" | tr -d '[]"')
 
     for volume in ${volumes}
     do
@@ -83,21 +83,21 @@ check_docker_compose_real_host_volumes_directories() {
 
         # Check if the directory or file exists
         if [[ ! -f "$local_dir" && ! -d "$local_dir" ]]; then
-            echo "[ERROR] The local path '$local_dir' specified in DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES does not exist. Exiting..."
+            echo "[ERROR] The local path '$local_dir' specified in DOCKER_COMPOSE_SELECTIVE_VOLUMES does not exist. Exiting..."
             exit 1
         fi
     done
 }
 
-apply_docker_compose_volumes_onto_app_real_yaml(){
+apply_docker_compose_volumes_onto_app_yaml(){
 
    check_yq_installed
 
    if [[ ${docker_compose_host_volume_check} == 'true' ]]; then
-      check_docker_compose_real_host_volumes_directories
+      check_docker_compose_host_volumes_directories
    fi
 
-   echo "[NOTICE] DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES on .env is now being applied to docker-${orchestration_type}-${project_name}-real.yml."
+   echo "[NOTICE] DOCKER_COMPOSE_SELECTIVE_VOLUMES on .env is now being applied to docker-${orchestration_type}-${project_name}.yml."
 
    if [[ ${orchestration_type} == 'stack' ]]; then
     local states=("${new_state}")
@@ -107,11 +107,11 @@ apply_docker_compose_volumes_onto_app_real_yaml(){
 
    for state in "${states[@]}"
    do
-       #bin/yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-${orchestration_type}-${project_name}-real.yml
+       #bin/yq -i '.services.'${project_name}'-'${state}'.volumes = []' ./docker-${orchestration_type}-${project_name}.yml
 
-      for volume in "${docker_compose_real_selective_volumes[@]}"
+      for volume in "${docker_compose_selective_volumes[@]}"
       do
-          bin/yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-${orchestration_type}-${project_name}-real.yml
+          bin/yq -i '.services.'${project_name}'-'${state}'.volumes += '${volume}'' ./docker-${orchestration_type}-${project_name}.yml
       done
    done
 
@@ -177,12 +177,12 @@ load_app_docker_image() {
     echo "[NOTICE] Final DOCKER_BUILD_LABELS on the .env : ${label_args} "
 
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
-       echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
-       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest ${label_args} --build-arg server="${app_env}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
+       echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest ${label_args} ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ${docker_build_additional_raw_params} ."
+       cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest ${label_args} ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ${docker_build_additional_raw_params} . || exit 1
        cd -
     else
-       echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
-       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest ${label_args} --build-arg server="${app_env}" --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} . || exit 1
+       echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest ${label_args} --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ${docker_build_additional_raw_params} ."
+       cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest ${label_args} --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ${docker_build_additional_raw_params} . || exit 1
        cd -
     fi
 
@@ -202,16 +202,29 @@ app_down_and_up(){
     if [[ ${orchestration_type} == 'stack' ]]; then
       echo "[NOTICE] Down & Up '${project_name}-${new_state} stack'."
       docker stack rm ${project_name}-${new_state} || echo "[NOTICE] The ${project_name}-${new_state} stack has been removed, if exists."
-      docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name}-${new_state} || (echo "[ERROR] Service ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment. (command : docker stack deploy --compose-file docker-${orchestration_type}-${project_name}-${app_env}.yml ${project_name})" && exit 1)
+      docker stack deploy --compose-file docker-${orchestration_type}-${project_name}.yml ${project_name}-${new_state} || (echo "[ERROR] Service ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment. (command : docker stack deploy --compose-file docker-${orchestration_type}-${project_name}.yml ${project_name})" && exit 1)
 
       # [TO DO] docker stack takes a long time to be up. it needs to use a good logic instead of sleep.
       sleep 20
 
     else
       echo "[NOTICE] Down & Up '${project_name}-${new_state} container'."
-      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
-      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
-      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml up -d ${project_name}-${new_state} || (echo "[ERROR] App ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment." && exit 1)
+      docker-compose -f docker-${orchestration_type}-${project_name}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been stopped, if exists."
+      docker-compose -f docker-${orchestration_type}-${project_name}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The previous ${new_state} Container has been removed, if exists."
+      docker-compose -f docker-${orchestration_type}-${project_name}.yml up -d ${project_name}-${new_state} || (
+          echo "[ERROR] App ${new_state} UP failure, however that does NOT affect the current deployment, as this is Blue-Green Deployment."
+          # Check if use_my_own_app_yml is set to true
+          if [[ ${use_my_own_app_yml} == true ]]; then
+                echo "[INFO] Since use_my_own_app_yml is set to true, please note the following:"
+                echo "1) The service name should remain the same as in the original YAML file, even if customization is possible."
+                echo "2) For environment variables, set values directly in the .env file."
+                echo "3) For volumes, also configure them directly in the .env file."
+                exit 1
+          else
+              exit 1
+          fi
+      )
+
       echo "[NOTICE] '${project_name}-${new_state} container' : successfully UP."
     fi
 

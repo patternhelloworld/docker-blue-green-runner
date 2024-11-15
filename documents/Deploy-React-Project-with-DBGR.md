@@ -13,16 +13,12 @@
 #### Points
 - ``443`` indicated below
 - ``DOCKER_BUILD_ARGS`` for your Dockerfile
-- ``DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES`` for your Volumes.
+- ``DOCKER_COMPOSE_SELECTIVE_VOLUMES`` for your Volumes.
 - ``REDIRECT_HTTPS_TO_HTTP``
 - .env file
 - ```dotenv
     # Leave as it is
     HOST_IP=host.docker.internal
-    # Set this to 'real' in the .env file for production environments.
-    # This affects 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES' below
-    # If this is set to 'local', the whole projects is set to be Volumed.
-    APP_ENV=real
     
     # It is recommended to enter your formal URL or IP, such as https://test.com, for the 'check_availability_out_of_container' test in the 'run.sh' script.
     # Both https://your-app.com:443 and https://localhost:443 are valid
@@ -89,14 +85,13 @@
     # GOOD_APP_HEALTH_CHECK_PATTERN=Head
     
     
-    # This is for environment variables for docker-compose-app-${app_env}.
+    # This is for environment variables for docker-compose-app.
     DOCKER_COMPOSE_ENVIRONMENT={"TZ":"Asia/Seoul"}
     # [IMPORTANT] You can pass any variable to Step 2 of your Dockerfile using DOCKER_BUILD_ARGS, e.g., DOCKER_BUILD_ARGS={"PROJECT_ROOT_IN_CONTAINER":"/app"}."
     DOCKER_BUILD_ARGS={"PROJECT_ROOT_IN_CONTAINER":"/app"}
-    # In the case of "REAL," the project is not synchronized in its entirety. The source codes that are required for only production are injected.
-    # For SSL, the host folder is recommended to be './.docker/ssl' to be synchronized with 'docker-compose-nginx-original.yml'.
+    # For SSL, the host folder is recommended to be './.docker/ssl' to be synchronized with 'docker-orchestration-app-nginx-original.yml'.
     # [IMPORTANT] Run mkdir -p /var/projects/files/your-app/logs on your host machine
-    DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/var/projects/your-app/.docker/nginx/app.conf.ctmpl:/etc/nginx-template/app.conf.ctmpl","/var/projects/files/your-app/logs:/var/log/nginx"]
+    DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/var/projects/your-app/.docker/nginx/app.conf.ctmpl:/etc/nginx-template/app.conf.ctmpl","/var/projects/files/your-app/logs:/var/log/nginx"]
     # [IMPORTANT] Run mkdir -p /var/projects/files/nginx/logs on your host machine
     DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES=["/var/projects/files/nginx/logs:/var/log/nginx"]
     DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
@@ -186,7 +181,7 @@ ENTRYPOINT bash /entrypoint.sh
    - entrypoint.sh
      - ```shell
        #!/bin/bash
-        # synced the paths at DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES in .env
+        # synced the paths at DOCKER_COMPOSE_SELECTIVE_VOLUMES in .env
         cat /etc/nginx-template/app.conf.ctmpl > /etc/nginx/conf.d/default.conf
         /usr/sbin/nginx -t && exec /usr/sbin/nginx -g "daemon off;"
        ```

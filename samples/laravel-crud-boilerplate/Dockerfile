@@ -1,3 +1,49 @@
+FROM php:7.4-fpm-buster as backend-build
+
+RUN apt-get -qqy update && apt-get -qqy upgrade
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        locales \
+        apt-utils \
+        git \
+        g++ \
+        libicu-dev \
+        libpng-dev \
+        libxml2-dev \
+        libzip-dev \
+        libonig-dev \
+        libxslt-dev \
+        unzip \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        apache2 \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install \
+        pdo \
+        pdo_mysql \
+        opcache \
+        intl \
+        zip \
+        calendar \
+        dom \
+        mbstring \
+        gd \
+        xsl \
+    && pecl install apcu \
+    && docker-php-ext-enable apcu
+
+
+RUN curl -s https://getcomposer.org/installer | php \
+    && mv composer.phar /usr/local/bin/composer
+
+ARG DISABLE_CACHE
+
+COPY ./ /var/www/app
+WORKDIR /var/www/app
+RUN composer install --prefer-dist --optimize-autoloader --no-interaction
+
+
 FROM php:7.4-fpm-buster  as production
 
 ARG server
@@ -51,6 +97,13 @@ RUN \cp /usr/local/etc/php/php.ini-production  /usr/local/etc/php/php.ini \
 && a2enmod headers \
 && usermod -u 1000 www-data && groupmod -g 1000 www-data
 
+ARG shared_volume_group_id
+
+RUN if getent group $shared_volume_group_id ; then \
+        usermod -aG $shared_volume_group_id www-data; \
+    else \
+        groupadd -g $shared_volume_group_id shared-volume-group && usermod -aG shared-volume-group www-data; \
+    fi
 
 
 RUN sed -i -E "s/(post_max_size\s*=\s*)[^\n\r]+/\1100M/" /usr/local/etc/php/php.ini \
@@ -59,17 +112,13 @@ RUN sed -i -E "s/(post_max_size\s*=\s*)[^\n\r]+/\1100M/" /usr/local/etc/php/php.
 
 RUN curl -s https://getcomposer.org/installer | php \
     && mv composer.phar /usr/local/bin/composer && \
-    chmod +x /usr/local/bin/composer && \
-    ## https://stackoverflow.com/questions/46263043/how-to-setup-docker-phpstorm-xdebug-on-ubuntu-16-04
-    ## https://bugs.xdebug.org/view.php?id=1593
-    pecl install xdebug-3.0.2
+    chmod +x /usr/local/bin/composer
 
 ARG DISABLE_CACHE
 
-ARG HOST_IP
-ENV HOST_IP=${HOST_IP}
 
-RUN echo "" >> /var/log/xdebug.log && chmod 777 /var/log/xdebug.log && echo "xdebug.log_level=1 \n xdebug.log=/var/log/xdebug.log \n zend_extension = xdebug.so \n xdebug.idekey=PHPSTORM \n xdebug.discover_client_host=0 \n xdebug.default_enable = 1 \n xdebug.remote_handler = "dbgp" \n xdebug.remote_port=9002 \n xdebug.client_host=${HOST_IP} \n xdebug.client_port=9002 \n xdebug.mode=debug" >> /usr/local/etc/php/conf.d/xdebug.ini
+COPY --from=backend-build /var/www/app/ /var/www/app
+WORKDIR /var/www/app
 
 ARG SAMPLE
 ENV SAMPLE=${SAMPLE}
@@ -83,7 +132,7 @@ WORKDIR /var/www/app
 
 COPY ./.docker/etc/apache2/apache2.conf /etc/apache2/apache2.conf
 COPY ./.docker/etc/apache2/sites-available/default.conf /etc/apache2/sites-available/default.conf
-COPY ./.docker/etc/apache2/sites-available/ssl-substr /etc/apache2/sites-available/ssl-substr
+
 COPY ./.docker/etc/apache2/conf-enabled/security.conf /etc/apache2/conf-enabled/security.conf
 
 COPY ./.docker/etc/sysctl.conf /etc/sysctl.conf

@@ -24,25 +24,18 @@
 # misc
 **/.DS_Store
 
-/docker-compose-*-nginx.yml
-/docker-compose-*-local.yml
-/docker-compose-*-real.yml
+/docker-orchestration-*-nginx.yml
+!/docker-orchestration-app-nginx-original.yml
+
+/docker-compose-*.yml
+
 /docker-compose-*-ready.yml
-/!docker-compose-app-local-original.yml
-/!docker-compose-app-real-original.yml
+!/docker-compose-app-original.yml
 
-
-/docker-stack-*-nginx.yml
-/docker-stack-*-local.yml
-/docker-stack-*-real.yml
+/docker-stack-*.yml
 /docker-stack-*-ready.yml
-/!docker-stack-app-local-original-blue.yml
-/!docker-stack-app-local-original-green.yml
-/!docker-stack-app-real-original-blue.yml
-/!docker-stack-app-real-original-green.yml
-
-/!docker-compose-app-nginx-original.yml
-/!docker-compose-consul.yml
+!/docker-stack-app-original-blue.yml
+!/docker-stack-app-original-green.yml
 
 /.docker/nginx/template/ctmpl/http/*
 !/.docker/nginx/template/ctmpl/http/.gitkeep

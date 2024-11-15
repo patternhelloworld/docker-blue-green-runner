@@ -8,12 +8,12 @@
 - [Requirements](#requirements)
 - [Quick Start with Samples](#quick-start-with-samples)
   - [Provided Samples](#provided-samples)
-  - [How to Start with a React Guide (Real)](#how-to-start-with-a-react-guide-real)
-  - [How to Start with a Node Sample (Local)](#how-to-start-with-a-node-sample-local)
-  - [How to Start with a PHP Sample (Real, HTTPS self-signed SSL)](#how-to-start-with-a-php-sample-real-https-self-signed-ssl)
-  - [How to Start with a PHP Sample (Local)](#how-to-start-with-a-php-sample-local)
-  - [How to Start with a Java Spring-Boot Sample (Local)](#how-to-start-with-a-java-spring-boot-sample-local)
-  - [How to Start with a Java Spring-Boot Sample (Real, HTTPS commercial SSL)](#how-to-start-with-a-java-spring-boot-sample-real-https-commercial-ssl)
+  - [How to Start with a React Guide](#how-to-start-with-a-react-guide)
+  - [How to Start with a Node Sample](#how-to-start-with-a-node-sample)
+  - [How to Start with a PHP Sample (HTTPS self-signed SSL)](#how-to-start-with-a-php-sample-https-self-signed-ssl)
+  - [How to Start with a PHP Sample](#how-to-start-with-a-php-sample)
+  - [How to Start with a Java Spring-Boot Sample](#how-to-start-with-a-java-spring-boot-sample)
+  - [How to Start with a Java Spring-Boot Sample (HTTPS commercial SSL)](#how-to-start-with-a-java-spring-boot-sample-https-commercial-ssl)
 - [Quick Guide on Usage](#quick-guide-on-usage)
   - [Information on Environment Variables](#information-on-environment-variables)
     - [APP_URL](#app_url)
@@ -113,10 +113,6 @@ graph TD;
 ### Application Requirements
 
 - The image or Dockerfile in your application should include the `bash` and `curl` commands, as demonstrated in the `./samples/spring-sample-h-auth` folder as an example.
-- Do **not** build or run 'local' and 'real' environments simultaneously, as both share the same image and container names.
-  - ```shell
-    # In your .env,
-    APP_ENV=real
   
 
 ### Permissions and File Structure
@@ -154,23 +150,23 @@ graph TD;
 ## Quick Start with Samples
 
 ### Provided Samples
-|         | Local (Development) | Real (Production) |
-|---------|---------------------|-------------------|
-| Node.js | O                   | not yet           |
-| PHP     | O                   | O                 |
-| Java    | O                   | O                 |
-| React   | X                   | O                 |
+|         | O/X |
+|---------|-----|
+| Node.js | O   |
+| PHP     | O   |
+| Java    | O   |
+| React   | O   |
 
-### How to Start with a React Guide (Real)
+### How to Start with a React Guide
 [Link : Deploy your static React project](documents/Deploy-React-Project-with-DBGR.md)
 
-### How to Start with a Node Sample (Local)
+### How to Start with a Node Sample
 - Check the port number 13000 available before getting this started.
 
 A Node.js sample project (https://github.com/hagopj13/node-express-boilerplate) comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
 ```shell
-# First, since the sample project requires MongoDB, run it separately.
+# First, since the sample project requires MongoDB, run it separately. This is only for DB UP, no docker-compose.yml required for your project.
 cd samples/node-express-boilerplate
 docker-compose build
 docker-compose up -d mongodb
@@ -181,7 +177,7 @@ docker-compose up -d mongodb
 # Return to the ROOT directory.
 cd ../../
 # Copy the local environment settings to the main .env file.
-cp -f .env.node.local .env
+cp -f .env.example.node .env
 # If 'host.docker.internal' is not available, change 'host.docker.internal' in the ./.env file to your host IP.
 # If you would like the exposed port to be 80, correct two properties in .env to be the following.
 ## APP_URL=http://localhost:80
@@ -193,16 +189,8 @@ sudo bash run.sh
 ```
 
 
-### How to Start with a PHP Sample (Real, HTTPS self-signed SSL)
+### How to Start with a PHP Sample (HTTPS self-signed SSL)
 - Check the port number 8081 available before getting this started.
-
-Differences between ``./samples/laravel-crud-boilerplate/Dockerfile.local`` and ``./samples/laravel-crud-boilerplate/Dockerfile.real``
-
-1) Staging build : (Local - no, Real - yes to reduce the size of the image)
-2) Volume for the whole project : (Local - yes, Real - no. copy the whole project only one time)
-3) SSL : (Local - not required, Real - yes, you can. as long as you set APP_URL on .env starting with 'https')
-
-- The runner detects file names of ``Dockefile`` or ``Dockerfile.${app_env}``
 
 A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
 
@@ -211,93 +199,37 @@ A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate)
 cd samples/laravel-crud-boilerplate
 docker-compose build
 docker-compose up -d 
-# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'HOST_IP' to your host IP in the ./samples/laravel-crud-boilerplate/.env
 ```
 
 ```shell
 # Go back to the root
 cd ../../
-cp -f .env.php.real .env
+cp -f .env.example.php .env
 # For WIN 10 WSL2, \r on shell scripts can cause issues.
-sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/real/run.sh
-# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
+chmod +x samples/laravel-crud-boilerplate/.docker/sh/update/run.sh
+sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/run.sh
+
 # [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
 sudo bash run.sh
 ```
 Open https://localhost:8081 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
-### How to Start with a PHP Sample (Local).
-- Check the port number 8081 available before getting this started.
 
-A PHP sample project (https://github.com/Andrew-Kang-G/laravel-crud-boilerplate) that comes with an MIT License and serves as an example for demonstrating how to use Docker-Blue-Green-Runner.
-
-```shell
-# First, as the sample project requires MariaDB, run it separately.
-cd samples/laravel-crud-boilerplate
-docker-compose build
-docker-compose up -d 
-# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'HOST_IP' to your host IP in the ./samples/laravel-crud-boilerplate/.env
-```
-
-```shell
-# Go back to the root
-cd ../../
-cp -f .env.php.local .env
-# For WIN WSL2, \r on shell scripts can cause issues.
-sed -i -e 's/\r$//' samples/laravel-crud-boilerplate/.docker/sh/update/real/local.sh
-# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
-# [NOTE] Initially, since the sample project does not have the "vendor" installed, the Health Check stage may take longer.
-sudo bash run.sh
-```
-and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
-
-
-### How to Start with a Java Spring-Boot Sample (Local).
-- Check the port number 8200 available before getting this started.
-
+### How to Start with a Java Spring-Boot Sample
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
-# You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
-# and then, run ./sample/spring-sample-h-auth/.mysql/schema_all.sql
-# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'application-local.properties' to your host IP in the ./samples/spring-sample-h-auth/src/main/resources/application-local.properties
+# You can use your own MySQL8 Docker or just clone "https://github.com/patternhelloworld/docker-mysql-8"
 ```
 
 ```shell
 # In the ROOT folder,
-cp -f .env.java.local .env # or cp -f .env.java.real .env
-# For WIN WSL2, \r on shell scripts can cause issues.
- sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/local.sh
-# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
-sudo bash run.sh
-```
+cp -f .env.example.java .env
 
-
-### How to Start with a Java Spring-Boot Sample (Real, HTTPS commercial SSL).
-```shell
-# First, as the sample project requires MySQL8, run it separately.
-# You can use your own MySQL8 Docker or just clone "https://github.com/Andrew-Kang-G/docker-my-sql-replica"
-# and then, run ./sample/spring-sample-h-auth/.mysql/schema_all.sql
-# Second, In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' for 'application-local.properties' to your host IP in the ./samples/spring-sample-h-auth/src/main/resources/application-local.properties
-# Third, you must have SSLs purchased on Domain & SSL selling sites such as Godaddy and etc. 
-```
-
-```shell
-# Read comments carefully on ``.env.java.real.commercial.ssl.sample``, and you should be aware of where to put 'application.properties', 'logback-spring.xml', 'yourdomin.com.jks'
-# In the ROOT folder,
-cp -f .env.java.real.commercial.ssl.sample .env
-
-# For WIN WSL2, \r on shell scripts can cause issues.
+# For WIN 10 WSL2, \r on shell scripts can cause issues.
 sed -i -e 's/\r$//' samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh
 
-# Make sure to set the path of 'server.ssl.key-store' on application.properties same to be PROJECT_ROOT_IN_CONTAINER on .env. 
-cp -f samples/spring-sample-h-auth/src/main/resources/application.properties.commerical.ssl samples/spring-sample-h-auth/src/main/resources/application.properties
-
-# In case you use a Mac, you are not available with 'host.docker.internal', so change 'host.docker.internal' to your host IP in the ./.env file.
 sudo bash run.sh
 ```
-- Focus on ``` 1) .env.java.real.commercial.ssl.sample, 2) samples/spring-sample-h-auth/Dockerfile.real, which is pointing to samples/spring-sample-h-auth/.docker/entrypoint/run-app.sh, 3) samples/spring-sample-h-auth/src/main/resources/application.properties&logback.xml```
-- In case ``APP_ENV`` on ``.env`` is 'real', the Runner points to ``Dockerfile.real`` in priority, and if it does NOT exist, the Runner points to ``Dockerfile``.
-
 
 ## Quick Guide on Usage
 
@@ -319,8 +251,6 @@ sudo bash run.sh
   - In case USE_COMMERCIAL_SSL is 'false', the Runner generates self-signed SSL certificates. However, you should set any name for ``COMMERCIAL_SSL_NAME``.
 
 ```shell
-# Set this to 'real' in the .env file for production environments.
-APP_ENV=real
 
 # This path is used for both internal and external health checks.
 # Note: Do not include a leading slash ("/") at the start of the path.
@@ -335,11 +265,10 @@ BAD_APP_HEALTH_CHECK_PATTERN=DOWN
 GOOD_APP_HEALTH_CHECK_PATTERN=UP
 
 
-# The 'real' setting requires defining 'DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES'.
-DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
+DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
 # Check if the host folder or file exists
 DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
-# If APP_ENV is set to 'local', as specified in 'docker-compose-app-local-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".
+# If APP_ENV is set to 'local', as specified in 'docker-compose-app-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".
 # [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. 
 # This option should be used when upgrading the Runner. See the "Upgrade" section below.
 NGINX_RESTART=false
@@ -356,7 +285,7 @@ DOCKER_BUILD_SHA_INSERT_GIT_ROOT=
 # In case your project is renamed or moved to another folder, Docker may not work properly.
 DOCKER_LAYER_CORRUPTION_RECOVERY=false
 
-# The value should be in JSON format, which is injected into docker-compose-app-${app_env}.yml
+# The value should be in JSON format, which is injected into docker-compose-app.yml
 DOCKER_COMPOSE_ENVIRONMENT={"MONGODB_URL":"mongodb://host.docker.internal:27017/node-boilerplate","NODE_ENV":"development"}
 
 # [IMPORTANT] If you set this to 'true', you won't need to configure SSL for your app. For instance, in a Spring Boot project, you won't have to create a ".jks" file. However, in rare situations, such as when it's crucial to secure all communication lines with SSL or when converting HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.If you set this to 'true', you don't need to set SSL on your App like for example, for a Spring Boot project, you won't need to create the ".jks" file. However, in rare cases, such as ensuring all communication lines are SSL-protected, or when HTTPS to HTTP causes 'curl' errors, you might need to set it to 'false'.
@@ -504,7 +433,7 @@ bash emergency-consul-down-and-up.sh
 ### Security
 - In Linux, security begins with file permissions. To ensure that unauthorized users cannot access volume folders while allowing specific users on the host to access them, the following `.env` settings have been added:
 ```shell
-# You can find the implementation of the following on "How to Start with a PHP Sample (Real, HTTPS self-signed SSL)"
+# You can find the implementation of the following on "How to Start with a PHP Sample (HTTPS self-signed SSL)"
 DOCKER_BUILD_ARGS={...,"shared_volume_group_id":"1351","shared_volume_group_name":"laravel-shared-volume-group"}
 
 SHARED_VOLUME_GROUP_ID=1351
@@ -529,7 +458,7 @@ bash check-source-integrity.sh
 
 ### Consul
 `` http://localhost:8500 ``
-- Need to set a firewall for the 8500 port referring to ``./docker-compose-consul.yml``.
+- Need to set a firewall for the 8500 port referring to ``./docker-orchestration-consul.yml``.
 
 ### USE_NGINX_RESTRICTION on .env
 - https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication
@@ -540,8 +469,8 @@ bash check-source-integrity.sh
   - Docker-Blue-Green-Runner uses your App's only ```Dockerfile```, NOT ```docker-compose```.
   - You can set 'DOCKER_COMPOSE_ENVIRONMENT' on .env to change environments when your container is up.
   - **However, in case you need more to set, follow this step.**
-    - ```cp -f docker-compose-app-${app_env}-original.yml docker-compose-${project_name}-${app_env}-original-ready.yml```
-    - Add variables you would like to ```docker-compose-${project_name}-${app_env}-original-ready.yml```
+    - ```cp -f docker-compose-app-original.yml docker-compose-${project_name}-original-ready.yml```
+    - Add variables you would like to ```docker-compose-${project_name}-original-ready.yml```
     - **For the properties of 'environment, volumes', use .env instead of setting them on the yml.**
     - Set ```USE_MY_OWN_APP_YML=true``` on .env
     - ```bash run.sh```
