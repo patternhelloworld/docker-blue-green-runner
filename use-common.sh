@@ -551,7 +551,7 @@ check_empty_env_values(){
 
       value="$(echo -e "${value}" | sed -e 's/^[[:space:]]*|[[:space:]]*$//')"
 
-      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" && ${key} != "DOCKER_BUILD_LABELS" && ${key} != "DOCKER_BUILD_SHA_INSERT_GIT_ROOT" ]]; then
+      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" && ${key} != "DOCKER_BUILD_LABELS" && ${key} != "DOCKER_BUILD_ADDITIONAL_RAW_PARAMS" && ${key} != "DOCKER_BUILD_SHA_INSERT_GIT_ROOT" ]]; then
          empty_keys+=(${key})
       fi
 

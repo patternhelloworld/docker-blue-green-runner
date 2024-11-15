@@ -177,11 +177,11 @@ load_app_docker_image() {
     echo "[NOTICE] Final DOCKER_BUILD_LABELS on the .env : ${label_args} "
 
     if [[ ${docker_layer_corruption_recovery} == true ]]; then
-       echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
+       echo "[NOTICE] Docker Build Command : docker build --no-cache --tag ${project_name}:latest ${label_args} ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ${docker_build_additional_raw_params} ."
        cd ${docker_file_location} && docker build --no-cache --tag ${project_name}:latest ${label_args} ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ${docker_build_additional_raw_params} . || exit 1
        cd -
     else
-       echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ."
+       echo "[NOTICE] Docker Build Command : docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest ${label_args} --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ${docker_build_additional_raw_params} ."
        cd ${docker_file_location} && docker build --build-arg DISABLE_CACHE=${CUR_TIME} --tag ${project_name}:latest ${label_args} --build-arg HOST_IP="${HOST_IP}" ${env_build_args} -f ${docker_file_name} -m ${docker_build_memory_usage} ${docker_build_additional_raw_params} . || exit 1
        cd -
     fi
