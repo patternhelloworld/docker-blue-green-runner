@@ -5,24 +5,24 @@ git config apply.whitespace nowarn
 git config core.filemode false
 
 initiate_nginx_docker_compose_file(){
-  cp -f docker-compose-app-nginx-original.yml docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-nginx-original.yml" && exit 1)
-  echo "[DEBUG] successfully copied docker-compose-app-nginx-original.yml"
+  cp -f docker-orchestration-app-nginx-original.yml docker-orchestration-${project_name}-nginx.yml || (echo "[ERROR] Failed to copy docker-${orchestration_type}-app-nginx-original.yml" && exit 1)
+  echo "[DEBUG] successfully copied docker-orchestration-app-nginx-original.yml"
 }
 apply_env_service_name_onto_nginx_yaml(){
-  bin/yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-compose-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YML as ${project_name}." && exit 1)
+  bin/yq -i "with(.services; with_entries(select(.key ==\"*-nginx\") | .key |= \"${project_name}-nginx\"))" docker-orchestration-${project_name}-nginx.yml || (echo "[ERROR] Failed to apply the service name in the Nginx YML as ${project_name}." && exit 1)
 }
 apply_ports_onto_nginx_yaml(){
 
      check_yq_installed
 
-     echo "[NOTICE] PORTS on .env is now being applied to docker-compose-${project_name}-nginx.yml."
-     bin/yq -i '.services.'${project_name}'-nginx.ports = []' docker-compose-${project_name}-nginx.yml
-     bin/yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-compose-${project_name}-nginx.yml
+     echo "[NOTICE] PORTS on .env is now being applied to docker-orchestration-${project_name}-nginx.yml."
+     bin/yq -i '.services.'${project_name}'-nginx.ports = []' docker-orchestration-${project_name}-nginx.yml
+     bin/yq -i '.services.'${project_name}'-nginx.ports += "'${expose_port}':'${expose_port}'"' docker-orchestration-${project_name}-nginx.yml
 
      for i in "${additional_ports[@]}"
      do
         [ -z "${i##*[!0-9]*}" ] && (echo "[ERROR] Wrong port number on .env : ${i}" && exit 1);
-        bin/yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-compose-${project_name}-nginx.yml
+        bin/yq -i '.services.'${project_name}'-nginx.ports += "'$i:$i'"' docker-orchestration-${project_name}-nginx.yml
      done
 
 }
@@ -53,11 +53,11 @@ apply_docker_compose_volumes_onto_app_nginx_yaml(){
        check_docker_compose_nginx_host_volumes_directories
     fi
 
-   echo "[NOTICE] DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES on .env is now being applied to docker-compose-${project_name}-nginx.yml."
+   echo "[NOTICE] DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES on .env is now being applied to docker-orchestration-${project_name}-nginx.yml."
 
     for volume in "${docker_compose_nginx_selective_volumes[@]}"
     do
-        bin/yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-compose-${project_name}-nginx.yml
+        bin/yq -i '.services.'${project_name}'-'nginx'.volumes += '${volume}'' ./docker-orchestration-${project_name}-nginx.yml
     done
 
 }
@@ -309,14 +309,14 @@ load_nginx_docker_image(){
 nginx_down(){
 
    echo "[NOTICE] Stop & Remove NGINX Container."
-   docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] The previous Nginx Container has been stopped & removed, if exists."
+   docker-compose -f docker-orchestration-${project_name}-nginx.yml down || echo "[NOTICE] The previous Nginx Container has been stopped & removed, if exists."
 
 }
 
 nginx_up(){
 
    echo "[NOTICE] Up NGINX Container."
-   PROJECT_NAME=${project_name} docker-compose -f docker-compose-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure."
+   PROJECT_NAME=${project_name} docker-compose -f docker-orchestration-${project_name}-nginx.yml up -d || echo "[ERROR] Critical - ${project_name}-nginx UP failure."
 
 }
 

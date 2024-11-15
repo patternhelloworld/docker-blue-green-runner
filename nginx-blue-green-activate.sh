@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # This is a private shell script. Do NOT use this directly.
 set -eu
 

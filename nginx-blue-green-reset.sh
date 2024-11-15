@@ -2,7 +2,6 @@
 # This is a private shell script. Do NOT use this directly.
 source use-common.sh
 
-app_env=$(get_value_from_env "APP_ENV")
 project_name=$(get_value_from_env "PROJECT_NAME")
 orchestration_type=$(get_value_from_env "ORCHESTRATION_TYPE")
 
@@ -19,7 +18,7 @@ docker exec ${project_name}-nginx curl -X PUT -d ${state} ${consul_key_value_sto
 
 echo "[NOTICE] Stopping the ${new_state} ${orchestration_type}"
 if [[ ${orchestration_type} != 'stack' ]]; then
-  docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${new_state}
+  docker-compose -f docker-${orchestration_type}-${project_name}.yml stop ${project_name}-${new_state}
   echo "[NOTICE] The previous (${new_state}) container has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
 else
   docker stack rm ${project_name}-${new_state}

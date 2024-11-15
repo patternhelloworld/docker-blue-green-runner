@@ -157,15 +157,25 @@ cache_non_dependent_global_vars() {
      echo "[ERROR] The extracted port ($port_extracted_from_app_url) for APP_URL and PROJECT_PORT ($expose_port) must be the same." && exit 1
   fi
 
-  additional_ports=(`echo $(get_value_from_env "ADDITIONAL_PORTS") | cut -d ","  --output-delimiter=" " -f 1-`)
-  echo "[DEBUG] ADDITIONAL_PORTS : ${additional_ports[@]}"
+  additional_ports_value=$(get_value_from_env "ADDITIONAL_PORTS")
+
+  if [ -n "$additional_ports_value" ]; then
+      # If ADDITIONAL_PORTS is not empty, process it
+      additional_ports=($(echo "$additional_ports_value" | cut -d "," --output-delimiter=" " -f 1-))
+      echo "[DEBUG] ADDITIONAL_PORTS : ${additional_ports[@]}"
+  else
+      # If ADDITIONAL_PORTS is empty, initialize additional_ports as an empty array
+      additional_ports=()
+      echo "[DEBUG] ADDITIONAL_PORTS is empty or not set."
+  fi
 
   docker_compose_environment=$(get_value_from_env "DOCKER_COMPOSE_ENVIRONMENT")
   docker_build_args=$(get_value_from_env "DOCKER_BUILD_ARGS")
 
   # Get DOCKER_BUILD_LABELS and Git SHA
   docker_build_labels=$(get_value_from_env "DOCKER_BUILD_LABELS")
-
+  # EX. --platform linux/amd64
+  docker_build_additional_raw_params=$(get_value_from_env "DOCKER_BUILD_ADDITIONAL_RAW_PARAMS")
   # and Git SHA
   docker_build_sha_insert_git_root=$(get_value_from_env "DOCKER_BUILD_SHA_INSERT_GIT_ROOT")
 
@@ -183,26 +193,14 @@ cache_non_dependent_global_vars() {
   bad_app_health_check_pattern=$(get_value_from_env "BAD_APP_HEALTH_CHECK_PATTERN")
   good_app_health_check_pattern=$(get_value_from_env "GOOD_APP_HEALTH_CHECK_PATTERN")
 
-  app_env=$(get_value_from_env "APP_ENV")
-  if [[ ! (${app_env} == 'real' || ${app_env} == 'local') ]]; then
-     echo "[ERROR] app_env is only local or real." && exit 1
+
+  docker_file_name="Dockerfile"
+
+  if [ ! -f "${docker_file_location}/${docker_file_name}" ]; then
+      echo "[ERROR] Couldn't find any of Dockerfile OR check its permission at' ${docker_file_location}/${docker_file_name}" && exit 1
   fi
 
-  docker_file_name="Dockerfile.${app_env}"
-
-  if [ -f "${docker_file_location}/${docker_file_name}" ]; then
-      docker_file_name="Dockerfile.${app_env}"
-  else
-      if [ -f "${docker_file_location}/Dockerfile" ]; then
-        docker_file_name="Dockerfile"
-      else
-         echo "[ERROR] Couldn't find any of 'Dockerfile.${app_env} and Dockerfile' in ${docker_file_location}" && exit 1
-      fi
-  fi
-
-  if [[ ${app_env} == 'real' ]]; then
-    docker_compose_real_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_REAL_SELECTIVE_VOLUMES")
-  fi
+  docker_compose_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_SELECTIVE_VOLUMES")
 
   docker_compose_nginx_selective_volumes=$(get_value_from_env "DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES")
   docker_compose_host_volume_check=$(get_value_from_env "DOCKER_COMPOSE_HOST_VOLUME_CHECK")
@@ -565,9 +563,9 @@ check_empty_env_values(){
 
 check_env_integrity(){
 
-    diff=$(compare_two_envs .env .env.example.${app_env})
+    diff=$(compare_two_envs .env .env.example)
     if [[ ${diff} != "" ]]; then
-      echo "[ERROR] The key values in the .env file do not match with .env.example.${app_env}, so the process cannot continue. Please update the .env file to match the requirements (Difference: ${diff})."
+      echo "[ERROR] The key values in the .env file do not match with .env.example, so the process cannot continue. Please update the .env file to match the requirements (Difference: ${diff})."
       exit 1
     fi
 

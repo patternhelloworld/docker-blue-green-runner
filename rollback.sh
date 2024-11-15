@@ -37,9 +37,9 @@ docker tag ${project_name}:previous ${project_name}:${new_state} || echo "[NOTIC
 sleep 2
 
 echo "[NOTICE] Down & Up ${new_state} container."
-docker-compose -f docker-compose-${project_name}-${app_env}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The ${new_state} Container has been stopped, if exists."
-docker-compose -f docker-compose-${project_name}-${app_env}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The ${new_state} Container has been removed, if exists."
-docker-compose -f docker-compose-${project_name}-${app_env}.yml up -d ${project_name}-${new_state}
+docker-compose -f docker-compose-${project_name}.yml stop ${project_name}-${new_state} || echo "[NOTICE] The ${new_state} Container has been stopped, if exists."
+docker-compose -f docker-compose-${project_name}.yml rm -f ${project_name}-${new_state} || echo "[NOTICE] The ${new_state} Container has been removed, if exists."
+docker-compose -f docker-compose-${project_name}.yml up -d ${project_name}-${new_state}
 
 echo "[NOTICE] Wait until the ${new_state} container is fully up."
 if [[ $(check_availability_inside_container ${new_state} 60 5 | tail -n 1) != 'true' ]]; then
@@ -56,7 +56,7 @@ if [[ ${nginx_restart} == 'true' ]]; then
   echo "[NOTICE] Run 'emergency-nginx-restart.sh' "
   bash emergency-nginx-restart.sh
 else
-  echo "[NOTICE] Nginx will NOT be restarted according to the parameter : ${with_edge_route}"
+  echo "[NOTICE] Nginx will NOT be restarted, as ${nginx_restart} = false"
 fi
 
 ./nginx-blue-green-activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
@@ -64,7 +64,7 @@ fi
 
 if [[ ${orchestration_type} != 'stack' ]]; then
   echo "[NOTICE] Stop the previous ${state} container."
-  docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${state}
+  docker-compose -f docker-${orchestration_type}-${project_name}.yml stop ${project_name}-${state}
 else
   echo "[NOTICE] Remove the previous ${state} stack."
   docker stack rm ${project_name}-${state}

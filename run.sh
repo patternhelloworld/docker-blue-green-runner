@@ -67,21 +67,6 @@ backup_nginx_to_previous_images(){
 
 }
 
-
-give_host_group_id_full_permissions(){
-
-  # By default, all volume folders are granted 'permission for the user's group of the host (not the root user, but the current user)'.
-  # Then, the permissions for the App using the folder in the container (such as www-data, redis, etc.)
-  # are given in the Dockerfile or ENTRYPOINT.
-  # This is because, in the development environment,
-  # volume folders may need to be modified by IDEs or other tools on the host,
-  # so permissions are given to the host, and permissions are also required for the libraries to access each folder inside Docker
-  # (permissions inside Docker are executed in the ENTRYPOINT script)
-  echo "[NOTICE] !! APP_ENV=local Only : To facilitate access from an IDE to Docker's internal permissions, we grant host permissions locally and set them to 777."
-  sudo chgrp -R ${host_root_gid} ${host_root_location}
-  sudo chmod -R 777 ${host_root_location}
-}
-
 terminate_whole_system(){
   if [[ ${docker_layer_corruption_recovery} == true ]]; then
     docker rmi -f ${project_name}-nginx:latest
@@ -96,10 +81,10 @@ terminate_whole_system(){
     docker rmi -f ${project_name}:blue
     docker rmi -f ${project_name}:green
 
-    docker-compose -f docker-${orchestration_type}-${project_name}-local.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-local.yml down failure"
-    docker-compose -f docker-${orchestration_type}-${project_name}-real.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-real.yml down failure"
+    docker-compose -f docker-${orchestration_type}-${project_name}.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}.yml down failure"
+    docker-compose -f docker-${orchestration_type}-${project_name}.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}.yml down failure"
     docker-compose -f docker-${orchestration_type}-consul.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-consul.yml down failure"
-    docker-compose -f docker-compose-${project_name}-nginx.yml down || echo "[NOTICE] docker-compose-${project_name}-nginx.yml down failure"
+    docker-compose -f docker-orchestration-${project_name}-nginx.yml down || echo "[NOTICE] docker-orchestration-${project_name}-nginx.yml down failure"
 
     docker network rm consul
 
@@ -108,7 +93,6 @@ terminate_whole_system(){
     docker system prune -f
   fi
 }
-
 
 
 load_all_containers(){
@@ -134,30 +118,14 @@ load_all_containers(){
   echo "[NOTICE] Run the app as a ${new_state} container. (As long as NGINX_RESTART is set to 'false', this won't stop the running container since this is a BLUE-GREEN deployment.)"
   app_down_and_up
 
-  #if [[ ${orchestration_type} != 'stack' ]]; then
-    echo "[NOTICE] Check the integrity inside the '${project_name}-${new_state} container'."
-    if [[ ${app_env} == 'local' ]]; then
-       re=$(check_availability_inside_container ${new_state} 600 30 | tail -n 1) || exit 1;
-    else
-       re=$(check_availability_inside_container ${new_state} 120 5 | tail -n 1) || exit 1;
-    fi
 
-    if [[ ${re} != 'true' ]]; then
-      echo "[ERROR] Failed in running the ${new_state} container. Run ' docker logs -f ${project_name}-${new_state} (compose), docker service ps ${project_name}-${new_state}}_${project_name}-${new_state} (stack) ' to check errors (Return : ${re})" && exit 1
-    fi
-  #else
-   # echo "[NOTICE] Check the integrity from Consul to the '${project_name}-${new_state} stack'."
-   # if [[ ${app_env} == 'local' ]]; then
-   #    re=$(check_availability_from_consul_to_container ${new_state} 30 | tail -n 1) || exit 1;
-   # else
-   #    re=$(check_availability_from_consul_to_container ${new_state} 5 | tail -n 1) || exit 1;
-   # fi
-   #sleep 20
-   # echo "aaa"
-    #if [[ ${re} != 'true' ]]; then
-    #  echo "[ERROR] Failed in running the ${new_state} container. Run 'docker logs -f ${project_name}-${new_state}' to check errors (Return : ${re})" && exit 1
-    #fi
- # fi
+  echo "[NOTICE] Check the integrity inside the '${project_name}-${new_state} container'."
+  re=$(check_availability_inside_container ${new_state} 120 5 | tail -n 1) || exit 1;
+
+  if [[ ${re} != 'true' ]]; then
+    echo "[ERROR] Failed in running the ${new_state} container. Run ' docker logs -f ${project_name}-${new_state} (compose), docker service ps ${project_name}-${new_state}_${project_name}-${new_state} (stack) ' to check errors (Return : ${re})" && exit 1
+  fi
+
 
   if [[ ${nginx_restart} == 'true' ]]; then
       check_nginx_templates_integrity
@@ -206,9 +174,7 @@ _main() {
   initiate_docker_compose_file
   apply_env_service_name_onto_app_yaml
   apply_docker_compose_environment_onto_app_yaml
-  if [[ ${app_env} == 'real' ]]; then
-    apply_docker_compose_volumes_onto_app_real_yaml
-  fi
+  apply_docker_compose_volumes_onto_app_yaml
   if [[ ${skip_building_app_image} != 'true' ]]; then
     backup_app_to_previous_images
   fi
@@ -247,9 +213,6 @@ _main() {
   fi
 
   # Etc.
-  if [[ ${app_env} == 'local' ]]; then
-      give_host_group_id_full_permissions
-  fi
   if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
     terminate_whole_system
   fi
@@ -321,7 +284,7 @@ _main() {
   if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
 
     if [[ ${orchestration_type} != 'stack' ]]; then
-      docker-compose -f docker-${orchestration_type}-${project_name}-${app_env}.yml stop ${project_name}-${initially_cached_old_state}
+      docker-compose -f docker-${orchestration_type}-${project_name}.yml stop ${project_name}-${initially_cached_old_state}
       echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
     else
        docker stack rm ${project_name}-${initially_cached_old_state}
