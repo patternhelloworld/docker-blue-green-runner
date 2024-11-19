@@ -1,10 +1,10 @@
 # Docker-Blue-Green-Runner
 
-> One Simple Zero-Downtime Blue-Green Deployment with your Dockerfiles
+> A Simple and Safe Blue-Green Deployment Starting from Your Source Code—Not from a Prebuilt Docker Image
 
 ## Table of Contents
-- [Process Summary](#process-summary)
 - [Features](#features)
+- [Process Summary](#process-summary)
 - [Requirements](#requirements)
 - [Quick Start with Samples](#quick-start-with-samples)
   - [Provided Samples](#provided-samples)
@@ -41,6 +41,37 @@
   - [Docker Swarm](#docker-swarm)
 
 ---
+
+## Features
+
+1. **Achieve zero-downtime deployment using just your ``.env`` and ``Dockerfile``**
+   - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." This script covers the entire process from Dockerfile build to server deployment from scratch.
+   - This means you can easily migrate to another server with just the files mentioned above.
+   - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which requires your App's docker binary running.
+
+
+2. **No unpredictable errors in reverse proxy and deployment : Implement safety measures to handle errors caused by your app or Nginx**
+   - If any error occurs in the app or router, ``deployment is halted`` to prevent any impact on the existing deployment
+     - Internal Integrity Check:
+       - Step 1: Use wait-for-it.sh (https://github.com/vishnubob/wait-for-it)
+       - Step 2: Perform a health check with customized settings defined in your .env file
+     - Nginx Router Test Container
+     - External Integrity Check
+     - Nginx Contingency Plan
+     - Rollback Procedures
+     - Additional Know-hows on Docker: Tips and best practices for optimizing your Docker workflow and deployment processes
+   - For example, Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
+     - https://stackoverflow.com/questions/76660749/traefik-404-page-not-found-when-use-https
+     - https://community.traefik.io/t/getting-bad-gateway-404-page-when-supposed-to-route-to-container-port-8443/20398
+   - Manipulates NGINX configuration files directly to ensure container accessibility. It also tests configuration files by launching a test NGINX Docker instance, and if an NGINX config update via Consul-Template fails, Contingency Plan provided is activated to ensure connectivity to your containers.
+
+
+3. **Track Blue-Green status and the Git SHA of your running container for easy monitoring.**
+   - Blue-Green deployment decision algorithm: scoring-based approach
+   - Run the command bash ``check-current-status.sh`` (similar to ``git status``) to view all relevant details
+   -
+   -
+     ![img7.png](documents/images/img7.png)
 
 ## Process Summary
 
@@ -80,24 +111,6 @@ graph TD;
 ```
 ![img5.png](/documents/images/img5.png)
 ![img6.png](documents/images/img6.png)
-## Features
-
-- **No Unpredictable Errors in Reverse Proxy and Deployment**
-  - If any error occurs in the app or router, deployment is halted to prevent any impact on the existing deployment
-  - For example, Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
-    - https://stackoverflow.com/questions/76660749/traefik-404-page-not-found-when-use-https
-    - https://community.traefik.io/t/getting-bad-gateway-404-page-when-supposed-to-route-to-container-port-8443/20398
-  - Manipulates NGINX configuration files directly to ensure container accessibility. It also tests configuration files by launching a test NGINX Docker instance, and if an NGINX config update via Consul-Template fails, Contingency Plan provided is activated to ensure connectivity to your containers.
-
-- **From Scratch**
-  - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." This script covers the entire process from Dockerfile build to server deployment from scratch.
-  - This means you can easily migrate to another server with just the files mentioned above.
-  - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which can introduce the types of errors mentioned above.
-
-- Focus on zero-downtime deployment on a single machine.
-  - While Kubernetes excels in multi-machine environments with the support of Layer 7 (L7) technologies (I would definitely use Kubernetes in that case), this approach is ideal for scenarios where only one or two machines are available.
-  - However, ``for deployments involving more machines, traditional Layer 4 (L4) load-balancer using servers could be utilized.``
-
 
 ## Requirements
 
