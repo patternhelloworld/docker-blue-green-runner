@@ -11,16 +11,16 @@ check_git_docker_compose_commands_exist
 
 cache_global_vars
 
-set_safe_filemode_on_app() {
+set_safe_filemode_on_volumes() {
     for volume in "${docker_compose_selective_volumes[@]}"; do
         local local_path="${volume%%:*}"
         local_path=$(echo $local_path | sed 's/\s*\[\s*\"\s*//g')
 
         echo "[NOTICE] Executing chmod -R 770 for $local_path"
-        sudo chmod -R 770 "$local_path"
+        sudo chmod -R 770 "$local_path" || echo "[WARN] chmod -R 770 failed for $local_path, skipping."
 
         echo "[NOTICE] Executing chown -R 0:${shared_volume_group_id} for $local_path"
-        sudo chown -R 0:${shared_volume_group_id} "$local_path"
+        sudo chown -R 0:${shared_volume_group_id} "$local_path" || echo "[WARN] chown -R 0:${shared_volume_group_id} failed for $local_path, skipping."
 
         if [ $? -eq 0 ]; then
             echo "[NOTICE] Permissions changed successfully for $local_path"
@@ -51,6 +51,9 @@ sudo chmod 770 .gitignore || echo "[WARN] Running chmod 770 .gitignore failed."
 echo "[NOTICE] Executing chmod -R 770 .docker/"
 sudo chmod -R 770 .docker/ || echo "[WARN] Running chmod -R 770 .docker/ failed."
 
+echo "[NOTICE] Executing chmod -R 770 ${host_root_location} (HOST_ROOT_LOCATION in .env)"
+sudo chmod -R 770 ${host_root_location} || echo "[WARN] Running chmod 770 for your App project failed."
+
 if [[ "$(uname)" != "Darwin" ]]; then
     echo "[NOTICE] Executing chown -R 0:${shared_volume_group_id} .docker/"
     sudo chown -R 0:${shared_volume_group_id} .docker/ || echo "[WARN] Running chgrp ${shared_volume_group_id} .docker/ failed."
@@ -66,11 +69,8 @@ else
 fi
 
 if [[ "$(uname)" != "Darwin" ]]; then
-    echo "[NOTICE] Executing set_safe_filemode_on_app"
-    set_safe_filemode_on_app
+    echo "[NOTICE] Executing set_safe_filemode_on_volumes (DOCKER_COMPOSE_SELECTIVE_VOLUMES in .env)"
+    set_safe_filemode_on_volumes
 else
     echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
 fi
-
-echo "[NOTICE] Executing chmod -R 770 ${host_root_location}"
-sudo chmod -R 770 ${host_root_location} || echo "[WARN] Running chmod 770 for your App project failed."
