@@ -16,10 +16,10 @@ set_safe_filemode_on_app() {
         local local_path="${volume%%:*}"
         local_path=$(echo $local_path | sed 's/\s*\[\s*\"\s*//g')
 
-        echo "[NOTICE] Changing permissions for $local_path to 770"
+        echo "[NOTICE] Executing chmod -R 770 for $local_path"
         sudo chmod -R 770 "$local_path"
 
-        echo "[NOTICE] Changing owner for $local_path to 'root:shared-volume-group'"
+        echo "[NOTICE] Executing chown -R 0:${shared_volume_group_id} for $local_path"
         sudo chown -R 0:${shared_volume_group_id} "$local_path"
 
         if [ $? -eq 0 ]; then
@@ -30,28 +30,47 @@ set_safe_filemode_on_app() {
     done
 }
 
+echo "[NOTICE] Executing chmod 750 *.sh"
 sudo chmod 750 *.sh || echo "[WARN] Running chmod 750 *.sh failed."
+
+echo "[NOTICE] Executing chmod 770 *.yml"
 sudo chmod 770 *.yml || echo "[WARN] Running chmod 770 *.yml failed."
+
+echo "[NOTICE] Executing chmod 740 .env.*"
 sudo chmod 740 .env.* || echo "[WARN] Running chmod 740 .env.* failed."
+
+echo "[NOTICE] Executing chmod 740 .env"
 sudo chmod 740 .env || echo "[WARN] Running chmod 740 .env failed."
-sudo chmod -R 750 bin || echo "[WARN] Running chmod 750 for the bin folder"
+
+echo "[NOTICE] Executing chmod -R 750 bin"
+sudo chmod -R 750 bin || echo "[WARN] Running chmod 750 for the bin folder failed."
+
+echo "[NOTICE] Executing chmod 770 .gitignore"
 sudo chmod 770 .gitignore || echo "[WARN] Running chmod 770 .gitignore failed."
+
+echo "[NOTICE] Executing chmod -R 770 .docker/"
 sudo chmod -R 770 .docker/ || echo "[WARN] Running chmod -R 770 .docker/ failed."
-# Check if the OS is not Darwin (macOS) before running the command
+
 if [[ "$(uname)" != "Darwin" ]]; then
+    echo "[NOTICE] Executing chown -R 0:${shared_volume_group_id} .docker/"
     sudo chown -R 0:${shared_volume_group_id} .docker/ || echo "[WARN] Running chgrp ${shared_volume_group_id} .docker/ failed."
 else
     echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
 fi
 
 if [[ "$(uname)" != "Darwin" ]]; then
+    echo "[NOTICE] Executing chown -R 0:${shared_volume_group_id} bin/"
     sudo chown -R 0:${shared_volume_group_id} bin/ || echo "[WARN] Running chgrp ${shared_volume_group_id} bin/ failed."
 else
     echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
 fi
 
 if [[ "$(uname)" != "Darwin" ]]; then
+    echo "[NOTICE] Executing set_safe_filemode_on_app"
     set_safe_filemode_on_app
 else
     echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
 fi
+
+echo "[NOTICE] Executing chmod -R 770 ${host_root_location}"
+sudo chmod -R 770 ${host_root_location} || echo "[WARN] Running chmod 770 for your App project failed."

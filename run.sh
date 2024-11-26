@@ -291,7 +291,10 @@ _main() {
        echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
     fi
 
-    display_checkpoint_message "CURRENT APP_URL: ${app_url}. Run 'bash check-current-states.sh' whenever you want to check the deployment status and Git SHA."
+    display_checkpoint_message "CURRENT APP_URL: ${app_url}."
+    display_checkpoint_message "If this is your first time running the script, execute 'bash apply-security.sh' once."
+    display_checkpoint_message "Run 'bash check-current-states.sh' to check the deployment status and Git SHA at any time."
+
     print_git_sha_and_message "${project_name}-${new_state}" "$docker_build_sha_insert_git_root"
 
     echo "[NOTICE] Delete <none>:<none> images."
