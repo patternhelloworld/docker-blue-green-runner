@@ -1,6 +1,6 @@
 # Docker-Blue-Green-Runner
 
-> A Simple and Safe Blue-Green Deployment Starting from Your Source Code—Not from a Prebuilt Docker Image
+> A Simple and Safe Blue-Green Deployment Starting from Your Source Code—Not from Your Prebuilt Docker Image
 
 ## Table of Contents
 - [Features](#features)
@@ -72,6 +72,13 @@
    -
    -
      ![img7.png](documents/images/img7.png)
+
+
+4. **Security**
+   - Refer to the [Security](#Security) section
+
+
+5. **More on the following**
 
 ## Process Summary
 
