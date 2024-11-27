@@ -511,7 +511,7 @@ bash check-source-integrity.sh
       
 ### Download Image (Git -> Production Server)
   ```shell
-  GIT_IMAGE_LOAD_FROM=build
+  GIT_IMAGE_LOAD_FROM=registry
   GIT_IMAGE_LOAD_FROM_HOST=mysite.com:5050
   GIT_IMAGE_LOAD_FROM_PATHNAME=my-group/my-project-name/what/you/want
   GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME=aaa
