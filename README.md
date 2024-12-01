@@ -30,7 +30,7 @@
   - [Consul](#consul)
   - [USE_NGINX_RESTRICTION on .env](#use_nginx_restriction-on-env)
   - [Advanced](#advanced)
-- [GitLab Container Registry (Production)](#gitlab-container-registry-production)
+- [Production Deployment](#production-deployment)
   - [Upload Image (CI/CD Server -> Git)](#upload-image-cicd-server---git)
   - [Download Image (Git -> Production Server)](#download-image-git---production-server)
 - [Extra Information](#extra-information)
@@ -78,8 +78,9 @@
    - Refer to the [Security](#Security) section
 
 
-5. **More on the following**
-
+5. **Production Deployment**
+   - Refer to the [Production Deployment](#production-deployment) section
+   
 ## Process Summary
 
 - Term Reference
@@ -496,12 +497,20 @@ bash check-source-integrity.sh
     - ```bash run.sh```
 
 
-## Gitlab Container Registry (Production)
+## Production Deployment
+- Up to this point, your app has been running in a Docker container through the ``bash.run.sh`` command, enabling continuous Blue-Green deployments. However, you may want to deploy the built Docker image independently to another environment, and you likely wouldn't want to leave unnecessary source code, except for the Docker images and configuration files, on the production server.
+- It is recommended to automate this process using Jenkins.
 
 ### Upload Image (CI/CD Server -> Git)
-  - In case you run the command ``push-to-git.sh``, ``docker-blue-green-runner`` pushes one of ``Blue or Green`` images which is currently running to the address above of the Gitlab Container Registry.
-  - This case is not related to ``GIT_IMAGE_LOAD_FROM``.
-  - REFERENCE
+  - If you run the ``push-to-git.sh`` command, it pushes the container image currently running on the test server to the ``Git Container Registry`` at the specified address.
+  ```shell
+  GIT_IMAGE_LOAD_FROM_HOST=mysite.com:5050
+  GIT_IMAGE_LOAD_FROM_PATHNAME=my-group/my-project-name/what/you/want
+  GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME=aaa
+  GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD=12345
+  GIT_IMAGE_VERSION=1.0.0
+  ```
+  - ``Git Container Registry``
     - You can easily create your own Gitlab Docker with https://github.com/patternknife/docker-gitlab-ce-runner
     - ``GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME, PASSWORD`` are registered on 'Project Access Tokens'.
     - ``docker login failed to verify certificate: x509: certificate signed by unknown authority`` Error
@@ -510,22 +519,18 @@ bash check-source-integrity.sh
         - Place your CA's root certificate (.crt file) in /usr/local/share/ca-certificates/ and run sudo update-ca-certificates.
       
 ### Download Image (Git -> Production Server)
+- Your production server should have docker-blue-green-runner, .env, and run ``run.sh`` to deploy the built images above.
+- The only difference is to set ``GIT_IMAGE_LOAD_FROM=registry`` instead of ``GIT_IMAGE_LOAD_FROM=build``.
+- When ``GIT_IMAGE_LOAD_FROM`` is set to ``build``, docker-blue-green-runner ``builds your Dockerfile``. However, when it is set to ``registry``, the runner ``downloads your images from the Git Container registry``.
+
   ```shell
-  GIT_IMAGE_LOAD_FROM=registry
+  GIT_IMAGE_LOAD_FROM=registry # This is important
   GIT_IMAGE_LOAD_FROM_HOST=mysite.com:5050
   GIT_IMAGE_LOAD_FROM_PATHNAME=my-group/my-project-name/what/you/want
-  GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME=aaa
-  GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD=12345
+  GIT_TOKEN_IMAGE_LOAD_FROM_USERNAME=foo
+  GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD=bar
   GIT_IMAGE_VERSION=1.0.0
   ```
-  - ``GIT_IMAGE_LOAD_FROM`` is 'build', ``docker-blue-green-runner`` builds your ``Dockerfile``, while it is 'registry', the runner downloads ``app, nginx, consul, registrator`` from such as the example code on ``use-common.sh``.
-    ```shell
-    app_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-app:${git_image_version}"
-    nginx_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-nginx:${git_image_version}"
-    consul_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-consul:${git_image_version}"
-    registrator_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-registrator:${git_image_version}"
-    ``` 
-
 
 
 ## Extra Information
@@ -540,7 +545,7 @@ sudo bash run-and-kill-jar-and-state-is-restarting-or-running.sh
 
 ### Check Source Integrity of 'Docker-Blue-Green-Runner'
 ```shell
-git status # If any changes are detected, the source code may be corrupted.
+git status # If any changes are detected, the source code may be corrupted, or just run ``bash check-source-integrity.sh``.
 ```
 
 ### Structure
