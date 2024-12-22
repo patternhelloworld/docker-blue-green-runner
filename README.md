@@ -25,7 +25,6 @@
     - [APP_URL](#app_url)
     - [Important ENVs That Require Restarting NGINX](#important-envs-that-require-restarting-nginx)
   - [Upgrade](#upgrade)
-  - [Fully Customizing NGINX Configuration](#fully-customizing-nginx-configuration)
   - [NGINX Prepared Function](#nginx-prepared-function)
   - [Terms](#terms)
   - [Log Levels](#log-levels)
@@ -324,7 +323,6 @@ NGINX_LOGROTATE_FILE_SIZE
 SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
 SHARED_VOLUME_GROUP_NAME # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
 UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID # The application to the host does NOT depend on NGINX_RESTART=true. It is always applied.
-USE_MY_OWN_NGINX_ORIGIN
 ```
 
 ### Upgrade
@@ -337,35 +335,6 @@ git pull origin main
 sudo bash run.sh
 ```
 - However, as you are aware, ```NGINX_RESTART=true``` causes a short downtime. **Make sure ```NGINX_RESTART=false``` at all times**.
-
-### Fully Customizing NGINX Configuration
-
-![img.png](/documents/images/img3.png)
-
-- The ``origin`` folder is where you can modify original Nginx conf files.
-- Create the five yellow-highlighted files ending with 'conf.d.origin.customized' by copying the originals ending with 'conf.d.origin.'
-- You don't have to create all five files; just create the ones you need.
-- In the .env file, set this to 'true'
-```shell
-USE_MY_OWN_NGINX_ORIGIN=true
-# See '[IMPORTANT] ENVs that require 'NGINX_RESTART=true' above.
-NGINX_RESTART=true
-```
-- For reference, the files you just created are ignored by git, so there won't be any issues when you run the following:
-```shell
-# Check if the source codes of Runner is manipulated.
-bash check-source-integrity.sh
-```
-- Then, run ``(sudo) bash run.sh``. **Starting from v5.0.0**, if NGINX_RESTART is set to 'true', the Runner will test your configuration using ``nginx -t`` in a temporary container before recreating the NGINX container. If the test fails, the process stops, preventing any side effects on your currently running app.
-- Don't touch any file in ``.docker/nginx/template``. They are just ones in ready to be injected into the NGINX Image in Dockerfile.
-- Process of NGINX Configuration
-  - ``Origin`` -(processed with the .env)-> ``Template`` -(docker build)-> ``Docker Image`` -(running entrypoint.sh)-> ``Docker Container``
-- NGINX Logrotate 
-  - ``.docker/nginx/origin/logroate/nginx``
-- ENV Spel 
-  - A syntax that brings values from the .env file throughout the ecosystem.
-  - ``!#{ value here }`` 
-![img4.png](/documents/images/img4.png)
 
 ### Terms
 For all echo messages or properties .env, the following terms indicate...
@@ -545,4 +514,16 @@ git status # If any changes are detected, the source code may be corrupted, or j
         docker swarm init
         sudo bash run.sh
       ``` 
+
+### ETC
+- Process of NGINX Configuration
+  - ``Origin`` -(processed with the .env)-> ``Template`` -(docker build)-> ``Docker Image`` -(running entrypoint.sh)-> ``Docker Container``
+- NGINX Logrotate
+  - ``.docker/nginx/origin/logroate/nginx``
+- ENV Spel
+  - A syntax that brings values from the .env file throughout the ecosystem.
+  - ``!#{ value here }``
+    ![img4.png](/documents/images/img4.png)
+
+
 ---

@@ -62,21 +62,6 @@ apply_docker_compose_volumes_onto_app_nginx_yaml(){
 
 }
 
-set_origin_file() {
-    local customized_file=$1
-    local default_file=$2
-
-    if [[ ${use_my_own_nginx_origin} = 'true' ]]; then
-      if [[ -f $customized_file ]]; then
-        echo $customized_file
-      else
-        echo $default_file
-      fi
-    else
-      echo $default_file
-    fi
-}
-
 
 save_nginx_prepared_template_from_origin(){
 
@@ -177,8 +162,7 @@ save_nginx_main_template_from_origin(){
 
    echo "[NOTICE] NGINX Main template (.docker/nginx/template/nginx.conf.main) is now being created."
 
-   local main_origin_file=$(set_origin_file ".docker/nginx/origin/nginx.conf.main.origin.customized" \
-                                       ".docker/nginx/origin/nginx.conf.main.origin")
+   local main_origin_file=".docker/nginx/origin/nginx.conf.main.origin"
 
    echo "[DEBUG] ${main_origin_file} will be processed into Template (.docker/nginx/template/nginx.conf.main)"
 

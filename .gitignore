@@ -50,9 +50,9 @@
 
 /.docker/nginx/origin/nginx.conf.main.origin.customized
 
-/.docker/nginx/origin/conf.d/http/additionals/nginx.conf.origin.customized
-/.docker/nginx/origin/conf.d/http/app/nginx.conf.origin.customized
+/.docker/nginx/origin/conf.d/http/additionals/nginx.conf.prepared.origin.customized
+/.docker/nginx/origin/conf.d/http/app/nginx.conf.prepared.origin.customized
 
-/.docker/nginx/origin/conf.d/https/additionals/nginx.conf.origin.customized
-/.docker/nginx/origin/conf.d/https/app/nginx.conf.origin.customized
+/.docker/nginx/origin/conf.d/https/additionals/nginx.conf.prepared.origin.customized
+/.docker/nginx/origin/conf.d/https/app/nginx.conf.prepared.origin.customized
 

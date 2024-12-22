@@ -123,8 +123,7 @@
     SHARED_VOLUME_GROUP_ID=1559
     SHARED_VOLUME_GROUP_NAME=mba-shared-volume-group
     UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID=1000,1001
-    
-    USE_MY_OWN_NGINX_ORIGIN=false
+
   ```
 ### Locate your commercial SSLs in the folder ``docker-blue-green-runner/.docker/ssl``. See the comments in the ``.env`` above.  
 - For me, I have used GoDaddy, https://dearsikandarkhan.medium.com/ssl-godaddy-csr-create-on-mac-osx-4401c47fd94c .

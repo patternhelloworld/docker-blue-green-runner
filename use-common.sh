@@ -266,7 +266,6 @@ cache_non_dependent_global_vars() {
   if [[ $(validate_number "$nginx_logrotate_file_number") == "false" ]]; then
     echo "[WARNING] NGINX_LOGROTATE_FILE_NUMBER in .env has an incorrect format. (value: $nginx_logrotate_file_number, correct examples: 5,10,101..., etc. Expected behavior: Logrotate won't work). However, this is NOT a serious issue. We will continue the process."
   fi
-  use_my_own_nginx_origin=$(get_value_from_env "USE_MY_OWN_NGINX_ORIGIN")
 
 }
 
