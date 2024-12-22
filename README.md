@@ -20,14 +20,13 @@
     - [Important ENVs That Require Restarting NGINX](#important-envs-that-require-restarting-nginx)
   - [Upgrade](#upgrade)
   - [Fully Customizing NGINX Configuration](#fully-customizing-nginx-configuration)
-  - [NGINX Contingency Function](#nginx-contingency-function)
+  - [NGINX Prepared Function](#nginx-prepared-function)
   - [Terms](#terms)
   - [Log Levels](#log-levels)
   - [Check States](#check-states)
   - [Emergency](#emergency)
   - [Security](#Security)
   - [Running & Stopping Multiple Projects](#running--stopping-multiple-projects)
-  - [Consul](#consul)
   - [USE_NGINX_RESTRICTION on .env](#use_nginx_restriction-on-env)
   - [Advanced](#advanced)
 - [Production Deployment](#production-deployment)
@@ -57,13 +56,13 @@
        - Step 2: Perform a health check with customized settings defined in your .env file
      - Nginx Router Test Container
      - External Integrity Check
-     - Nginx Contingency Plan
+     - Nginx Prepared Plan
      - Rollback Procedures
      - Additional Know-hows on Docker: Tips and best practices for optimizing your Docker workflow and deployment processes
    - For example, Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
      - https://stackoverflow.com/questions/76660749/traefik-404-page-not-found-when-use-https
      - https://community.traefik.io/t/getting-bad-gateway-404-page-when-supposed-to-route-to-container-port-8443/20398
-   - Manipulates NGINX configuration files directly to ensure container accessibility. It also tests configuration files by launching a test NGINX Docker instance, and if an NGINX config update via Consul-Template fails, Contingency Plan provided is activated to ensure connectivity to your containers.
+   - Manipulates NGINX configuration files directly to ensure container accessibility. It also tests configuration files by launching a test NGINX Docker instance, and if an NGINX config update via Consul-Template fails, Prepared Plan provided is activated to ensure connectivity to your containers.
 
 
 3. **Track Blue-Green status and the Git SHA of your running container for easy monitoring.**
@@ -84,11 +83,11 @@
 ## Process Summary
 
 - Term Reference
-  - ``All`` means below is "App", "Nginx", "Consul&Registrator".
+  - ``All`` means below is "App", "Nginx"".
   - ``(Re)Load`` means ``docker run.... OR docker-compose up``.
   - ``State`` is ``Blue`` or ``Green``
   - More is on [Terms](#terms)
-- Load Consul & Registrator, then the App, and finally Nginx to prevent upstream errors.
+- Load the App, and finally Nginx to prevent upstream errors.
 
 
 ```mermaid
@@ -107,7 +106,7 @@ graph TD;
   J -- No --> L[Check All Containers' Health]
   K --> L[Check All Containers' Health]
   L --> M{Set New State Using Consul Template}
-  M -- Fails --> O[Run Nginx Contingency Plan]
+  M -- Fails --> O[Run Nginx Prepared Plan]
   M -- Success --> N[External Integrity Check]
   O --> N[External Integrity Check]
   N -- Fails --> P[Rollback App if Needed]
@@ -157,13 +156,11 @@ graph TD;
 | bash                                  | 4.4 at least     | Manual            | -                                                                                                                              |
 | curl                                  | N/A              | Manual            | -                                                                                                                              |
 | yq                                    | 4.35.1           | Auto              | Use v4.35.1 instead of the latest version. The lastest version causes a parsing error                                          |
-| consul (docker image)                 | 1.14.11          | Auto              | An error occurred due to a payload format issue while the lastest version of it was communicating with gliderlabs/registrator. |
-| gliderlabs/registrator (docker image) | master           | Auto              |                                                                                                                                |
 | nginx (docker image)                  | 1.25.4           | Auto              | Considering changing it to a certain version, but until now no issues have been detected.                                      |
 | docker                                | 24~27            | Manual            | I think too old versions could cause problems, and the lastest version v27.x causes only a warning message.                    |
 | docker-compose                        | 2                | Manual            | I think too old versions could cause problems, and the v2 is recommended.                                                      |
 
-- Although issues with wrong versions of these libraries can cause errors, there are several safety mechanisms in place to prevent the server from being interrupted. For example, when you run run.sh, early on it checks: 1) the existence of the required libraries, 2) the NGINX Contingency Function section below, and 3) in case of restarting Nginx (NGINX_RESTART=true in .env), a preliminary check for integrity (check_nginx_templates_integrity in use-nginx.sh).
+- Although issues with wrong versions of these libraries can cause errors, there are several safety mechanisms in place to prevent the server from being interrupted. For example, when you run run.sh, early on it checks: 1) the existence of the required libraries, 2) the NGINX Prepared Function section below, and 3) in case of restarting Nginx (NGINX_RESTART=true in .env), a preliminary check for integrity (check_nginx_templates_integrity in use-nginx.sh).
 - For ``docker-compose``, if you use a version above v2.25.0, you will see a warning message: ``[WARN] The attribute 'version' is obsolete and will be ignored. Please remove it to avoid potential confusion``. You can ignore it at this point.
 - For MAC users, ``GNU-based bash, sed, grep`` should be installed.
 - For MAC users, ``SHARED_VOLUME_GROUP_*`` on .env are skipped.
@@ -294,9 +291,6 @@ DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
 # This option should be used when upgrading the Runner. See the "Upgrade" section below.
 NGINX_RESTART=false
 
-# Setting this to 'true' is not recommended for normal operation as it results in prolonged downtime.
-CONSUL_RESTART=false
-
 # Specify the location of the .git folder for your project here to enable tracking through container labels.
 # To track, simply run `bash check-current_states.sh`.
 DOCKER_BUILD_SHA_INSERT_GIT_ROOT=
@@ -320,7 +314,6 @@ REDIRECT_HTTPS_TO_HTTP=true
 APP_URL
 PROJECT_PORT
 ADDITIONAL_PORT
-CONSUL_KEY_VALUE
 USE_COMMERCIAL_SSL
 COMMERCIAL_SSL_NAME
 DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES
@@ -376,9 +369,6 @@ bash check-source-integrity.sh
   - A syntax that brings values from the .env file throughout the ecosystem.
   - ``!#{ value here }`` 
 ![img4.png](/documents/images/img4.png)
-
-### NGINX Contingency Function
-- In the event of a Consul failure, the NGINX Contingency module takes over and operates NGINX autonomously. This ensures uninterrupted service by allowing NGINX to function independently.
 
 ### Terms
 For all echo messages or properties .env, the following terms indicate...
@@ -443,12 +433,8 @@ bash ./rollback.sh
 # The Nginx Container is roll-backed as well. (Not recommended. Nginx is safely managed as long as you use released versions.)
 bash ./rollback.sh 1
 ```
-- Critical Error on the Consul Network
-  - This rarely happens when...
-    - The server machine has been restarted, and affects the Consul network.
-    - You change the ```ORCHESTRATION_TYPE``` on the .env, the two types (compose,stack) for it come to use different network scopes, which leads to a collision.
 ```shell
-bash emergency-consul-down-and-up.sh
+bash emergency-all-down-and-up.sh
 ```
 
 ### Security
@@ -476,10 +462,6 @@ bash check-source-integrity.sh
 - ```bash run.sh```
 - If you wish to terminate the project, which should be on your .env, run ```bash stop-all-containers.sh```
 - If you wish to remove the project's images, which should be on your .env, run ```bash remove-all-images.sh```
-
-### Consul
-`` http://localhost:8500 ``
-- Need to set a firewall for the 8500 port referring to ``./docker-orchestration-consul.yml``.
 
 ### USE_NGINX_RESTRICTION on .env
 - https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication

@@ -7,7 +7,7 @@ services:
     image: ${PROJECT_NAME}:blue
     restart: always
     networks:
-      - consul
+      - dbgr-net
     extra_hosts:
       - "${HOST_IP}:host-gateway"
     environment:
@@ -22,7 +22,7 @@ services:
     image: ${PROJECT_NAME}:green
     restart: always
     networks:
-      - consul
+      - dbgr-net
     extra_hosts:
       - "${HOST_IP}:host-gateway"
     environment:
@@ -31,6 +31,6 @@ services:
       - .env
     volumes: []
 networks:
-  consul:
+  dbgr-net:
     external:
-      name: consul
+      name: dbgr-net

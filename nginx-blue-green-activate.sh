@@ -11,19 +11,9 @@ cache_non_dependent_global_vars
 new_state=$1
 old_state=$2
 new_upstream=$3
-consul_key_value_store=$4
 
-echo "[NOTICE] new_state : ${new_state}, old_state : ${old_state}, new_upstream : ${new_upstream}, consul_key_value_store : ${consul_key_value_store}"
+echo "[NOTICE] new_state : ${new_state}, old_state : ${old_state}, new_upstream : ${new_upstream}"
 
-was_state=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw) || {
-    echo "[EMERGENCY] Errors on Nginx or Consul Network. Executing Nginx Contingency Plan."
-    was_state="${old_state}"
-}
-
-echo "[NOTICE] CONSUL (${consul_key_value_store}) is currently pointing to : ${was_state}"
-if [[ ${old_state} != ${was_state} ]]; then
-  echo "[WARNING] Was State (${was_state}, currently pointed from CONSUL) is different from Old State (${old_state}, checked at the first stage of the mother script.)"
-fi
 
 # The meaning of "${pid_was} != '-'" is that when Nginx has fully started, the BLUE-GREEN change operation is performed in CONSUL.
 echo "[NOTICE] Check if Nginx is completely UP."
@@ -35,7 +25,6 @@ for retry_count in {1..5}; do
     break
   else
     echo "[NOTICE] Retrying... (pid_was : ${pid_was})"
-
   fi
 
   if [[ ${retry_count} -eq 4 ]]; then
@@ -47,31 +36,29 @@ for retry_count in {1..5}; do
   sleep 3
 done
 
-echo "[NOTICE] Activate ${new_state} CONSUL. (old Nginx pids: ${pid_was})"
-echo "[NOTICE] ${new_state} is stored in CONSUL."
-docker exec ${project_name}-nginx curl -X PUT -d ${new_state} ${consul_key_value_store} >/dev/null || {
-    echo "![NOTICE] Setting ${new_state} on nginx.conf according to the Nginx Contingency Plan."
-    docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.contingency.${new_state} /etc/nginx/conf.d/nginx.conf || docker exec ${project_name}-nginx cp -f /ctmpl/${protocol}/nginx.conf.contingency.${new_state} /etc/nginx/conf.d/nginx.conf
-    docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Contingency Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
-}
+echo "[NOTICE] Activate ${new_state} in the Nginx config file. (old Nginx pids: ${pid_was})"
+echo "[NOTICE] ${new_state} is stored in the Nginx config file."
+echo "![NOTICE] Setting ${new_state} on nginx.conf according to the Nginx Prepared Plan."
+docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.prepared.${new_state} /etc/nginx/conf.d/nginx.conf || docker exec ${project_name}-nginx cp -f /ctmpl/${protocol}/nginx.conf.prepared.${new_state} /etc/nginx/conf.d/nginx.conf
+docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Prepared Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
 
 sleep 1
 
 re=$(check_availability_out_of_container_speed_mode | tail -n 1);
 if [[ ${re} != 'true' ]]; then
-    echo "![NOTICE] Setting ${new_state} on nginx.conf according to the Nginx Contingency Plan."
-    docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.contingency.${new_state} /etc/nginx/conf.d/nginx.conf || docker exec ${project_name}-nginx cp -f /ctmpl/${protocol}/nginx.conf.contingency.${new_state} /etc/nginx/conf.d/nginx.conf
-    docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Contingency Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
+    echo "![NOTICE] Setting ${new_state} on nginx.conf according to the Nginx Prepared Plan."
+    docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.prepared.${new_state} /etc/nginx/conf.d/nginx.conf || docker exec ${project_name}-nginx cp -f /ctmpl/${protocol}/nginx.conf.prepared.${new_state} /etc/nginx/conf.d/nginx.conf
+    docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Prepared Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
 fi
 
-echo "[NOTICE] The PID of NGINX has been confirmed. Now, checking if CONSUL has been replaced with ${new_upstream} string in the NGINX configuration file."
+echo "[NOTICE] The PID of NGINX has been confirmed. Now, checking if ${new_upstream} string is in the NGINX configuration file."
 count=0
 while [ 1 ]; do
   lines=$(docker exec ${project_name}-nginx nginx -T | grep ${new_state} | wc -l | xargs)
   if [[ ${lines} == '0' ]]; then
     count=$((count + 1))
     if [[ ${count} -eq 10 ]]; then
-          echo "[WARNING] Since ${new_upstream} string is not found in the NGINX configuration file, we will revert CONSUL to ${old_state} (although it should already be ${old_state}, we will save it again to ensure)"
+          echo "[WARNING] Since ${new_upstream} string is not found in the NGINX configuration file, we will revert to ${old_state} (although it should already be ${old_state}, we will save it again to ensure)"
           old_state_container_name=
           if [[ ${orchestration_type} == 'stack' ]]; then
             old_state_container_name=$(docker ps -q --filter "name=^${project_name}-${old_state} " | shuf -n 1)
@@ -99,7 +86,7 @@ while [ 1 ]; do
           fi
 
           if [[ ${is_run} == 'yes' ]]; then
-            ./nginx-blue-green-reset.sh ${consul_key_value_store} ${old_state} ${new_state}
+            ./nginx-blue-green-reset.sh ${old_state} ${new_state}
           else
             echo "[WARNING] We won't revert, as ${old_state} is NOT running as well."
           fi

@@ -4,15 +4,15 @@ set -eu
 git config apply.whitespace nowarn
 git config core.filemode false
 
-cache_all_states() {
-
-  echo '[NOTICE] Checking which container, blue or green, is running. (Priority :  Where Consul Pointing = Where Nginx Pointing  > Which Container Running > Which Container Restarting)'
-
-  local consul_pointing
-  consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
-
+get_nginx_pointing() {
+  local project_name=$1
+  local nginx_config
+  local blue_exists
+  local green_exists
   local nginx_pointing
-  nginx_config=$(docker exec ${project_name}-nginx cat /etc/nginx/conf.d/nginx.conf || echo "failed")
+
+  nginx_config=$(docker exec "${project_name}-nginx" cat /etc/nginx/conf.d/nginx.conf || echo "failed")
+
   if echo "$nginx_config" | grep -Eq "^[^#]*proxy_pass http[s]*://${project_name}-blue"; then
       blue_exists="blue"
   else
@@ -35,52 +35,60 @@ cache_all_states() {
       nginx_pointing="failed"
   fi
 
+  echo "$nginx_pointing"
+}
 
+cache_all_states() {
+
+  echo '[NOTICE] Checking which container, blue or green, is running. (Priority :  Where Nginx Pointing  > Which Container Running > Which Container Restarting)'
+
+  ## Calculation
+
+  # 1. Nginx pointing
+  local nginx_pointing
+  nginx_pointing=$(get_nginx_pointing "$project_name")
+
+  # 2. Container status
   local blue_status
   blue_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-blue 2>/dev/null || echo "unknown")
   local green_status
   green_status=$(docker inspect --format='{{.State.Status}}' ${project_name}-green 2>/dev/null || echo "unknown")
 
 
-  echo "[DEBUG] ! Checking which (Blue OR Green) is currently running... (Base Check) : consul_pointing(${consul_pointing}), nginx_pointing(${nginx_pointing}), blue_status(${blue_status}), green_status(${green_status})"
+  echo "[DEBUG] ! Checking which (Blue OR Green) is currently running... (Base Check) :  nginx_pointing(${nginx_pointing}), blue_status(${blue_status}), green_status(${green_status})"
 
-  local blue_score=0
+  local blue_score=1  # Base score
   local green_score=0
 
-  # consul_pointing
-  if [[ "$consul_pointing" == "blue" ]]; then
-      blue_score=$((blue_score + 50))
-  elif [[ "$consul_pointing" == "green" ]]; then
-      green_score=$((green_score + 50))
-  fi
 
-  # nginx_pointing
+  ## Give scores
+
+  # 1. Nginx pointing
   if [[ "$nginx_pointing" == "blue" ]]; then
-      blue_score=$((blue_score + 50))
+      blue_score=$((blue_score + 30))
   elif [[ "$nginx_pointing" == "green" ]]; then
-      green_score=$((green_score + 50))
+      green_score=$((green_score + 30))
   fi
 
-
-  # status
+  # 2. Container status
   case "$blue_status" in
       "running")
           blue_score=$((blue_score + 30))
           ;;
       "restarting")
-          blue_score=$((blue_score + 29))
-          ;;
-      "created")
           blue_score=$((blue_score + 28))
           ;;
+      "created")
+          blue_score=$((blue_score + 25))
+          ;;
       "exited")
-          blue_score=$((blue_score + 27))
+          blue_score=$((blue_score + 5))
           ;;
       "paused")
-          blue_score=$((blue_score + 26))
+          blue_score=$((blue_score + 3))
           ;;
       "dead")
-          blue_score=$((blue_score + 25))
+          blue_score=$((blue_score + 1))
           ;;
       *)
           ;;
@@ -91,19 +99,19 @@ cache_all_states() {
           green_score=$((green_score + 30))
           ;;
       "restarting")
-          green_score=$((green_score + 29))
-          ;;
-      "created")
           green_score=$((green_score + 28))
           ;;
+      "created")
+          green_score=$((green_score + 25))
+          ;;
       "exited")
-          green_score=$((green_score + 27))
+          green_score=$((green_score + 5))
           ;;
       "paused")
-          green_score=$((green_score + 26))
+          green_score=$((green_score + 3))
           ;;
       "dead")
-          green_score=$((green_score + 25))
+          green_score=$((green_score + 1))
           ;;
       *)
           ;;

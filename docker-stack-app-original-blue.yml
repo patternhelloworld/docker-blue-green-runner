@@ -12,7 +12,7 @@ services:
     deploy:
       replicas: 2
     networks:
-      - consul
+      - dbgr-net
 networks:
-  consul:
+  dbgr-net:
     external: true

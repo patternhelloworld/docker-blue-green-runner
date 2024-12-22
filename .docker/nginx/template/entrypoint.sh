@@ -25,11 +25,10 @@ fi
 
 app_url=$(printenv APP_URL)
 protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
-echo "[INSIDE_NGINX_CONTAINER][NOTICE] Copy the template, contingency files for ${protocol} from '/ctmpl/${protocol}' to '/etc/consul-templates'."
+echo "[INSIDE_NGINX_CONTAINER][NOTICE] Copy the prepared files for ${protocol} from '/ctmpl/${protocol}' to '/etc/consul-templates'."
 sleep 2
-cp -f /ctmpl/${protocol}/nginx.conf.ctmpl /etc/consul-templates
-cp -f /ctmpl/${protocol}/nginx.conf.contingency.blue /etc/consul-templates
-cp -f /ctmpl/${protocol}/nginx.conf.contingency.green /etc/consul-templates
+cp -f /ctmpl/${protocol}/nginx.conf.prepared.blue /etc/consul-templates
+cp -f /ctmpl/${protocol}/nginx.conf.prepared.green /etc/consul-templates
 
 # SSL
 if [[ ${protocol} = 'https' ]]; then
@@ -76,9 +75,8 @@ if [[ ${protocol} = 'https' ]]; then
     chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.chained.crt
     chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.crt
 
-    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.ctmpl || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (ctmpl)" && exit 1)
-    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.contingency.blue || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (contingency blue)" && exit 1)
-    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.contingency.green || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (contingency green)" && exit 1)
+    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.prepared.blue || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (prepared blue)" && exit 1)
+    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.prepared.green || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (prepared green)" && exit 1)
 fi
 
 
@@ -104,7 +102,5 @@ for retry_count in {1..5}; do
   sleep 3
 done
 
-echo "[INSIDE_NGINX_CONTAINER][NOTICE] Applying the Nginx template..."
-bash /etc/service/consul-template/run/consul-template.service
 echo "[INSIDE_NGINX_CONTAINER][NOTICE] Start the Nginx."
 bash /etc/service/nginx/run/nginx.service

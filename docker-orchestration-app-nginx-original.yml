@@ -12,10 +12,10 @@ services:
       - ./.docker/ssl:/etc/nginx/ssl
       - ./.docker/nginx/custom-files:/etc/nginx/custom-files
     networks:
-      - consul
+      - dbgr-net
     ports:
       - ${PROJECT_PORT}:${PROJECT_PORT}
 networks:
-  consul:
+  dbgr-net:
     external:
-      name: consul
+      name: dbgr-net

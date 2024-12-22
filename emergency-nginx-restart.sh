@@ -45,8 +45,7 @@ initiate_nginx_docker_compose_file
 apply_env_service_name_onto_nginx_yaml
 apply_ports_onto_nginx_yaml
 apply_docker_compose_volumes_onto_app_nginx_yaml
-save_nginx_ctmpl_template_from_origin
-save_nginx_contingency_template_from_origin
+save_nginx_prepared_template_from_origin
 save_nginx_logrotate_template_from_origin
 save_nginx_main_template_from_origin
 # build
@@ -54,4 +53,4 @@ load_nginx_docker_image
 # run
 nginx_down_and_up
 # activate : blue or green
-./nginx-blue-green-activate.sh ${state_a} ${state_b} ${state_upstream} ${consul_key_value_store}
+./nginx-blue-green-activate.sh ${state_a} ${state_b} ${state_upstream}

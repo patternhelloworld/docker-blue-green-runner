@@ -77,104 +77,8 @@ set_origin_file() {
     fi
 }
 
-save_nginx_ctmpl_template_from_origin(){
 
-   local proxy_hostname=
-   local proxy_hostname_blue=
-
-   if [[ ${orchestration_type} == 'stack' ]]; then
-     proxy_hostname="!#{PROJECT_NAME}-{{ \$key_value }}_!#{PROJECT_NAME}-{{ \$key_value }}"
-     proxy_hostname_blue="!#{PROJECT_NAME}-blue_!#{PROJECT_NAME}-blue"
-   else
-     proxy_hostname="!#{PROJECT_NAME}-{{ \$key_value }}"
-     proxy_hostname_blue="!#{PROJECT_NAME}-blue"
-   fi
-
-   local app_https_protocol="https";
-   if [[ ${redirect_https_to_http} = 'true' ]]; then
-      app_https_protocol="http"
-   fi
-
-    local nginx_template_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.ctmpl"
-
-    echo "[NOTICE] NGINX template (${nginx_template_file}) is now being created."
-
-    local app_origin_file=$(set_origin_file ".docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin.customized" \
-                                        ".docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.ctmpl.origin")
-
-    echo "[DEBUG] ${app_origin_file} will be added to Template (${nginx_template_file})"
-
-    sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
-        -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
-        -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
-        "${app_origin_file}" > "${nginx_template_file}"
-
-
-    echo "" >> "${nginx_template_file}"
-
-    local additionals_origin_file=$(set_origin_file ".docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin.customized" \
-                                        ".docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.ctmpl.origin")
-
-    echo "[DEBUG] ${additionals_origin_file} will be added to Template (${nginx_template_file})"
-
-    if [ ${#additional_ports[@]} -eq 0 ]; then
-        echo "[DEBUG] However, no additional_ports found. it will not be added to ${nginx_template_file}"
-    else
-      for i in "${additional_ports[@]}"
-      do
-
-           sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
-               -e "s|!#{proxy_hostname_blue}|${proxy_hostname_blue}|g" \
-               -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
-               -e "s|!#{additional_port}|${i}|g" \
-               "${additionals_origin_file}" >> "${nginx_template_file}"
-
-           echo "" >> ${nginx_template_file}
-      done
-    fi
-
-   sed -i -e "s|!#{EXPOSE_PORT}|${expose_port}|g" \
-       -e "s|!#{APP_PORT}|${app_port}|g" \
-       -e "s|!#{PROJECT_NAME}|${project_name}|g" \
-       -e "s|!#{CONSUL_KEY}|${consul_key}|g" \
-       -e "s|!#{NGINX_CLIENT_MAX_BODY_SIZE}|${nginx_client_max_body_size}|g" \
-       "${nginx_template_file}"
-
-
-   if [[ ${use_nginx_restricted_location} = 'true' ]]; then
-
-       sed -i -e "/!#{USE_NGINX_RESTRICTED_LOCATION}/c \
-           location ${nginx_restricted_location} { \
-               add_header Pragma no-cache; \
-               add_header Cache-Control no-cache; \
-       \
-                               auth_basic           \"Restricted\"; \
-                               auth_basic_user_file /etc/nginx/custom-files/.htpasswd; \
-       \
-              {{ with \$key_value := keyOrDefault \"${consul_key}\" \"blue\" }} \
-                  {{ if or (eq \$key_value \"blue\") (eq \$key_value \"green\") }} \
-                       proxy_pass ${protocol}://${project_name}-{{ \$key_value }}:${app_port}; \
-                {{ else }} \
-                       proxy_pass ${protocol}://${project_name}-blue:${app_port}; \
-                   {{ end }} \
-               {{ end }}  \
-               proxy_set_header Host \$http_host; \
-               proxy_set_header X-Scheme \$scheme; \
-               proxy_set_header X-Forwarded-Protocol \$scheme; \
-               proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
-               proxy_set_header X-Real-IP \$remote_addr; \
-               proxy_http_version 1.1; \
-               proxy_read_timeout 300s; \
-               proxy_connect_timeout 75s; \
-           }" "${nginx_template_file}"
-   else
-
-     sed -i -e "s/!#{USE_NGINX_RESTRICTED_LOCATION}//" "${nginx_template_file}"
-
-   fi
-}
-
-save_nginx_contingency_template_from_origin(){
+save_nginx_prepared_template_from_origin(){
 
    local proxy_hostname=
 
@@ -190,35 +94,34 @@ save_nginx_contingency_template_from_origin(){
     fi
 
 
-   local nginx_contingency_template_temp_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency"
-   local nginx_contingency_template_blue_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency.blue"
-   local nginx_contingency_template_green_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.contingency.green"
+   local nginx_prepared_template_temp_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.prepared"
+   local nginx_prepared_template_blue_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.prepared.blue"
+   local nginx_prepared_template_green_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.prepared.green"
 
-   echo "[NOTICE] NGINX template (${nginx_contingency_template_temp_file}) is now being created."
+   echo "[NOTICE] NGINX template (${nginx_prepared_template_temp_file}) is now being created."
 
    sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
        -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
-       .docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.contingency.origin > ${nginx_contingency_template_temp_file}
+       .docker/nginx/origin/conf.d/${protocol}/app/nginx.conf.prepared.origin > ${nginx_prepared_template_temp_file}
 
-    echo "" >> ${nginx_contingency_template_temp_file}
+    echo "" >> ${nginx_prepared_template_temp_file}
 
     for i in "${additional_ports[@]}"
     do
          sed -e "s|!#{proxy_hostname}|${proxy_hostname}|g" \
               -e "s|!#{app_https_protocol}|${app_https_protocol}|g" \
               -e "s|!#{additional_port}|${i}|g" \
-             .docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.contingency.origin >> ${nginx_contingency_template_temp_file}
+             .docker/nginx/origin/conf.d/${protocol}/additionals/nginx.conf.prepared.origin >> ${nginx_prepared_template_temp_file}
 
-         echo "" >> ${nginx_contingency_template_temp_file}
+         echo "" >> ${nginx_prepared_template_temp_file}
     done
 
 
     sed -i -e "s|!#{EXPOSE_PORT}|${expose_port}|g" \
        -e "s|!#{APP_PORT}|${app_port}|g" \
        -e "s|!#{PROJECT_NAME}|${project_name}|g" \
-       -e "s|!#{CONSUL_KEY}|${consul_key}|g" \
        -e "s|!#{NGINX_CLIENT_MAX_BODY_SIZE}|${nginx_client_max_body_size}|g" \
-       ${nginx_contingency_template_temp_file}
+       ${nginx_prepared_template_temp_file}
 
 
 
@@ -241,20 +144,20 @@ save_nginx_contingency_template_from_origin(){
                 proxy_http_version 1.1; \
                 proxy_read_timeout 300s; \
                 proxy_connect_timeout 75s; \
-            }" ${nginx_contingency_template_temp_file}
+            }" ${nginx_prepared_template_temp_file}
 
       else
 
-        sed -i -e "s/!#{USE_NGINX_RESTRICTED_LOCATION}//" ${nginx_contingency_template_temp_file}
+        sed -i -e "s/!#{USE_NGINX_RESTRICTED_LOCATION}//" ${nginx_prepared_template_temp_file}
 
       fi
 
 
-    echo "[NOTICE] Creating 'nginx.conf.contingency.blue', 'nginx.conf.contingency.green''."
-    cp -f ${nginx_contingency_template_temp_file} ${nginx_contingency_template_blue_file}
-    sed -i -e "s/!#{APP_STATE}/blue/" ${nginx_contingency_template_blue_file}
-    cp -f ${nginx_contingency_template_temp_file} ${nginx_contingency_template_green_file}
-    sed -i -e "s/!#{APP_STATE}/green/" ${nginx_contingency_template_green_file}
+    echo "[NOTICE] Creating 'nginx.conf.prepared.blue', 'nginx.conf.prepared.green''."
+    cp -f ${nginx_prepared_template_temp_file} ${nginx_prepared_template_blue_file}
+    sed -i -e "s/!#{APP_STATE}/blue/" ${nginx_prepared_template_blue_file}
+    cp -f ${nginx_prepared_template_temp_file} ${nginx_prepared_template_green_file}
+    sed -i -e "s/!#{APP_STATE}/green/" ${nginx_prepared_template_green_file}
 
 }
 
@@ -338,7 +241,7 @@ check_nginx_templates_integrity(){
 
   docker run -d -it --name ${project_name}-nginx-test \
     -e SERVICE_NAME=nginx \
-    --network=consul \
+    --network=dbgr-net \
     --env-file .env \
     ${project_name}-nginx-test:latest
 

@@ -10,7 +10,6 @@ DOCKER_LAYER_CORRUPTION_RECOVERY=false
 
 
 NGINX_RESTART=false
-CONSUL_RESTART=false
 
 # The method of acquiring Docker images:
 # build (Used in developer's local environment or during Jenkins builds when a new image needs to be built, so this module is typically used)
@@ -29,7 +28,6 @@ PROJECT_PORT=[18200,8200]
 # Example (8093,8094,11000...)
 ADDITIONAL_PORTS=5005
 
-CONSUL_KEY_VALUE_STORE=http://consul:8500/v1/kv/deploy/spring-sample-h-auth
 
 # If you locate your project on ../ (upper folder)
 HOST_ROOT_LOCATION=./samples/spring-sample-h-auth

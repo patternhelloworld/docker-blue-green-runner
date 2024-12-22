@@ -59,7 +59,7 @@ else
   echo "[NOTICE] Nginx will NOT be restarted, as ${nginx_restart} = false"
 fi
 
-./nginx-blue-green-activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
+./nginx-blue-green-activate.sh ${new_state} ${state} ${new_upstream}
 
 
 if [[ ${orchestration_type} != 'stack' ]]; then

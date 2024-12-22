@@ -34,7 +34,5 @@ docker container rm ${project_name}-green || echo "[DEBUG] A-L 5"
 docker stack rm ${project_name}-blue || echo "[DEBUG] F"
 docker stack rm ${project_name}-green || echo "[DEBUG] F-2"
 
-docker-compose -f docker-orchestration-consul.yml down || echo "[DEBUG] C"
-
 docker-compose down || echo "[DEBUG] G"
 docker system prune -f
