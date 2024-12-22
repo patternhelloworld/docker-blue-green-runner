@@ -188,9 +188,6 @@ cache_non_dependent_global_vars() {
       docker_build_labels="${docker_build_labels},project.git.sha=${project_git_sha}"
   fi
 
-  consul_key_value_store=$(get_value_from_env "CONSUL_KEY_VALUE_STORE")
-  consul_key=$(echo ${consul_key_value_store} | cut -d "/" -f6)\\/$(echo ${consul_key_value_store} | cut -d "/" -f7)
-
   app_health_check_path=$(get_value_from_env "APP_HEALTH_CHECK_PATH")
   bad_app_health_check_pattern=$(get_value_from_env "BAD_APP_HEALTH_CHECK_PATTERN")
   good_app_health_check_pattern=$(get_value_from_env "GOOD_APP_HEALTH_CHECK_PATTERN")
@@ -217,16 +214,17 @@ cache_non_dependent_global_vars() {
 
 
   nginx_restart=$(get_value_from_env "NGINX_RESTART")
-  consul_restart=$(get_value_from_env "CONSUL_RESTART")
-  if [[ ${consul_restart} == 'true' && ${nginx_restart} == 'false' ]]; then
-      echo "[ERROR] On .env, consul_restart=true but nginx_restart=false. That does NOT make sense, as Nginx depends on Consul." && exit 1
-  fi
+
   use_my_own_app_yml=$(get_value_from_env "USE_MY_OWN_APP_YML")
 
   skip_building_app_image=$(get_value_from_env "SKIP_BUILDING_APP_IMAGE")
 
   if [[ ${docker_layer_corruption_recovery} == 'true' && ${skip_building_app_image} == 'true' ]]; then
-      echo "[ERROR] On .env, docker_layer_corruption_recovery=true and skip_building_app_image=true as well. That does NOT make sense, as 'docker_layer_corruption_recovery=true' removes all images first." && exit 1
+      echo "[ERROR] Configuration conflict in .env: 'docker_layer_corruption_recovery=true' and 'skip_building_app_image=true' cannot coexist. 'docker_layer_corruption_recovery=true' removes all images, so skipping the app image build is not logical." && exit 1
+  fi
+
+  if [[ ${docker_layer_corruption_recovery} == 'true' && ${nginx_restart} == 'false' ]]; then
+      echo "[ERROR] Configuration conflict in .env: 'docker_layer_corruption_recovery=true' and 'nginx_restart=false' cannot coexist. 'docker_layer_corruption_recovery=true' removes all images, which requires a restart of Nginx." && exit 1
   fi
 
   orchestration_type=$(get_value_from_env "ORCHESTRATION_TYPE")
@@ -268,7 +266,6 @@ cache_non_dependent_global_vars() {
   if [[ $(validate_number "$nginx_logrotate_file_number") == "false" ]]; then
     echo "[WARNING] NGINX_LOGROTATE_FILE_NUMBER in .env has an incorrect format. (value: $nginx_logrotate_file_number, correct examples: 5,10,101..., etc. Expected behavior: Logrotate won't work). However, this is NOT a serious issue. We will continue the process."
   fi
-  use_my_own_nginx_origin=$(get_value_from_env "USE_MY_OWN_NGINX_ORIGIN")
 
 }
 
@@ -303,18 +300,8 @@ cache_global_vars() {
 
   app_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-app:${git_image_version}"
   nginx_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-nginx:${git_image_version}"
-  consul_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-consul:${git_image_version}"
-  registrator_image_name_in_registry="${git_image_load_from_host}/${git_image_load_from_pathname}-registrator:${git_image_version}"
 
 
-
-  if [[ $(docker exec consul echo 'yes' 2> /dev/null) == '' ]]
-  then
-      echo '[NOTICE] Since the Consul container is not running, we consider it as consul_restart=true and start from loading the image again. (The .env file will not be changed.)'
-      consul_restart=true
-
-      # Since there is no Dockerfile, unlike the 'load_nginx_docker_image' and 'load_app_docker_image' functions, there is no 'build' command.
-  fi
   if [[ $(docker exec ${project_name}-nginx echo 'yes' 2> /dev/null) == '' ]]
   then
       echo "[NOTICE] Since the '${project_name}-nginx:latest' container is not running, we consider it as 'nginx_restart=true' and start from building again."
@@ -614,7 +601,7 @@ check_one_container_loaded(){
   if [ "$(docker ps -q -f name=^${1})" ]; then
       echo "[NOTICE] Supporting container ( ${1} ) running checked."
     else
-      echo "[ERROR] Supporting container ( ${1} ) running not found. But, this does NOT stop the current deployment, according to the Nginx Contingency Plan."
+      echo "[ERROR] Supporting container ( ${1} ) running not found. But, this does NOT stop the current deployment, according to the Nginx Prepared Plan."
     fi
 }
 
@@ -624,13 +611,6 @@ check_one_edge_routing_container_loaded(){
   else
       echo "[ERROR] Supporting container ( ${1} ) running not found. As it is a necessary container, we will now exit the deployment process for safety." && exit 1
   fi
-}
-
-check_common_containers_loaded(){
-  all_container_names=("consul" "registrator")
-  for name in "${all_container_names[@]}"; do
-    check_one_container_loaded ${name}
-  done
 }
 
 check_edge_routing_containers_loaded() {
@@ -656,7 +636,7 @@ docker_login_with_params() {
 # experimental
 set_network_driver_for_orchestration_type(){
 
-  local network_name="consul"
+  local network_name="dbgr-net"
   local swarm_network_driver="overlay"
   local local_network_driver="local"
   # 네트워크 존재 여부 확인
@@ -665,9 +645,9 @@ set_network_driver_for_orchestration_type(){
     echo "[NOTICE] Network name (${network_name}) does not exist."
 
     if [[ ${orchestration_type} != 'stack' ]]; then
-      docker network create consul || echo "[NOTICE] Consul Network (Local) has already been created. You can ignore this message."
+      docker network create dbgr-net || echo "[NOTICE] DBGR Network (Local) has already been created. You can ignore this message."
     else
-      docker network create --driver ${swarm_network_driver} --attachable consul || echo "[NOTICE] Consul Network (Swarm) has already been created. You can ignore this message."
+      docker network create --driver ${swarm_network_driver} --attachable dbgr-net || echo "[NOTICE] DBGR Network (Swarm) has already been created. You can ignore this message."
     fi
   else
     network_driver=$(docker network inspect $network_id --format "{{.Driver}}")
@@ -677,12 +657,12 @@ set_network_driver_for_orchestration_type(){
           exit 0
         else
           echo "[NOTICE] $swarm_network_driver is not appropriate for ${orchestration_type}"
-          bash emergency-consul-down-and-up;
+          bash emergency-all-down-and-up;
         fi
     elif [ "$network_driver" == "$local_network_driver" ]; then
         if [[ ${orchestration_type} == 'stack' ]]; then
               echo "[NOTICE] $swarm_network_driver is not appropriate for ${orchestration_type}"
-              bash emergency-consul-down-and-up;
+              bash emergency-all-down-and-up;
           else
               echo "[NOTICE] $swarm_network_driver is appropriately set for $local_network_driver"
               exit 0

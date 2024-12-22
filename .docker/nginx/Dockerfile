@@ -14,20 +14,14 @@ RUN if getent group $shared_volume_group_id ; then \
         groupadd -g $shared_volume_group_id $shared_volume_group_name && usermod -aG $shared_volume_group_name nginx; \
     fi
 
-RUN wget --no-check-certificate https://releases.hashicorp.com/consul-template/0.19.3/consul-template_0.19.3_linux_amd64.zip && \
-    unzip -d /usr/local/bin consul-template_0.19.3_linux_amd64.zip && \
-    rm -rf consul-template_0.19.3_linux_amd64.zip
-
 COPY ./.docker/nginx/template/entrypoint.sh /
 COPY ./.docker/nginx/template/nginx.service /etc/service/nginx/run/
-COPY ./.docker/nginx/template/consul-template.service /etc/service/consul-template/run/
 
 COPY ./.docker/nginx/template/nginx.conf.main /etc/nginx/nginx.conf
-COPY ./.docker/nginx/template/ctmpl /ctmpl
+COPY ./.docker/nginx/template/conf.d /conf.d
 COPY ./.docker/nginx/template/logrotate/nginx /etc/logrotate.d/nginx
 
-RUN chmod +x /etc/service/nginx/run && chmod +x /etc/service/consul-template/run
-RUN sed -i -e 's/\r$//' /etc/service/consul-template/run/consul-template.service
+RUN chmod +x /etc/service/nginx/run
 RUN sed -i -e 's/\r$//' /etc/service/nginx/run/nginx.service
 RUN rm /etc/nginx/conf.d/default.conf
 

@@ -41,4 +41,4 @@ echo "[NOTICE] Finally, !! Deploy the App as !! ${state_a} !!, we will now deplo
 # run
 nginx_down_and_up
 # activate : blue or green
-./nginx-blue-green-activate.sh ${state_a} ${state_b} ${state_upstream} ${consul_key_value_store}
+./nginx-blue-green-activate.sh ${state_a} ${state_b} ${state_upstream}

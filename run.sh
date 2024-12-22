@@ -25,7 +25,6 @@ sleep 1
 
 source ./use-app.sh
 source ./use-nginx.sh
-source ./use-consul.sh
 
 
 # Back-up priority : new > blue or green > latest
@@ -83,12 +82,9 @@ terminate_whole_system(){
 
     docker-compose -f docker-${orchestration_type}-${project_name}.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}.yml down failure"
     docker-compose -f docker-${orchestration_type}-${project_name}.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}.yml down failure"
-    docker-compose -f docker-${orchestration_type}-consul.yml down || echo "[NOTICE] docker-${orchestration_type}-${project_name}-consul.yml down failure"
     docker-compose -f docker-orchestration-${project_name}-nginx.yml down || echo "[NOTICE] docker-orchestration-${project_name}-nginx.yml down failure"
 
-    docker network rm consul
-
-    docker network rm consul
+    docker network rm dbgr-net || echo "[NOTICE] dbgr-net has already been removed."
 
     docker system prune -f
   fi
@@ -96,24 +92,17 @@ terminate_whole_system(){
 
 
 load_all_containers(){
-  # app, consul, nginx
+  # app, nginx
   # In the past, restarting Nginx before App caused error messages like "upstream not found" in the Nginx configuration file. This seems to have caused a 502 error on the socket side.
 
-  echo "[NOTICE] Creating consul network..."
+  echo "[NOTICE] Creating dbgr-net network..."
   if [[ ${orchestration_type} != 'stack' ]]; then
-   docker network create consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+   docker network create dbgr-net || echo "[NOTICE] DBGR Network has already been created. You can ignore this message."
   else
-      docker network create --driver overlay consul || echo "[NOTICE] Consul Network has already been created. You can ignore this message."
+      docker network create --driver overlay dbgr-net || echo "[NOTICE] DBGR Network has already been created. You can ignore this message."
   fi
 
-  # Therefore, it is safer to restart the containers in the order of Consul -> App -> Nginx.
-
-  if [[ ${consul_restart} == 'true' ]]; then
-      consul_down_and_up
-  else
-    echo "[NOTICE] As CONSUL_RESTART in .env is NOT true, Consul won't be restarted."
-  fi
-
+  # Therefore, it is safer to restart the containers in the order of App -> Nginx.
 
   echo "[NOTICE] Run the app as a ${new_state} container. (As long as NGINX_RESTART is set to 'false', this won't stop the running container since this is a BLUE-GREEN deployment.)"
   app_down_and_up
@@ -135,8 +124,6 @@ load_all_containers(){
   fi
 
   check_edge_routing_containers_loaded || (echo "[ERROR] Failed in loading necessary supporting containers." && exit 1)
-
-  check_common_containers_loaded || (echo "[ERROR] Failed in loading supporting containers. We will conduct the Nginx Contingency Plan.")
 
 }
 
@@ -190,8 +177,7 @@ _main() {
     apply_ports_onto_nginx_yaml
     apply_docker_compose_volumes_onto_app_nginx_yaml
 
-    save_nginx_ctmpl_template_from_origin
-    save_nginx_contingency_template_from_origin
+    save_nginx_prepared_template_from_origin
     save_nginx_logrotate_template_from_origin
     save_nginx_main_template_from_origin
 
@@ -224,11 +210,6 @@ _main() {
       load_app_docker_image
   fi
 
-  if [[ ${consul_restart} == 'true' ]]; then
-      display_checkpoint_message "Building Docker image for Consul... ('consul_restart' is set to true) (14%)"
-      load_consul_docker_image
-  fi
-
   if [[ ${nginx_restart} == 'true' ]]; then
       display_checkpoint_message "Building Docker image for Nginx... ('nginx_restart' is set to true) (16%)"
       load_nginx_docker_image
@@ -240,20 +221,20 @@ _main() {
   fi
 
 
-  local cached_new_state=${new_state}
-  cache_all_states
-  if [[ ${cached_new_state} != "${new_state}" ]]; then
-    (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
-  fi
+  #local cached_new_state=${new_state}
+  #cache_all_states
+  #if [[ ${cached_new_state} != "${new_state}" ]]; then
+  #  (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
+  #fi
 
-  # docker-compose up the App, Nginx, Consul & * Internal Integrity Check for the App
-  display_checkpoint_message "Starting docker-compose for App, Nginx, and Consul, followed by an internal integrity check for the app... (40%)"
+  # docker-compose up the App, Nginx & * Internal Integrity Check for the App
+  display_checkpoint_message "Starting docker-compose for App and Nginx, followed by an internal integrity check for the app... (40%)"
   load_all_containers
 
 
   display_checkpoint_message "Reached the transition point... (65%)"
   display_immediate_transition ${state} ${new_state}
-  ./nginx-blue-green-activate.sh ${new_state} ${state} ${new_upstream} ${consul_key_value_store}
+  ./nginx-blue-green-activate.sh ${new_state} ${state} ${new_upstream}
 
   # [E] External Integrity Check, if fails, 'emergency-nginx-down-and-up.sh' will be run.
   display_checkpoint_message "Performing external integrity check. If it fails, 'emergency-nginx-down-and-up.sh' will be executed... (87%)"
@@ -279,16 +260,19 @@ _main() {
 
   echo "[DEBUG] state : ${state}, new_state : ${new_state}, initially_cached_old_state : ${initially_cached_old_state}"
 
-  echo "[NOTICE] For safety, finally check Consul pointing before stopping the previous container (${initially_cached_old_state})."
-  local consul_pointing=$(docker exec ${project_name}-nginx curl ${consul_key_value_store}?raw 2>/dev/null || echo "failed")
-  if [[ ${consul_pointing} != ${initially_cached_old_state} ]]; then
+  echo "[NOTICE] For safety, finally check Nginx pointing before stopping the previous container (${initially_cached_old_state})."
+
+  local nginx_pointing
+  nginx_pointing=$(get_nginx_pointing "$project_name")
+
+  if [[ ${nginx_pointing} != ${initially_cached_old_state} ]]; then
 
     if [[ ${orchestration_type} != 'stack' ]]; then
       docker-compose -f docker-${orchestration_type}-${project_name}.yml stop ${project_name}-${initially_cached_old_state}
-      echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+      echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
     else
        docker stack rm ${project_name}-${initially_cached_old_state}
-       echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+       echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
     fi
 
     display_checkpoint_message "CURRENT APP_URL: ${app_url}."
@@ -301,7 +285,7 @@ _main() {
     docker rmi $(docker images -f "dangling=true" -q) || echo "[NOTICE] Any images in use will not be deleted."
 
   else
-    echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Consul Pointing is ${consul_pointing}."
+    echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has NOT been stopped because the current Nginx Pointing is ${nginx_pointing}."
   fi
 
 }

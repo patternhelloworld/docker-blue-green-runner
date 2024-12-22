@@ -10,7 +10,6 @@ COMMERCIAL_SSL_NAME=yyy
 DOCKER_LAYER_CORRUPTION_RECOVERY=false
 
 NGINX_RESTART=false
-CONSUL_RESTART=false
 
 # The method of acquiring Docker images:
 # build (Used in developer's local environment or during Jenkins builds when a new image needs to be built, so this module is typically used)
@@ -28,8 +27,6 @@ PROJECT_LOCATION=/var/www/app
 PROJECT_PORT=8081
 # Example (8093,8094,11000...)
 ADDITIONAL_PORTS=
-
-CONSUL_KEY_VALUE_STORE=http://consul:8500/v1/kv/deploy/laravel_crud_boilerplate
 
 # If you locate your project on ../ (upper folder)
 HOST_ROOT_LOCATION=./samples/laravel-crud-boilerplate
@@ -75,7 +72,7 @@ USE_NGINX_RESTRICTED_LOCATION=false
 # ex. /docs/api-app.html
 NGINX_RESTRICTED_LOCATION=xxx
 
-REDIRECT_HTTPS_TO_HTTP=false
+REDIRECT_HTTPS_TO_HTTP=true
 
 NGINX_LOGROTATE_FILE_NUMBER=7
 NGINX_LOGROTATE_FILE_SIZE=100K
@@ -83,5 +80,3 @@ NGINX_LOGROTATE_FILE_SIZE=100K
 SHARED_VOLUME_GROUP_ID=1351
 SHARED_VOLUME_GROUP_NAME=laravel-shared-volume-group
 UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID=1000
-
-USE_MY_OWN_NGINX_ORIGIN=false

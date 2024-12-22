@@ -39,7 +39,6 @@
     DOCKER_LAYER_CORRUPTION_RECOVERY=false
     
     NGINX_RESTART=false
-    CONSUL_RESTART=false
     
     # The method of acquiring Docker images:
     # build (Used in developer's local environment or during Jenkins builds when a new image needs to be built, so this module is typically used)
@@ -58,8 +57,6 @@
     PROJECT_PORT=[443,8360]
     # Example (8093,8094,11000...)
     ADDITIONAL_PORTS=
-    
-    CONSUL_KEY_VALUE_STORE=http://consul:8500/v1/kv/deploy/your-app
     
     # If you locate your project on ../ (upper folder)
     HOST_ROOT_LOCATION=/var/projects/your-app
@@ -91,7 +88,7 @@
     DOCKER_BUILD_ARGS={"PROJECT_ROOT_IN_CONTAINER":"/app"}
     # For SSL, the host folder is recommended to be './.docker/ssl' to be synchronized with 'docker-orchestration-app-nginx-original.yml'.
     # [IMPORTANT] Run mkdir -p /var/projects/files/your-app/logs on your host machine
-    DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/var/projects/your-app/.docker/nginx/app.conf.ctmpl:/etc/nginx-template/app.conf.ctmpl","/var/projects/files/your-app/logs:/var/log/nginx"]
+    DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/var/projects/your-app/.docker/nginx/app.conf.conf.d:/etc/nginx-template/app.conf.conf.d","/var/projects/files/your-app/logs:/var/log/nginx"]
     # [IMPORTANT] Run mkdir -p /var/projects/files/nginx/logs on your host machine
     DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES=["/var/projects/files/nginx/logs:/var/log/nginx"]
     DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
@@ -126,8 +123,7 @@
     SHARED_VOLUME_GROUP_ID=1559
     SHARED_VOLUME_GROUP_NAME=mba-shared-volume-group
     UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID=1000,1001
-    
-    USE_MY_OWN_NGINX_ORIGIN=false
+
   ```
 ### Locate your commercial SSLs in the folder ``docker-blue-green-runner/.docker/ssl``. See the comments in the ``.env`` above.  
 - For me, I have used GoDaddy, https://dearsikandarkhan.medium.com/ssl-godaddy-csr-create-on-mac-osx-4401c47fd94c .
@@ -177,15 +173,15 @@ ENTRYPOINT bash /entrypoint.sh
       - .docker/
           - entrypoint.sh
           - nginx/
-              - app.conf.ctmpl
+              - app.conf.conf.d
    - entrypoint.sh
      - ```shell
        #!/bin/bash
         # synced the paths at DOCKER_COMPOSE_SELECTIVE_VOLUMES in .env
-        cat /etc/nginx-template/app.conf.ctmpl > /etc/nginx/conf.d/default.conf
+        cat /etc/nginx-template/app.conf.conf.d > /etc/nginx/conf.d/default.conf
         /usr/sbin/nginx -t && exec /usr/sbin/nginx -g "daemon off;"
        ```
-   - app.conf.ctmpl
+   - app.conf.conf.d
       - ```nginx
         server {
         listen 8360;
