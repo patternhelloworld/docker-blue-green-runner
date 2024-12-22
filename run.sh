@@ -221,11 +221,11 @@ _main() {
   fi
 
 
-  local cached_new_state=${new_state}
-  cache_all_states
-  if [[ ${cached_new_state} != "${new_state}" ]]; then
-    (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
-  fi
+  #local cached_new_state=${new_state}
+  #cache_all_states
+  #if [[ ${cached_new_state} != "${new_state}" ]]; then
+  #  (echo "[ERROR] Just checked all states shortly after the Docker Images had been done built. The state the App was supposed to be deployed as has been changed. (Original : ${cached_new_state}, New : ${new_state}). For the safety, we exit..." && exit 1)
+  #fi
 
   # docker-compose up the App, Nginx & * Internal Integrity Check for the App
   display_checkpoint_message "Starting docker-compose for App and Nginx, followed by an internal integrity check for the app... (40%)"

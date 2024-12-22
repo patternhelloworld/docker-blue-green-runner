@@ -2,6 +2,12 @@
 
 > A Simple and Safe Blue-Green Deployment Starting from Your Source Code—Not from Your Prebuilt Docker Image
 
+> [NOTE] To upgrade your app from v5 to v6, update your .env file with the following settings and proceed: 
+   ```.dotenv
+  DOCKER_LAYER_CORRUPTION_RECOVERY=true
+  NGINX_RESTART=true
+  ```
+ 
 ## Table of Contents
 - [Features](#features)
 - [Process Summary](#process-summary)
