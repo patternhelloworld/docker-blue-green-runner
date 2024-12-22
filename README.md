@@ -4,10 +4,10 @@
 
 > [NOTE] To upgrade your app from v5 to v6, update your .env file with the following settings and proceed: 
    ```.dotenv
-  DOCKER_LAYER_CORRUPTION_RECOVERY=true
-  NGINX_RESTART=true
+  DOCKER_LAYER_CORRUPTION_RECOVERY=true # Warning: This will remove your app container and image.
+  NGINX_RESTART=true # For normal upgrades, this setting is sufficient. For zero-downtime deployment, set this to false. Details at the Upgrade section.
   ```
- 
+
 ## Table of Contents
 - [Features](#features)
 - [Process Summary](#process-summary)

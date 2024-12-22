@@ -38,9 +38,10 @@ done
 
 echo "[NOTICE] Activate ${new_state} in the Nginx config file. (old Nginx pids: ${pid_was})"
 echo "[NOTICE] ${new_state} is stored in the Nginx config file."
-echo "![NOTICE] Setting ${new_state} on nginx.conf according to the Nginx Prepared Plan."
-docker exec ${project_name}-nginx cp -f /etc/templates/nginx.conf.prepared.${new_state} /etc/nginx/conf.d/nginx.conf || docker exec ${project_name}-nginx cp -f /conf.d/${protocol}/nginx.conf.prepared.${new_state} /etc/nginx/conf.d/nginx.conf
-docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Prepared Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
+
+echo "![NOTICE] Setting ${new_state} in nginx.conf... (from '/etc/templates/nginx.conf.prepared.${new_state}')"
+docker exec ${project_name}-nginx cp -f /etc/templates/nginx.conf.prepared.${new_state} /etc/nginx/conf.d/nginx.conf
+docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Prepared Plan failed. Correct /etc/nginx/conf.d/nginx.conf directly in the Nginx container and Run "service nginx restart".'
 
 sleep 1
 
