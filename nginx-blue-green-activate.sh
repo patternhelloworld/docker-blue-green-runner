@@ -15,7 +15,7 @@ new_upstream=$3
 echo "[NOTICE] new_state : ${new_state}, old_state : ${old_state}, new_upstream : ${new_upstream}"
 
 
-# The meaning of "${pid_was} != '-'" is that when Nginx has fully started, the BLUE-GREEN change operation is performed in CONSUL.
+# The meaning of "${pid_was} != '-'" is that when Nginx has fully started, the BLUE-GREEN change operation is performed.
 echo "[NOTICE] Check if Nginx is completely UP."
 for retry_count in {1..5}; do
   pid_was=$(docker exec ${project_name}-nginx pidof nginx 2>/dev/null || echo '-')

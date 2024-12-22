@@ -220,7 +220,11 @@ cache_non_dependent_global_vars() {
   skip_building_app_image=$(get_value_from_env "SKIP_BUILDING_APP_IMAGE")
 
   if [[ ${docker_layer_corruption_recovery} == 'true' && ${skip_building_app_image} == 'true' ]]; then
-      echo "[ERROR] On .env, docker_layer_corruption_recovery=true and skip_building_app_image=true as well. That does NOT make sense, as 'docker_layer_corruption_recovery=true' removes all images first." && exit 1
+      echo "[ERROR] Configuration conflict in .env: 'docker_layer_corruption_recovery=true' and 'skip_building_app_image=true' cannot coexist. 'docker_layer_corruption_recovery=true' removes all images, so skipping the app image build is not logical." && exit 1
+  fi
+
+  if [[ ${docker_layer_corruption_recovery} == 'true' && ${nginx_restart} == 'false' ]]; then
+      echo "[ERROR] Configuration conflict in .env: 'docker_layer_corruption_recovery=true' and 'nginx_restart=false' cannot coexist. 'docker_layer_corruption_recovery=true' removes all images, which requires a restart of Nginx." && exit 1
   fi
 
   orchestration_type=$(get_value_from_env "ORCHESTRATION_TYPE")

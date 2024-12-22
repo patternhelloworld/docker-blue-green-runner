@@ -62,13 +62,12 @@
        - Step 2: Perform a health check with customized settings defined in your .env file
      - Nginx Router Test Container
      - External Integrity Check
-     - Nginx Prepared Plan
      - Rollback Procedures
      - Additional Know-hows on Docker: Tips and best practices for optimizing your Docker workflow and deployment processes
    - For example, Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
      - https://stackoverflow.com/questions/76660749/traefik-404-page-not-found-when-use-https
      - https://community.traefik.io/t/getting-bad-gateway-404-page-when-supposed-to-route-to-container-port-8443/20398
-   - Manipulates NGINX configuration files directly to ensure container accessibility. It also tests configuration files by launching a test NGINX Docker instance, and if an NGINX config update via Consul-Template fails, Prepared Plan provided is activated to ensure connectivity to your containers.
+   - Manipulates NGINX configuration files directly to ensure container accessibility.
 
 
 3. **Track Blue-Green status and the Git SHA of your running container for easy monitoring.**
@@ -159,7 +158,6 @@ graph TD;
 | docker                                | 24~27            | Manual            | I think too old versions could cause problems, and the lastest version v27.x causes only a warning message.                    |
 | docker-compose                        | 2                | Manual            | I think too old versions could cause problems, and the v2 is recommended.                                                      |
 
-- Although issues with wrong versions of these libraries can cause errors, there are several safety mechanisms in place to prevent the server from being interrupted. For example, when you run run.sh, early on it checks: 1) the existence of the required libraries, 2) the NGINX Prepared Function section below, and 3) in case of restarting Nginx (NGINX_RESTART=true in .env), a preliminary check for integrity (check_nginx_templates_integrity in use-nginx.sh).
 - For ``docker-compose``, if you use a version above v2.25.0, you will see a warning message: ``[WARN] The attribute 'version' is obsolete and will be ignored. Please remove it to avoid potential confusion``. You can ignore it at this point.
 - For MAC users, ``GNU-based bash, sed, grep`` should be installed.
 - For MAC users, ``SHARED_VOLUME_GROUP_*`` on .env are skipped.
@@ -389,7 +387,7 @@ For all echo messages or properties .env, the following terms indicate...
 ```shell
 bash check-current-states.sh
 # The output example
-[DEBUG] ! Checking which (Blue OR Green) is currently running... (Base Check) : consul_pointing(blue), nginx_pointing(blue}), blue_status(running), green_status(exited)
+[DEBUG] ! Checking which (Blue OR Green) is currently running... (Base Check) : nginx_pointing(blue}), blue_status(running), green_status(exited)
 [DEBUG] ! Checked which (Blue OR Green) is currently running... (Final Check) : blue_score : 130, green_score : 27, state : blue, new_state : green, state_for_emergency : blue, new_upstream : https://PROJECT_NAME:8300.
 ```
 - The higher the score a state receives, the more likely it is to be the currently running state. So the updated App should be deployed as the non-occupied state(new_state).

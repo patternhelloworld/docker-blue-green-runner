@@ -39,5 +39,3 @@ for container_id in "${container_ids[@]}"; do
 done
 
 sleep 5
-
-consul_down_and_up_with_network

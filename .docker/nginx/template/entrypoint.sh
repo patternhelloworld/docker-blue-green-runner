@@ -17,7 +17,7 @@ echo "[INSIDE_NGINX_CONTAINER][NOTICE] Start Logrotate (every hour at minute 1) 
 service cron restart || echo "[WARN] Restarting Cron failed."
 
 
-# From this point on, the configuration of the NGINX consul-template begins.
+# From this point on, the configuration of the NGINX template begins.
 if [[ ! -d /etc/templates ]]; then
     echo "[INSIDE_NGINX_CONTAINER][NOTICE] As the directory name '/etc/templates' does NOT exist, it has been created."
     mkdir /etc/templates

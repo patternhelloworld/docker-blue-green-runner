@@ -269,10 +269,10 @@ _main() {
 
     if [[ ${orchestration_type} != 'stack' ]]; then
       docker-compose -f docker-${orchestration_type}-${project_name}.yml stop ${project_name}-${initially_cached_old_state}
-      echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+      echo "[NOTICE] The previous (${initially_cached_old_state}) container (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
     else
        docker stack rm ${project_name}-${initially_cached_old_state}
-       echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true or CONSUL_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
+       echo "[NOTICE] The previous (${initially_cached_old_state}) service (initially_cached_old_state) has been stopped because the deployment was successful. (If NGINX_RESTART=true, existing containers have already been terminated in the load_all_containers function.)"
     fi
 
     display_checkpoint_message "CURRENT APP_URL: ${app_url}."
