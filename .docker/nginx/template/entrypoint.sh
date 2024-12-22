@@ -18,17 +18,17 @@ service cron restart || echo "[WARN] Restarting Cron failed."
 
 
 # From this point on, the configuration of the NGINX consul-template begins.
-if [[ ! -d /etc/consul-templates ]]; then
-    echo "[INSIDE_NGINX_CONTAINER][NOTICE] As the directory name '/etc/consul-templates' does NOT exist, it has been created."
-    mkdir /etc/consul-templates
+if [[ ! -d /etc/templates ]]; then
+    echo "[INSIDE_NGINX_CONTAINER][NOTICE] As the directory name '/etc/templates' does NOT exist, it has been created."
+    mkdir /etc/templates
 fi
 
 app_url=$(printenv APP_URL)
 protocol=$(echo ${app_url} | awk -F[/:] '{print $1}')
-echo "[INSIDE_NGINX_CONTAINER][NOTICE] Copy the prepared files for ${protocol} from '/ctmpl/${protocol}' to '/etc/consul-templates'."
+echo "[INSIDE_NGINX_CONTAINER][NOTICE] Copy the prepared files for ${protocol} from '/conf.d/${protocol}' to '/etc/templates'."
 sleep 2
-cp -f /ctmpl/${protocol}/nginx.conf.prepared.blue /etc/consul-templates
-cp -f /ctmpl/${protocol}/nginx.conf.prepared.green /etc/consul-templates
+cp -f /conf.d/${protocol}/nginx.conf.prepared.blue /etc/templates
+cp -f /conf.d/${protocol}/nginx.conf.prepared.green /etc/templates
 
 # SSL
 if [[ ${protocol} = 'https' ]]; then
@@ -75,8 +75,8 @@ if [[ ${protocol} = 'https' ]]; then
     chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.chained.crt
     chmod 644 /etc/nginx/ssl/${commercial_ssl_name}.crt
 
-    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.prepared.blue || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (prepared blue)" && exit 1)
-    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/consul-templates/nginx.conf.prepared.green || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (prepared green)" && exit 1)
+    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/templates/nginx.conf.prepared.blue || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (prepared blue)" && exit 1)
+    sed -i -e "s/!#{COMMERCIAL_SSL_NAME}/${commercial_ssl_name}/" /etc/templates/nginx.conf.prepared.green || (echo "commercial_ssl_name (${commercial_ssl_name}) on .env failed to be applied. (prepared green)" && exit 1)
 fi
 
 

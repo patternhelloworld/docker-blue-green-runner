@@ -10,7 +10,7 @@ new_state=$2
 
 echo "[NOTICE] Point Nginx back to ${state} from nginx-blue-green-reset.sh."
 echo "[ERROR] Setting ${state} on '/etc/nginx/conf.d/nginx.conf' directly according to the Nginx Prepared Plan."
-docker exec ${project_name}-nginx cp -f /etc/consul-templates/nginx.conf.prepared.${state} /etc/nginx/conf.d/nginx.conf
+docker exec ${project_name}-nginx cp -f /etc/templates/nginx.conf.prepared.${state} /etc/nginx/conf.d/nginx.conf
 docker exec ${project_name}-nginx sh -c 'service nginx reload || service nginx restart || [EMERGENCY] Nginx Prepared Plan failed as well. Correct /etc/nginx/conf.d/nginx.conf directly and Run "service nginx restart".'
 
 echo "[NOTICE] Stopping the ${new_state} ${orchestration_type}"

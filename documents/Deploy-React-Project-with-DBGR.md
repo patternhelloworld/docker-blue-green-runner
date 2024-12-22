@@ -88,7 +88,7 @@
     DOCKER_BUILD_ARGS={"PROJECT_ROOT_IN_CONTAINER":"/app"}
     # For SSL, the host folder is recommended to be './.docker/ssl' to be synchronized with 'docker-orchestration-app-nginx-original.yml'.
     # [IMPORTANT] Run mkdir -p /var/projects/files/your-app/logs on your host machine
-    DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/var/projects/your-app/.docker/nginx/app.conf.ctmpl:/etc/nginx-template/app.conf.ctmpl","/var/projects/files/your-app/logs:/var/log/nginx"]
+    DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/var/projects/your-app/.docker/nginx/app.conf.conf.d:/etc/nginx-template/app.conf.conf.d","/var/projects/files/your-app/logs:/var/log/nginx"]
     # [IMPORTANT] Run mkdir -p /var/projects/files/nginx/logs on your host machine
     DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES=["/var/projects/files/nginx/logs:/var/log/nginx"]
     DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
@@ -174,15 +174,15 @@ ENTRYPOINT bash /entrypoint.sh
       - .docker/
           - entrypoint.sh
           - nginx/
-              - app.conf.ctmpl
+              - app.conf.conf.d
    - entrypoint.sh
      - ```shell
        #!/bin/bash
         # synced the paths at DOCKER_COMPOSE_SELECTIVE_VOLUMES in .env
-        cat /etc/nginx-template/app.conf.ctmpl > /etc/nginx/conf.d/default.conf
+        cat /etc/nginx-template/app.conf.conf.d > /etc/nginx/conf.d/default.conf
         /usr/sbin/nginx -t && exec /usr/sbin/nginx -g "daemon off;"
        ```
-   - app.conf.ctmpl
+   - app.conf.conf.d
       - ```nginx
         server {
         listen 8360;

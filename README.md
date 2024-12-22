@@ -95,25 +95,18 @@ graph TD;
   A[Initialize and Set Variables] --> B[Backup All Images]
   B --> C[Check the .env File Integrity]
   C --> D[Build All Images]
-  D --> E[Create Consul Network]
-  E --> F{Reload Consul if Required}
-  F -- Yes --> G[Reload Consul]
-  F -- No --> H[Load Your App]
-  G --> H[Load Your App]
-  H --> I[Check App Integrity]
-  I --> J{Reload Nginx if Required}
-  J -- Yes --> K[Check Nginx Template Integrity by Running a Test Container]
-  J -- No --> L[Check All Containers' Health]
-  K --> L[Check All Containers' Health]
-  L --> M{Set New State Using Consul Template}
-  M -- Fails --> O[Run Nginx Prepared Plan]
-  M -- Success --> N[External Integrity Check]
-  O --> N[External Integrity Check]
-  N -- Fails --> P[Rollback App if Needed]
-  N -- Success --> Q["Remove the Opposite State (Blue or Green) from the Running Containers"]
-  P --> Q["Remove the Opposite State from the Running Containers"]
-  Q --> R[Clean Up Dangling Images]
-  R --> S[Deployment Complete]
+  D --> E[Load Your App]
+  E --> F[Check App Integrity]
+  F --> G{Reload Nginx if Required}
+  G -- Yes --> H[Check Nginx Template Integrity by Running a Test Container]
+  G -- No --> I[Check All Containers' Health]
+  H --> I[Check All Containers' Health]
+  I --> J[External Integrity Check]
+  J -- Fails --> K[Rollback App if Needed]
+  J -- Success --> L["Remove the Opposite State (Blue or Green) from the Running Containers"]
+  K --> L["Remove the Opposite State from the Running Containers"]
+  L --> M[Clean Up Dangling Images]
+  M --> N[Deployment Complete]
 
 ```
 ![img5.png](/documents/images/img5.png)
@@ -346,7 +339,7 @@ sudo bash run.sh
 ![img.png](/documents/images/img3.png)
 
 - The ``origin`` folder is where you can modify original Nginx conf files.
-- Create the five yellow-highlighted files ending with 'ctmpl.origin.customized' by copying the originals ending with 'ctmpl.origin.'
+- Create the five yellow-highlighted files ending with 'conf.d.origin.customized' by copying the originals ending with 'conf.d.origin.'
 - You don't have to create all five files; just create the ones you need.
 - In the .env file, set this to 'true'
 ```shell

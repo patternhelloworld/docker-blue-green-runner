@@ -18,7 +18,7 @@ COPY ./.docker/nginx/template/entrypoint.sh /
 COPY ./.docker/nginx/template/nginx.service /etc/service/nginx/run/
 
 COPY ./.docker/nginx/template/nginx.conf.main /etc/nginx/nginx.conf
-COPY ./.docker/nginx/template/ctmpl /ctmpl
+COPY ./.docker/nginx/template/conf.d /conf.d
 COPY ./.docker/nginx/template/logrotate/nginx /etc/logrotate.d/nginx
 
 RUN chmod +x /etc/service/nginx/run

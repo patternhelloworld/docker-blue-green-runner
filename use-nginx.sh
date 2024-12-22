@@ -94,9 +94,9 @@ save_nginx_prepared_template_from_origin(){
     fi
 
 
-   local nginx_prepared_template_temp_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.prepared"
-   local nginx_prepared_template_blue_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.prepared.blue"
-   local nginx_prepared_template_green_file=".docker/nginx/template/ctmpl/${protocol}/nginx.conf.prepared.green"
+   local nginx_prepared_template_temp_file=".docker/nginx/template/conf.d/${protocol}/nginx.conf.prepared"
+   local nginx_prepared_template_blue_file=".docker/nginx/template/conf.d/${protocol}/nginx.conf.prepared.blue"
+   local nginx_prepared_template_green_file=".docker/nginx/template/conf.d/${protocol}/nginx.conf.prepared.green"
 
    echo "[NOTICE] NGINX template (${nginx_prepared_template_temp_file}) is now being created."
 
@@ -233,9 +233,9 @@ nginx_down_and_up(){
 
 check_nginx_templates_integrity(){
 
-  echo "[NOTICE] Now we'll create a temporary NGINX image to test parsed settings in '.docker/nginx/template/ctmpl'"
+  echo "[NOTICE] Now we'll create a temporary NGINX image to test parsed settings in '.docker/nginx/template/conf.d'"
   docker build --build-arg DISABLE_CACHE=${CUR_TIME} --build-arg protocol="${protocol}" --build-arg shared_volume_group_id="${shared_volume_group_id}" --build-arg shared_volume_group_name="${shared_volume_group_name}" --tag ${project_name}-nginx-test -f ./.docker/nginx/Dockerfile -m ${docker_build_memory_usage} . || exit 1
-  echo "[NOTICE] Now we'll create a temporary NGINX container to test parsed settings in '.docker/nginx/template/ctmpl'"
+  echo "[NOTICE] Now we'll create a temporary NGINX container to test parsed settings in '.docker/nginx/template/conf.d'"
 
   stop_and_remove_container "${project_name}-nginx-test"
 
@@ -247,7 +247,7 @@ check_nginx_templates_integrity(){
 
   sleep 3
 
-  echo "[NOTICE] Now we'll run 'nginx -t' to verify the syntax of '.docker/nginx/template/nginx.conf.main & ctmpl'"
+  echo "[NOTICE] Now we'll run 'nginx -t' to verify the syntax of '.docker/nginx/template/nginx.conf.main & conf.d'"
   output=$(docker exec ${project_name}-nginx-test nginx -t 2>&1 || echo "[ERROR] ${project_name}-nginx-test failed to run. But don't worry. this is testing just before restarting Nginx. Check settings in '.docker/nginx/origin & .docker/nginx/template'")
 
   if echo "$output" | grep -q "successful"; then
