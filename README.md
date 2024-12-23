@@ -121,7 +121,7 @@ graph TD;
 ### OS
 
 - Linux based OS such as Ubuntu, CentOS, WIN WSL and MacOS
-  - If you are using WSL2 in WIN10 (not WIN11), which has the CRLF issue, you should run `bash prevent-crlf.sh` twice, and then execute the required `.sh` file.
+  - If you are using WSL2 in WIN10 (this doesn't usually occur in WIN11), which has the CRLF issue, you should run `bash prevent-crlf.sh` twice, and then execute the required `.sh` file.
     - The error message you might encounter is `$'\r': command not found`.
   - When using WSL2, I recommend cloning the project into the WSL area (`\\wsl$\Ubuntu\home`) instead of `C:\`.
   - Available on MacOS as long as GNU-based libraries are installed. See the 'Dependencies' section for more details.
@@ -228,6 +228,10 @@ sudo bash run.sh
 ```
 Open https://localhost:8081 (NO http. see .env. if you'd like http, change APP_URL) in your browser, and test with the Postman samples (./samples/laravel-crud-boilerplate/reference/postman) and debug with the following instruction ( https://github.com/Andrew-Kang-G/laravel-crud-boilerplate#debugging ).
 
+For local deployment, set your entire project to be synchronized.
+```dotenv
+DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/your-project-path:/var/www/app"]
+```
 
 ### How to Start with a Java Spring-Boot Sample
 ```shell

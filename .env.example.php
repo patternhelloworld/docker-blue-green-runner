@@ -50,9 +50,8 @@ DOCKER_BUILD_ADDITIONAL_RAW_PARAMS=
 # Your Git's commit SHA will be added as a label to DOCKER_BUILD_LABELS when your container is built.
 DOCKER_BUILD_SHA_INSERT_GIT_ROOT=
 
-# In the case of "REAL," the project is not synchronized in its entirety. The source codes that are required for only production are injected.
-# For SSL, the host folder is recommended to be './.docker/ssl' to be synchronized with 'docker-orchestration-app-nginx-original.yml'
-DOCKER_COMPOSE_SELECTIVE_VOLUMES=["./shared/app-error-logs:/var/www/app/storage/logs","./.docker/ssl:/etc/apache2/ssl"]
+# [NOTICE] Set this to be "/your-project-path:/var/www/app" for local development
+DOCKER_COMPOSE_SELECTIVE_VOLUMES=["./shared/app-error-logs:/var/www/app/storage/logs"]
 DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES=["./shared/nginx-error-logs:/var/log/nginx"]
 DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
 
