@@ -503,7 +503,8 @@ graph TD;
 - Run ``run.sh`` on ``Server 1``
 - Check the logs on ``Server 1``, if any issues are found, run the command ``rollback.sh``.
 - If no problems are detected, run the command ``run.sh`` on both ``Server 2`` and ``Server 3``.
-- This process can be automated as well using Jenkins.
+- This process can be automated as well using Jenkins & Ansible.
+  - Note: ``Docker-Blue-Green-Runner`` focuses only on a single Blue-Green module, so tasks such as load balancing and deployment automation are outside its scope.
 
 ## Extra Information
 
