@@ -37,6 +37,7 @@
 - [Production Deployment](#production-deployment)
   - [Upload Image (CI/CD Server -> Git)](#upload-image-cicd-server---git)
   - [Download Image (Git -> Production Server)](#download-image-git---production-server)
+  - [With Load Balancer](#with-load-balancer)
 - [Extra Information](#extra-information)
   - [Test](#test)
   - [Check Source Integrity of 'Docker-Blue-Green-Runner'](#check-source-integrity-of-docker-blue-green-runner)
@@ -484,6 +485,25 @@ bash check-source-integrity.sh
   GIT_IMAGE_VERSION=1.0.0
   ```
 
+### With Load Balancer
+```mermaid
+graph TD;
+  A[Load Balancer] --->|Distribute Traffic| B[Server 1]
+  A --->|Distribute Traffic| C[Server 2]
+  A --->|Distribute Traffic| D[Server 3]
+  E[Git] -->|Download Image| B[Server 1]
+  E -->|Download Image| C[Server 2]
+  E -->|Download Image| D[Server 3]
+  F[CI/CD Server] -->|Upload Image| E[Git]
+```
+- Set the Load Balancer to use "Round-Robin"
+  - What is "Round-Robin"?
+    - Round-robin is a load-balancing method that distributes incoming requests evenly across all available servers in a sequential order. For example, the first request goes to Server 1, the second request to Server 2, the third request to Server 3, and then it cycles back to Server 1. This ensures a balanced distribution of traffic across the servers.
+- Set the 'Docker-Blue-Green-Runner' on each server.
+- Run ``run.sh`` on ``Server 1``
+- Check the logs on ``Server 1``, if any issues are found, run the command ``rollback.sh``.
+- If no problems are detected, run the command ``run.sh`` on both ``Server 2`` and ``Server 3``.
+- This process can be automated as well using Jenkins.
 
 ## Extra Information
 
