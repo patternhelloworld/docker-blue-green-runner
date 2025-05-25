@@ -238,6 +238,7 @@ DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/your-project-path:/var/www/app"]
 ```shell
 # First, as the sample project requires MySQL8, run it separately.
 # You can use your own MySQL8 Docker or just clone "https://github.com/patternhelloworld/docker-mysql-8"
+# The SQL file is located at './samples/spring-sample-h-auth/.mysql/schema_all.sql'.
 ```
 
 ```shell

@@ -25,7 +25,11 @@ RUN cp $PROJECT_ROOT_IN_CONTAINER/target/*.jar  /app.jar
 
 RUN ln -s $PROJECT_ROOT_IN_CONTAINER/.docker/entrypoint/run-app.sh /run-app.sh
 
-RUN apk --no-cache add curl bash
+# dumb-init added!
+RUN apk --no-cache add curl bash dumb-init
+
+# dumb-init : https://engineeringblog.yelp.com/2016/01/dumb-init-an-init-for-docker.html
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/my/script"]
 
 ENV PROJECT_ROOT_IN_CONTAINER=$PROJECT_ROOT_IN_CONTAINER
 ENV FILE_STORAGE_ROOT_IN_CONTAINER=$FILE_STORAGE_ROOT_IN_CONTAINER
