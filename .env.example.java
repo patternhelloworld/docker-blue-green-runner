@@ -44,7 +44,7 @@ GOOD_APP_HEALTH_CHECK_PATTERN=production
 DOCKER_COMPOSE_ENVIRONMENT={"TZ":"Asia/Seoul"}
 # This goes with "docker build ... in the 'run.sh' script file", and the command always contain "HOST_IP" and "APP_ENV" above.
 # docker exec -it CONTAINER_NAME cat /var/log/env_build_args.log
-DOCKER_BUILD_ARGS={"DOCKER_BUILDKIT":"1","PROJECT_ROOT_IN_CONTAINER":"/var/www/server/spring-sample-h-auth","FILE_STORAGE_ROOT_IN_CONTAINER":"/var/www/files","APP_ENV":"production"}
+DOCKER_BUILD_ARGS={"DOCKER_BUILDKIT":"1","PROJECT_ROOT_IN_CONTAINER":"/var/www/server/spring-sample-h-auth","FILE_STORAGE_ROOT_IN_CONTAINER":"/var/www/files","APP_ENV":"production","JVM_XMS":"1024","JVM_XMX":"2048"}
 DOCKER_BUILD_LABELS=["foo=happy","bar=sad"]
 # For Mac like, EX.  DOCKER_BUILD_ADDITIONAL_RAW_PARAMS=--platform linux/amd64
 DOCKER_BUILD_ADDITIONAL_RAW_PARAMS=--platform linux/amd64
@@ -53,6 +53,8 @@ DOCKER_BUILD_SHA_INSERT_GIT_ROOT=
 DOCKER_COMPOSE_SELECTIVE_VOLUMES=["./samples/spring-sample-h-auth/logs:/var/www/files"]
 DOCKER_COMPOSE_NGINX_SELECTIVE_VOLUMES=["./shared/nginx-error-logs:/var/log/nginx"]
 DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
+
+DOCKER_COMPOSE_STOP_GRACEFUL_SHUTDOWN_PERIOD=40s
 
 NGINX_CLIENT_MAX_BODY_SIZE=50M
 

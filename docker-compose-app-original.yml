@@ -19,7 +19,7 @@ services:
     # If the process does not terminate within this grace period,
     # Docker sends a SIGKILL signal to terminate the process forcibly.
     stop_signal: SIGTERM
-    stop_grace_period: 40s
+    stop_grace_period: ${DOCKER_COMPOSE_STOP_GRACEFUL_SHUTDOWN_PERIOD}
   ${PROJECT_NAME}-green:
     container_name: ${PROJECT_NAME}-green
     stdin_open: true
@@ -36,7 +36,7 @@ services:
       - .env
     volumes: []
     stop_signal: SIGTERM
-    stop_grace_period: 40s
+    stop_grace_period: ${DOCKER_COMPOSE_STOP_GRACEFUL_SHUTDOWN_PERIOD}
 networks:
   dbgr-net:
     external:

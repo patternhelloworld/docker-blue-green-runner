@@ -288,6 +288,11 @@ GOOD_APP_HEALTH_CHECK_PATTERN=UP
 DOCKER_COMPOSE_SELECTIVE_VOLUMES=["/my-host/files/:/in-container/files", "/my-host/java-spring-project/src/main/resources:/in-container/java-spring-project/src/main/resources"]
 # Check if the host folder or file exists
 DOCKER_COMPOSE_HOST_VOLUME_CHECK=false
+
+# Currently, a graceful shutdown example is only provided for the Java sample. To enable graceful termination, make sure to handle SIGTERM in both your application and the Dockerfile.
+# Refer to "docker-compose-app-original.yml" which uses this property.
+DOCKER_COMPOSE_STOP_GRACEFUL_SHUTDOWN_PERIOD=40s
+
 # If APP_ENV is set to 'local', as specified in 'docker-compose-app-original.yml', synchronize your entire project as follows: "HOST_ROOT_LOCATION:PROJECT_LOCATION".
 # [IMPORTANT] If this is set to true, Nginx will be restarted, resulting in a short downtime. 
 # This option should be used when upgrading the Runner. See the "Upgrade" section below.
