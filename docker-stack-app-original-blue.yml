@@ -13,6 +13,8 @@ services:
       replicas: 2
     networks:
       - dbgr-net
+    stop_signal: SIGTERM
+    stop_grace_period: ${DOCKER_COMPOSE_STOP_GRACEFUL_SHUTDOWN_PERIOD}
 networks:
   dbgr-net:
     external: true

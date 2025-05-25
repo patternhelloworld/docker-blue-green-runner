@@ -66,3 +66,6 @@ server.ssl.key-store-password=11111
 server.ssl.key-store=/var/www/server/spring-sample-h-auth/yourdomain.com.jks
 server.ssl.key-store-type=jks
 server.ssl.key-alias=server
+
+server.shutdown=graceful
+spring.lifecycle.timeout-per-shutdown-phase=30s
