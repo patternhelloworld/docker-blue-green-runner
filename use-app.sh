@@ -148,6 +148,23 @@ load_app_docker_image() {
     docker tag ${app_image_name_in_registry} ${project_name}:latest || exit 1
     docker rmi -f ${app_image_name_in_registry} || exit 1
 
+  elif [ ${git_image_load_from} = "file" ]; then
+
+    local binary_dir="./.docker/binary"
+    local binary_file="${binary_dir}/${project_name}"
+
+    echo "[NOTICE] Load the app image from binary file: ${binary_file}"
+
+    if [ ! -f "${binary_file}" ]; then
+      echo "[ERROR] Binary file not found: ${binary_file}" && exit 1
+    fi
+
+    docker load -i "${binary_file}" || (echo "[ERROR] Failed to load Docker image from ${binary_file}" && exit 1)
+
+    if [[ $(docker images -q ${project_name}:latest 2> /dev/null) == '' ]]; then
+      echo "[ERROR] The loaded image does NOT have the expected tag '${project_name}:latest'. Ensure the binary was created with '${project_name}:latest'." && exit 1
+    fi
+
   else
 
     echo "[NOTICE] Build the image with ${docker_file_location}/${docker_file_name} (using cache)"
@@ -195,6 +212,22 @@ load_app_docker_image() {
 
   docker tag ${project_name}:latest ${project_name}:blue
   docker tag ${project_name}:latest ${project_name}:green
+}
+
+save_app_docker_image(){
+
+  local output_dir="./.docker/binary"
+  local output_file="${output_dir}/${project_name}"
+
+  mkdir -p "${output_dir}" || (echo "[ERROR] Failed to create directory: ${output_dir}" && exit 1)
+
+  if [ -f "${output_file}" ]; then
+    echo "[NOTICE] Existing binary found. Overwriting: ${output_file}"
+    rm -f "${output_file}" || (echo "[ERROR] Failed to remove existing file: ${output_file}" && exit 1)
+  fi
+
+  echo "[NOTICE] Saving Docker image '${project_name}:latest' to ${output_file}"
+  docker save -o "${output_file}" "${project_name}:latest" || (echo "[ERROR] Failed to save Docker image ${project_name}:latest" && exit 1)
 }
 
 app_down_and_up(){

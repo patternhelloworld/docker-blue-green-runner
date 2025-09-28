@@ -229,6 +229,14 @@ cache_non_dependent_global_vars() {
 
   orchestration_type=$(get_value_from_env "ORCHESTRATION_TYPE")
   only_building_app_image=$(get_value_from_env "ONLY_BUILDING_APP_IMAGE")
+  only_building_app_image_for_production=$(get_value_from_env "ONLY_BUILDING_APP_IMAGE_FOR_PRODUCTION")
+
+  remote_deployment_runner_path=$(get_value_from_env "REMOTE_DEPLOYMENT_RUNNER_PATH")
+  remote_deployment_ip_address_list=$(get_value_from_env "REMOTE_DEPLOYMENT_IP_ADDRESS_LIST")
+  remote_deployment_port_number_list=$(get_value_from_env "REMOTE_DEPLOYMENT_PORT_NUMBER_LIST")
+  remote_deployment_ssh_private_key_local_path_with_file=$(get_value_from_env "REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE")
+  remote_deployment_ssh_user=$(get_value_from_env "REMOTE_DEPLOYMENT_SSH_USER")
+  remote_deployment_failure_strategy=$(get_value_from_env "REMOTE_DEPLOYMENT_FAILURE_STRATEGY")
 
 
   docker_build_memory_usage=$(get_value_from_env "DOCKER_BUILD_MEMORY_USAGE")
@@ -540,7 +548,7 @@ check_empty_env_values(){
 
       value="$(echo -e "${value}" | sed -e 's/^[[:space:]]*|[[:space:]]*$//')"
 
-      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" && ${key} != "DOCKER_BUILD_LABELS" && ${key} != "DOCKER_BUILD_ADDITIONAL_RAW_PARAMS" && ${key} != "DOCKER_BUILD_SHA_INSERT_GIT_ROOT" ]]; then
+      if [[ ${value} == '' && ${key} != "CONTAINER_SSL_VOLUME_PATH" && ${key} != "ADDITIONAL_PORTS" && ${key} != "UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID" && ${key} != "DOCKER_BUILD_LABELS" && ${key} != "DOCKER_BUILD_ADDITIONAL_RAW_PARAMS" && ${key} != "DOCKER_BUILD_SHA_INSERT_GIT_ROOT" && ${key} != "REMOTE_DEPLOYMENT_RUNNER_PATH" && ${key} != "REMOTE_DEPLOYMENT_IP_ADDRESS_LIST" && ${key} != "REMOTE_DEPLOYMENT_PORT_NUMBER_LIST" && ${key} != "REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE" && ${key} != "REMOTE_DEPLOYMENT_SSH_USER" && ${key} != "REMOTE_DEPLOYMENT_FAILURE_STRATEGY" ]]; then
          empty_keys+=(${key})
       fi
 
