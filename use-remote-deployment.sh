@@ -119,6 +119,11 @@ remote_deployment_run_on_remotes(){
     local user_part="${remote_deployment_ssh_user:-root}"
     local remote_host="${user_part}@${ip_item}"
 
+    local sudo_prefix=""
+    if [[ "${with_sudo}" == "true" ]]; then
+      sudo_prefix="sudo "
+    fi
+
     echo "[NOTICE] (Pre-check) git_image_load_from=file on remote? ${remote_host}:${port_item}"
     ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=8 -p "${port_item}" -i "${key_item}" "${remote_host}" \
       "set -eu; cd '${remote_deployment_runner_path}'; grep -q '^GIT_IMAGE_LOAD_FROM=file$' .env" \
@@ -133,27 +138,29 @@ remote_deployment_run_on_remotes(){
       }
 
     echo "[NOTICE] (Pre-check) user has sudo? ${remote_host}:${port_item}"
-    ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=8 -p "${port_item}" -i "${key_item}" "${remote_host}" "sudo -n true" \
-      || {
-        echo "[ERROR] Remote pre-check failed (sudo not available) at ${remote_host}";
-        if [[ "${allowed_strategy}" == "stop" ]]; then exit 1; fi
-        if [[ "${allowed_strategy}" == "rollback" ]]; then
-          echo "[NOTICE] Running rollback on ${remote_host}";
-          ssh -o StrictHostKeyChecking=no -p "${port_item}" -i "${key_item}" "${remote_host}" "cd '${remote_deployment_runner_path}' && sudo bash rollback.sh" || true
-        fi
-        continue
-      }
+    if [[ "${with_sudo}" == "true" ]]; then
+      ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=8 -p "${port_item}" -i "${key_item}" "${remote_host}" "sudo -n true" \
+        || {
+          echo "[ERROR] Remote pre-check failed (sudo not available) at ${remote_host}";
+          if [[ "${allowed_strategy}" == "stop" ]]; then exit 1; fi
+          if [[ "${allowed_strategy}" == "rollback" ]]; then
+            echo "[NOTICE] Running rollback on ${remote_host}";
+            ssh -o StrictHostKeyChecking=no -p "${port_item}" -i "${key_item}" "${remote_host}" "cd '${remote_deployment_runner_path}' && ${sudo_prefix}bash rollback.sh" || true
+          fi
+          continue
+        }
+    fi
 
-    echo "[NOTICE] Running remote deploy: sudo bash run.sh at ${remote_host}"
+    echo "[NOTICE] Running remote deploy: ${sudo_prefix}bash run.sh at ${remote_host}"
     ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=30 -p "${port_item}" -i "${key_item}" "${remote_host}" \
-      "set -eu; cd '${remote_deployment_runner_path}' && sudo bash run.sh" \
+      "set -eu; cd '${remote_deployment_runner_path}' && ${sudo_prefix}bash run.sh" \
       && success_count=$((success_count+1)) \
       || {
         echo "[ERROR] Remote deploy failed at ${remote_host}";
         if [[ "${allowed_strategy}" == "stop" ]]; then exit 1; fi
         if [[ "${allowed_strategy}" == "rollback" ]]; then
           echo "[NOTICE] Running rollback on ${remote_host}";
-          ssh -o StrictHostKeyChecking=no -p "${port_item}" -i "${key_item}" "${remote_host}" "cd '${remote_deployment_runner_path}' && sudo bash rollback.sh" || true
+          ssh -o StrictHostKeyChecking=no -p "${port_item}" -i "${key_item}" "${remote_host}" "cd '${remote_deployment_runner_path}' && ${sudo_prefix}bash rollback.sh" || true
         fi
         # go: do nothing and continue
       }

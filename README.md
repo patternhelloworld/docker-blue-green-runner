@@ -1,6 +1,6 @@
 # Docker-Blue-Green-Runner
 
-> An Isomorphic and Safe Blue-Green Deployment Starting from Your Source Code—Not from Your Prebuilt Docker Image
+> An Isomorphic Blue-Green Deployment Starting from Your Source Code—Not from Your Prebuilt Docker Image
 
 > [NOTE] To upgrade your app from v5 to v6, update your .env file with the following settings and proceed: 
    ```.dotenv
@@ -50,7 +50,7 @@
 ## Features
 
 1. **Achieve zero-downtime deployment using just your ``.env`` and ``Dockerfile``**
-   - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." This script covers the entire process from Dockerfile build to server deployment from scratch.
+  - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." If you prefer not to use `sudo`, see [WITH_SUDO](#with_sudo), set it in your `.env`, and run `apply-security.sh` first. This script covers the entire process from Dockerfile build to server deployment from scratch.
    - This means you can easily migrate to another server with just the files mentioned above.
    - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which requires your App's docker binary running.
 
@@ -259,6 +259,14 @@ sudo bash run.sh
 ## Quick Guide on Usage
 
 ### Information on Environment Variables
+
+#### ``WITH_SUDO``
+```dotenv
+WITH_SUDO=true
+```
+- When `true`, the runner executes privileged operations with `sudo` where needed.
+- When `false`, `sudo` is not used. After installing Docker-Blue-Green-Runner, follow the steps in the [Security](#security) section and then run the root-level `apply-security.sh` to set secure permissions. Also, grant appropriate host permissions for Docker, Nginx, and related resources to the user running the runner.
+- For security, it is recommended to keep this `false` where possible and rely on proper host permissions and ACLs instead of broad sudo usage.
 
 #### ``APP_URL``
 - ```shell
@@ -491,6 +499,8 @@ graph TD;
   - Copy the binary to each server's ``${REMOTE_DEPLOYMENT_RUNNER_PATH}/.docker/binary``.
   - Run ``run.sh`` on ``Server 1``; if any issues are found, run ``rollback.sh``.
   - If no problems are detected, run ``run.sh`` on both ``Server 2`` and ``Server 3``.
+
+- Tip: For smooth permission and volume access, include the UID of the ``REMOTE_DEPLOYMENT_SSH_USER`` in ``UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID`` (in your `.env`).
 
 - CI tip: If you set ``REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE`` and ``REMOTE_DEPLOYMENT_SSH_USER`` to match your GitHub Actions credentials, and your workflow triggers ``sudo bash run.sh`` on the build server, then with ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` configured, the Runner can perform end-to-end distribution and remote execution in a single run.
 

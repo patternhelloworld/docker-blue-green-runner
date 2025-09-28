@@ -138,6 +138,7 @@ cache_non_dependent_global_vars() {
 
   HOST_IP=$(get_value_from_env "HOST_IP")
 
+  with_sudo=$(get_value_from_env "WITH_SUDO")
   host_root_location=$(get_value_from_env "HOST_ROOT_LOCATION")
   docker_file_location=$(get_value_from_env "DOCKER_FILE_LOCATION")
 
@@ -682,14 +683,14 @@ set_network_driver_for_orchestration_type(){
 
 }
 
-add_host_users_to_host_group() {
+add_host_users_to_host_group_with_sudo() {
 
     local gid=${1}
     local gname=${2}
     local uids=${3:-}
 
 
-    echo "[DEBUG] add_host_users_to_host_group - gid : ${gid}, uids : ${uids}, gname : ${gname}"
+    echo "[DEBUG] add_host_users_to_host_group_with_sudo - gid : ${gid}, uids : ${uids}, gname : ${gname}"
 
     # Check if ${module_name}_GROUP_ID value is valid
     if [ -z "$gid" ]; then

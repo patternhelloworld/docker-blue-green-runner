@@ -13,11 +13,13 @@ check_gnu_sed_installed
 check_yq_installed
 check_git_docker_compose_commands_exist
 
+cache_global_vars
 
-sudo chmod a+x *.sh
+
+if [[ "${with_sudo}" == "true" ]]; then sudo chmod a+x *.sh; else chmod a+x *.sh; fi
 
 echo "[NOTICE] Substituting CRLF with LF to prevent possible CRLF errors..."
-sudo bash prevent-crlf.sh
+if [[ "${with_sudo}" == "true" ]]; then sudo bash prevent-crlf.sh; else bash prevent-crlf.sh; fi
 git config apply.whitespace nowarn
 git config core.filemode false
 
@@ -142,7 +144,6 @@ _main() {
 
   display_checkpoint_message "Initializing mandatory variables... (2%)"
 
-  cache_global_vars
   # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
   local initially_cached_old_state=${state}
   check_env_integrity
@@ -213,17 +214,6 @@ _main() {
 
 
   display_checkpoint_message "Performing additional steps before building images... (10%)"
-
-  # Set 'Shared Volume Group'
-  # Detect the platform (Linux or Mac)
-  if [[ "$(uname)" == "Darwin" ]]; then
-      echo "[NOTICE] Running on Mac. Skipping 'add_host_users_to_host_group' as dscl is used for user and group management."
-  else
-    local add_host_users_to_shared_volume_group_re=$(add_host_users_to_host_group ${shared_volume_group_id} ${shared_volume_group_name} ${uids_belonging_to_shared_volume_group_id} | tail -n 1) || echo "[WARNING] Running 'add_host_users_to_shared_volume_group' failed.";
-    if [[ ${add_host_users_to_shared_volume_group_re} = 'false' ]]; then
-      echo "[WARNING] Running 'add_host_users_to_host_group'(SHARED) failed."
-    fi
-  fi
 
   # Etc.
   if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then
