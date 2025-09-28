@@ -55,7 +55,7 @@
    - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which requires your App's docker binary running.
 
 
-2. **Isomorphic local-and-remote runner**
+2. **[Beta] Isomorphic local-and-remote runner**
   - The same `run.sh` and `.env` drive deployments locally and on remote servers over SSH.
   - Remote servers receive the image binary and execute the same pipeline with `GIT_IMAGE_LOAD_FROM=file` (see [Production > GIT_IMAGE_LOAD_FROM=file](#1-git_image_load_fromfile-strategy-without-docker-registry)).
   - Behavior stays consistent across environments; only the image source differs (build/registry/file).

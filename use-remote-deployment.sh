@@ -103,6 +103,8 @@ remote_deployment_run_on_remotes(){
     echo "[ERROR] REMOTE_DEPLOYMENT_RUNNER_PATH is empty." && exit 1
   fi
 
+  echo "[NOTICE] WITH_SUDO=${with_sudo}"
+
   local allowed_strategy=$(echo "${remote_deployment_failure_strategy}" | tr '[:upper:]' '[:lower:]')
   if [[ "${allowed_strategy}" != "stop" && "${allowed_strategy}" != "rollback" && "${allowed_strategy}" != "go" ]]; then
     echo "[ERROR] REMOTE_DEPLOYMENT_FAILURE_STRATEGY must be one of: stop | rollback | go" && exit 1
@@ -132,7 +134,7 @@ remote_deployment_run_on_remotes(){
         if [[ "${allowed_strategy}" == "stop" ]]; then exit 1; fi
         if [[ "${allowed_strategy}" == "rollback" ]]; then
           echo "[NOTICE] Running rollback on ${remote_host}";
-          ssh -o StrictHostKeyChecking=no -p "${port_item}" -i "${key_item}" "${remote_host}" "cd '${remote_deployment_runner_path}' && sudo bash rollback.sh" || true
+          ssh -o StrictHostKeyChecking=no -p "${port_item}" -i "${key_item}" "${remote_host}" "cd '${remote_deployment_runner_path}' && ${sudo_prefix}bash rollback.sh" || true
         fi
         continue
       }
@@ -173,5 +175,6 @@ remote_deployment_run_on_remotes(){
     if [[ "${allowed_strategy}" == "stop" ]]; then exit 1; fi
   fi
 }
+
 
 

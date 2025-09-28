@@ -15,6 +15,8 @@ check_git_docker_compose_commands_exist
 
 cache_global_vars
 
+echo "[NOTICE] WITH_SUDO=${with_sudo}"
+
 
 if [[ "${with_sudo}" == "true" ]]; then sudo chmod a+x *.sh; else chmod a+x *.sh; fi
 
