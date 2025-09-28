@@ -13,17 +13,22 @@ check_gnu_sed_installed
 check_yq_installed
 check_git_docker_compose_commands_exist
 
+cache_global_vars
 
-sudo chmod a+x *.sh
+echo "[NOTICE] WITH_SUDO=${with_sudo}"
+
+
+if [[ "${with_sudo}" == "true" ]]; then sudo chmod a+x *.sh; else chmod a+x *.sh; fi
 
 echo "[NOTICE] Substituting CRLF with LF to prevent possible CRLF errors..."
-sudo bash prevent-crlf.sh
+if [[ "${with_sudo}" == "true" ]]; then sudo bash prevent-crlf.sh; else bash prevent-crlf.sh; fi
 git config apply.whitespace nowarn
 git config core.filemode false
 
 sleep 1
 
 source ./use-app.sh
+source ./use-remote-deployment.sh
 source ./use-nginx.sh
 
 
@@ -141,7 +146,6 @@ _main() {
 
   display_checkpoint_message "Initializing mandatory variables... (2%)"
 
-  cache_global_vars
   # The 'cache_all_states' in 'cache_global_vars' function decides which state should be deployed. If this is called later at a point in this script, states could differ.
   local initially_cached_old_state=${state}
   check_env_integrity
@@ -152,11 +156,38 @@ _main() {
 
   if [[ "${git_image_load_from}" == "build" && -n "${project_git_sha}" && -n "${docker_build_sha_insert_git_root}" ]]; then
       commit_message=$(get_commit_message "$project_git_sha" "$docker_build_sha_insert_git_root")
-      display_checkpoint_message "Will build this GIT version: $project_git_sha : $commit_message"
+      display_checkpoint_message "Build this GIT version: $project_git_sha : $commit_message"
       sleep 1
   fi
 
-  ## App
+  ## Build the App Image and save it to '.docker/binary' to be used on your production servers.
+  if [[ ${only_building_app_image_for_production} == 'true' ]]; then
+    display_checkpoint_message "Building Docker image for the app... ('skip_building_app_image' is set to false) (50%)"
+    load_app_docker_image
+    save_app_docker_image
+    # Call remote distribution only when all 4 REMOTE_* envs are provided and lists are non-empty
+    need_remote=false
+    if [[ -n "${remote_deployment_runner_path}" && -n "${remote_deployment_ip_address_list}" && -n "${remote_deployment_port_number_list}" && -n "${remote_deployment_ssh_private_key_local_path_with_file}" ]]; then
+      ip_len=$(echo ${remote_deployment_ip_address_list} | bin/yq eval 'length')
+      port_len=$(echo ${remote_deployment_port_number_list} | bin/yq eval 'length')
+      key_len=${ip_len}
+      if [[ ${ip_len} -gt 0 && ${port_len} -gt 0 && ${key_len} -gt 0 ]]; then
+        need_remote=true
+      fi
+    fi
+
+    if [[ ${need_remote} == true ]]; then
+      remote_deployment_connect_and_save_binary
+      if [[ -n "${remote_deployment_failure_strategy}" ]]; then
+        remote_deployment_run_on_remotes
+      fi
+      echo "[NOTICE] Successfully built the App image for Production deployment : ${new_state}" && exit 0
+    else
+      echo "[NOTICE] App image binary saved to ./.docker/binary/${project_name}" && exit 0
+    fi
+  fi
+
+  ## App (This is for running Docker for your App, not for building the App Docker Image)
   display_checkpoint_message "Setting up the app configuration 'yml' for orchestration type: ${orchestration_type}... (6%)"
   initiate_docker_compose_file
   apply_env_service_name_onto_app_yaml
@@ -166,8 +197,7 @@ _main() {
     backup_app_to_previous_images
   fi
 
-
-  ## Nginx
+  ## Nginx (This is for running Docker for Nginx, not for building the Nginx Image)
   if [[ ${nginx_restart} == 'true' ]]; then
 
     display_checkpoint_message "Since 'nginx_restart' is set to 'true', configuring the Nginx 'yml' for orchestration type: ${orchestration_type}... (7%)"
@@ -186,17 +216,6 @@ _main() {
 
 
   display_checkpoint_message "Performing additional steps before building images... (10%)"
-
-  # Set 'Shared Volume Group'
-  # Detect the platform (Linux or Mac)
-  if [[ "$(uname)" == "Darwin" ]]; then
-      echo "[NOTICE] Running on Mac. Skipping 'add_host_users_to_host_group' as dscl is used for user and group management."
-  else
-    local add_host_users_to_shared_volume_group_re=$(add_host_users_to_host_group ${shared_volume_group_id} ${shared_volume_group_name} ${uids_belonging_to_shared_volume_group_id} | tail -n 1) || echo "[WARNING] Running 'add_host_users_to_shared_volume_group' failed.";
-    if [[ ${add_host_users_to_shared_volume_group_re} = 'false' ]]; then
-      echo "[WARNING] Running 'add_host_users_to_host_group'(SHARED) failed."
-    fi
-  fi
 
   # Etc.
   if [[ ${docker_layer_corruption_recovery} == 'true' ]]; then

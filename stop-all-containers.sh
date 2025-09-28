@@ -7,13 +7,17 @@ check_gnu_sed_installed
 check_yq_installed
 check_git_docker_compose_commands_exist
 
-sudo sed -i -e "s/\r$//g" $(basename $0)
+cache_global_vars
+
+echo "[NOTICE] WITH_SUDO=${with_sudo}"
+
+if [[ "${with_sudo}" == "true" ]]; then sudo sed -i -e "s/\r$//g" $(basename $0); else sed -i -e "s/\r$//g" $(basename $0); fi
 
 git config apply.whitespace nowarn
 git config core.filemode false
 
 echo "[NOTICE] Substituting CRLF with LF to prevent possible CRLF errors..."
-bash prevent-crlf.sh
+if [[ "${with_sudo}" == "true" ]]; then sudo bash prevent-crlf.sh; else bash prevent-crlf.sh; fi
 git config apply.whitespace nowarn
 git config core.filemode false
 

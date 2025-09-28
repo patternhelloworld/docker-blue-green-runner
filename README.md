@@ -1,6 +1,6 @@
 # Docker-Blue-Green-Runner
 
-> A Simple and Safe Blue-Green Deployment Starting from Your Source Code—Not from Your Prebuilt Docker Image
+> An Isomorphic Blue-Green Deployment Starting from Your Source Code—Not from Your Prebuilt Docker Image
 
 > [NOTE] To upgrade your app from v5 to v6, update your .env file with the following settings and proceed: 
    ```.dotenv
@@ -50,39 +50,44 @@
 ## Features
 
 1. **Achieve zero-downtime deployment using just your ``.env`` and ``Dockerfile``**
-   - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." This script covers the entire process from Dockerfile build to server deployment from scratch.
+  - Docker-Blue-Green-Runner's `run.sh` script is designed to simplify deployment: "With your `.env`, project, and a single Dockerfile, simply run 'bash run.sh'." If you prefer not to use `sudo`, see [WITH_SUDO](#with_sudo), set it in your `.env`, and run `apply-security.sh` first. This script covers the entire process from Dockerfile build to server deployment from scratch.
    - This means you can easily migrate to another server with just the files mentioned above.
    - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which requires your App's docker binary running.
 
 
-2. **No unpredictable errors in reverse proxy and deployment : Implement safety measures to handle errors caused by your app or Nginx**
-   - If any error occurs in the app or router, ``deployment is halted`` to prevent any impact on the existing deployment
-     - Internal Integrity Check:
-       - Step 1: Use wait-for-it.sh (https://github.com/vishnubob/wait-for-it)
-       - Step 2: Perform a health check with customized settings defined in your .env file
-     - Nginx Router Test Container
-     - External Integrity Check
-     - Rollback Procedures
-     - Additional Know-hows on Docker: Tips and best practices for optimizing your Docker workflow and deployment processes
-   - For example, Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
-     - https://stackoverflow.com/questions/76660749/traefik-404-page-not-found-when-use-https
-     - https://community.traefik.io/t/getting-bad-gateway-404-page-when-supposed-to-route-to-container-port-8443/20398
-   - Manipulates NGINX configuration files directly to ensure container accessibility.
+2. **[Beta] Isomorphic local-and-remote runner**
+  - The same `run.sh` and `.env` drive deployments locally and on remote servers over SSH.
+  - Remote servers receive the image binary and execute the same pipeline with `GIT_IMAGE_LOAD_FROM=file` (see [Production > GIT_IMAGE_LOAD_FROM=file](#1-git_image_load_fromfile-strategy-without-docker-registry)).
+  - Behavior stays consistent across environments; only the image source differs (build/registry/file).
+
+3. **No unpredictable errors in reverse proxy and deployment : Implement safety measures to handle errors caused by your app or Nginx**
+  - If any error occurs in the app or router, ``deployment is halted`` to prevent any impact on the existing deployment
+    - Internal Integrity Check:
+      - Step 1: Use wait-for-it.sh (https://github.com/vishnubob/wait-for-it)
+      - Step 2: Perform a health check with customized settings defined in your .env file
+    - Nginx Router Test Container
+    - External Integrity Check
+    - Rollback Procedures
+    - Additional Know-hows on Docker: Tips and best practices for optimizing your Docker workflow and deployment processes
+  - For example, Traefik offers powerful dynamic configuration and service discovery; however, certain errors, such as a failure to detect containers (due to issues like unrecognized certificates), can lead to frustrating 404 errors that are hard to trace through logs alone.
+    - https://stackoverflow.com/questions/76660749/traefik-404-page-not-found-when-use-https
+    - https://community.traefik.io/t/getting-bad-gateway-404-page-when-supposed-to-route-to-container-port-8443/20398
+  - Manipulates NGINX configuration files directly to ensure container accessibility.
 
 
-3. **Track Blue-Green status and the Git SHA of your running container for easy monitoring.**
-   - Blue-Green deployment decision algorithm: scoring-based approach
-   - Run the command bash ``check-current-status.sh`` (similar to ``git status``) to view all relevant details
-   -
-   -
-     ![img7.png](documents/images/img7.png)
+4. **Track Blue-Green status and the Git SHA of your running container for easy monitoring.**
+  - Blue-Green deployment decision algorithm: scoring-based approach
+  - Run `bash check-current-states.sh` locally and `bash check-remote-current-states.sh` to fan out the same check to all configured remotes
+  -
+  -
+    ![img7.png](documents/images/img7.png)
 
 
-4. **Security**
+5. **Security**
    - Refer to the [Security](#Security) section
 
 
-5. **Production Deployment**
+6. **Production Deployment**
    - Refer to the [Production Deployment](#production-deployment) section
    
 ## Process Summary
@@ -254,6 +259,14 @@ sudo bash run.sh
 ## Quick Guide on Usage
 
 ### Information on Environment Variables
+
+#### ``WITH_SUDO``
+```dotenv
+WITH_SUDO=true
+```
+- When `true`, the runner executes privileged operations with `sudo` where needed.
+- When `false`, `sudo` is not used. After installing Docker-Blue-Green-Runner, follow the steps in the [Security](#security) section and then run the root-level `apply-security.sh` to set secure permissions. Also, grant appropriate host permissions for Docker, Nginx, and related resources to the user running the runner.
+- For security, it is recommended to keep this `false` where possible and rely on proper host permissions and ACLs instead of broad sudo usage.
 
 #### ``APP_URL``
 - ```shell
@@ -458,9 +471,42 @@ bash check-source-integrity.sh
 
 ## Production Deployment
 - Up to this point, your app has been running in a Docker container through the ``bash.run.sh`` command, enabling continuous Blue-Green deployments. However, you may want to deploy the built Docker image independently to another environment, and you likely wouldn't want to leave unnecessary source code, except for the Docker images and configuration files, on the production server.
-- It is recommended to automate this process using Jenkins.
+- The key environment variable enabling this is the ``GIT_IMAGE_LOAD_FROM``. Up to this point, ``GIT_IMAGE_LOAD_FROM`` has been set to ``build``.
 
-### Upload Image (CI/CD Server -> Git)
+### 1. ``GIT_IMAGE_LOAD_FROM=file`` strategy (Beta. without Docker Registry)
+- With Load Balancer
+```mermaid
+graph TD;
+  A[Load Balancer] --->|Distribute Traffic| B[Server 1]
+  A --->|Distribute Traffic| C[Server 2]
+  A --->|Distribute Traffic| D[Server 3]
+  E[Build Server] -->|Send Docker Image Binary| B[Server 1]
+  E -->|Send Docker Image Binary| C[Server 2]
+  E -->|Send Docker Image Binary| D[Server 3]
+  F[Git] -->|Github Action or Jenkins| E[Build Server]
+```
+- Set the Load Balancer to use "Round-Robin"
+  - What is "Round-Robin"?
+    - Round-robin is a load-balancing method that distributes incoming requests evenly across all available servers in a sequential order. For example, the first request goes to Server 1, the second request to Server 2, the third request to Server 3, and then it cycles back to Server 1. This ensures a balanced distribution of traffic across the servers.
+- Your Github Action or Jenkins scripts just send the source codes to the Build Server or run ``git pull`` on the server.
+- Set the 'Docker-Blue-Green-Runner' on the Build Server, and run ``run.sh`` with ``ONLY_BUILDING_APP_IMAGE_FOR_PRODUCTION`` set to ``true``.
+- The ``ONLY_BUILDING_APP_IMAGE_FOR_PRODUCTION=true`` creates the Docker binary file to ``./.docker/binary``
+- If ``REMOTE_DEPLOYMENT_RUNNER_PATH``, ``REMOTE_DEPLOYMENT_IP_ADDRESS_LIST``, ``REMOTE_DEPLOYMENT_PORT_NUMBER_LIST``, and ``REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE`` are set:
+  - The Runner automatically copies the binary to each server at ``${REMOTE_DEPLOYMENT_RUNNER_PATH}/.docker/binary``.
+  - If ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` is set (``stop`` | ``rollback`` | ``go``), the Runner connects via SSH and executes ``sudo bash run.sh`` on each server after pre-checks (``GIT_IMAGE_LOAD_FROM=file`` and sudo). Failures follow the configured strategy.
+- If ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` is NOT set, you can perform the steps manually:
+  - Set ``GIT_IMAGE_LOAD_FROM=file`` on each server.
+  - Copy the binary to each server's ``${REMOTE_DEPLOYMENT_RUNNER_PATH}/.docker/binary``.
+  - Run ``run.sh`` on ``Server 1``; if any issues are found, run ``rollback.sh``.
+  - If no problems are detected, run ``run.sh`` on both ``Server 2`` and ``Server 3``.
+
+- Tip: For smooth permission and volume access, include the UID of the ``REMOTE_DEPLOYMENT_SSH_USER`` in ``UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID`` (in your `.env`).
+
+- CI tip: If you set ``REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE`` and ``REMOTE_DEPLOYMENT_SSH_USER`` to match your GitHub Actions credentials, and your workflow triggers ``sudo bash run.sh`` on the build server, then with ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` configured, the Runner can perform end-to-end distribution and remote execution in a single run.
+
+
+### 2. ``GIT_IMAGE_LOAD_FROM=registry`` strategy (with Docker Registry)
+#### Upload Image (CI/CD Server -> Git)
   - If you run the ``push-to-git.sh`` command, it pushes the container image currently running on the test server to the ``Git Container Registry`` at the specified address.
   ```shell
   GIT_IMAGE_LOAD_FROM_HOST=mysite.com:5050
@@ -477,7 +523,7 @@ bash check-source-integrity.sh
       - Solution
         - Place your CA's root certificate (.crt file) in /usr/local/share/ca-certificates/ and run sudo update-ca-certificates.
       
-### Download Image (Git -> Production Server)
+#### Download Image (Git -> Production Server)
 - Your production server should have docker-blue-green-runner, .env, and run ``run.sh`` to deploy the built images above.
 - The only difference is to set ``GIT_IMAGE_LOAD_FROM=registry`` instead of ``GIT_IMAGE_LOAD_FROM=build``.
 - When ``GIT_IMAGE_LOAD_FROM`` is set to ``build``, docker-blue-green-runner ``builds your Dockerfile``. However, when it is set to ``registry``, the runner ``downloads your images from the Git Container registry``.
@@ -490,8 +536,7 @@ bash check-source-integrity.sh
   GIT_TOKEN_IMAGE_LOAD_FROM_PASSWORD=bar
   GIT_IMAGE_VERSION=1.0.0
   ```
-
-### With Load Balancer
+- With Load Balancer
 ```mermaid
 graph TD;
   A[Load Balancer] --->|Distribute Traffic| B[Server 1]
@@ -500,12 +545,12 @@ graph TD;
   E[Git] -->|Download Image| B[Server 1]
   E -->|Download Image| C[Server 2]
   E -->|Download Image| D[Server 3]
-  F[CI/CD Server] -->|Upload Image| E[Git]
+  F[Build Server] -->|Upload Image| E[Git]
 ```
 - Set the Load Balancer to use "Round-Robin"
   - What is "Round-Robin"?
     - Round-robin is a load-balancing method that distributes incoming requests evenly across all available servers in a sequential order. For example, the first request goes to Server 1, the second request to Server 2, the third request to Server 3, and then it cycles back to Server 1. This ensures a balanced distribution of traffic across the servers.
-- Set the 'Docker-Blue-Green-Runner' on each server.
+- Set the 'Docker-Blue-Green-Runner' on each server with ``GIT_IMAGE_LOAD_FROM`` set to ``registry``.
 - Run ``run.sh`` on ``Server 1``
 - Check the logs on ``Server 1``, if any issues are found, run the command ``rollback.sh``.
 - If no problems are detected, run the command ``run.sh`` on both ``Server 2`` and ``Server 3``.

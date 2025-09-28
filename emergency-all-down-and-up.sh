@@ -9,9 +9,12 @@ check_gnu_sed_installed
 check_yq_installed
 check_git_docker_compose_commands_exist
 
+cache_global_vars
+
+echo "[NOTICE] WITH_SUDO=${with_sudo}"
 
 echo "[NOTICE] Substituting CRLF with LF to prevent possible CRLF errors..."
-bash prevent-crlf.sh
+if [[ "${with_sudo}" == "true" ]]; then sudo bash prevent-crlf.sh; else bash prevent-crlf.sh; fi
 git config apply.whitespace nowarn
 git config core.filemode false
 

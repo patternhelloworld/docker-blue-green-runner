@@ -3,6 +3,8 @@
 !/.docker/ssl/.gitkeep
 /.docker/nginx/custom-files/*
 !/.docker/nginx/custom-files/.gitkeep
+/.docker/binary/*
+!/.docker/binary/.gitkeep
 
 /shared/app-error-logs/*
 !/shared/app-error-logs/.gitkeep

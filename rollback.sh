@@ -9,10 +9,14 @@ check_gnu_sed_installed
 check_yq_installed
 check_git_docker_compose_commands_exist
 
-sudo sed -i -e "s/\r$//g" $(basename $0)
+cache_global_vars
+
+echo "[NOTICE] WITH_SUDO=${with_sudo}"
+
+if [[ "${with_sudo}" == "true" ]]; then sudo sed -i -e "s/\r$//g" $(basename $0); else sed -i -e "s/\r$//g" $(basename $0); fi
 
 echo "[NOTICE] To prevent CRLF errors in scripts based on the Windows operating system, currently performing CRLF to LF conversion."
-sudo bash prevent-crlf.sh
+if [[ "${with_sudo}" == "true" ]]; then sudo bash prevent-crlf.sh; else bash prevent-crlf.sh; fi
 git config apply.whitespace nowarn || echo "[WARN] A supporting command 'git config apply.whitespace nowarn' has NOT been run."
 git config core.filemode false || echo "[WARN] A supporting command 'git config core.filemode false' has NOT been run."
 

@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eu
 
+# [NOTICE] This script should be run with "sudo".
+
 source use-common.sh
 
 check_bash_version
@@ -73,4 +75,15 @@ if [[ "$(uname)" != "Darwin" ]]; then
     set_safe_filemode_on_volumes
 else
     echo "[NOTICE] Skipping chown command on Darwin (macOS) platform. See the README."
+fi
+
+# Add host users to shared volume group (Linux only)
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo "[NOTICE] Adding host users to shared volume group (gid=${shared_volume_group_id}, name=${shared_volume_group_name})"
+    add_host_users_to_shared_volume_group_re=$(add_host_users_to_host_group_with_sudo ${shared_volume_group_id} ${shared_volume_group_name} ${uids_belonging_to_shared_volume_group_id} | tail -n 1) || echo "[WARNING] Running 'add_host_users_to_shared_volume_group' failed."
+    if [[ ${add_host_users_to_shared_volume_group_re} = 'false' ]]; then
+      echo "[WARNING] Running 'add_host_users_to_host_group_with_sudo'(SHARED) failed."
+    fi
+else
+    echo "[NOTICE] Skipping 'add_host_users_to_host_group_with_sudo' on Darwin (macOS)."
 fi
