@@ -181,9 +181,9 @@ _main() {
       if [[ -n "${remote_deployment_failure_strategy}" ]]; then
         remote_deployment_run_on_remotes
       fi
-      echo "[NOTICE] Successfully built the App image for Production deployment : ${new_state}" && exit 0
+      display_checkpoint_message "[NOTICE] Deployed the App image for all Production servers... Check the detailed logs. (100%)" && exit 0
     else
-      echo "[NOTICE] App image binary saved to ./.docker/binary/${project_name}" && exit 0
+      display_checkpoint_message "[NOTICE] App image binary saved to ./.docker/binary/${project_name}... (100%)" && exit 0
     fi
   fi
 
