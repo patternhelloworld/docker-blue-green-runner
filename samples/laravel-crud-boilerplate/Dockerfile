@@ -1,4 +1,4 @@
-FROM php:7.4-fpm-buster as backend-build
+FROM php:7.4-fpm-bullseye AS backend-build
 
 RUN apt-get -qqy update && apt-get -qqy upgrade
 
@@ -44,7 +44,7 @@ WORKDIR /var/www/app
 RUN composer install --prefer-dist --optimize-autoloader --no-interaction
 
 
-FROM php:7.4-fpm-buster  as production
+FROM php:7.4-fpm-bullseye  AS production
 
 ARG server
 
