@@ -55,7 +55,7 @@
    - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which requires your App's docker binary running.
 
 
-2. **[Beta] Isomorphic local-and-remote runner**
+2. Isomorphic local-and-remote runner**
   - The same `run.sh` and `.env` drive deployments locally and on remote servers over SSH.
   - Remote servers receive the image binary and execute the same pipeline with `GIT_IMAGE_LOAD_FROM=file` (see [Production > GIT_IMAGE_LOAD_FROM=file](#1-git_image_load_fromfile-strategy-without-docker-registry)).
   - Behavior stays consistent across environments; only the image source differs (build/registry/file).
@@ -473,7 +473,7 @@ bash check-source-integrity.sh
 - Up to this point, your app has been running in a Docker container through the ``bash.run.sh`` command, enabling continuous Blue-Green deployments. However, you may want to deploy the built Docker image independently to another environment, and you likely wouldn't want to leave unnecessary source code, except for the Docker images and configuration files, on the production server.
 - The key environment variable enabling this is the ``GIT_IMAGE_LOAD_FROM``. Up to this point, ``GIT_IMAGE_LOAD_FROM`` has been set to ``build``.
 
-### 1. ``GIT_IMAGE_LOAD_FROM=file`` strategy (Beta. without Docker Registry)
+### 1. ``GIT_IMAGE_LOAD_FROM=file`` strategy (without Docker Registry)
 - With Load Balancer
 ```mermaid
 graph TD;
