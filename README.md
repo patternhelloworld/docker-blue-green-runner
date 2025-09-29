@@ -55,10 +55,11 @@
    - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which requires your App's docker binary running.
 
 
-2. Isomorphic local-and-remote runner**
+2. **Isomorphic local-and-remote runner**
   - The same `run.sh` and `.env` drive deployments locally and on remote servers over SSH.
   - Remote servers receive the image binary and execute the same pipeline with `GIT_IMAGE_LOAD_FROM=file` (see [Production > GIT_IMAGE_LOAD_FROM=file](#1-git_image_load_fromfile-strategy-without-docker-registry)).
   - Behavior stays consistent across environments; only the image source differs (build/registry/file).
+  - Example: Run the same pipeline across local and remote (SSH) environments using a single `run.sh` and `.env`. Includes a file-based image delivery and remote execution flow via `GIT_IMAGE_LOAD_FROM=file`.
 
 3. **No unpredictable errors in reverse proxy and deployment : Implement safety measures to handle errors caused by your app or Nginx**
   - If any error occurs in the app or router, ``deployment is halted`` to prevent any impact on the existing deployment
@@ -267,6 +268,7 @@ WITH_SUDO=true
 - When `true`, the runner executes privileged operations with `sudo` where needed.
 - When `false`, `sudo` is not used. After installing Docker-Blue-Green-Runner, follow the steps in the [Security](#security) section and then run the root-level `apply-security.sh` to set secure permissions. Also, grant appropriate host permissions for Docker, Nginx, and related resources to the user running the runner.
 - For security, it is recommended to keep this `false` where possible and rely on proper host permissions and ACLs instead of broad sudo usage.
+ - Example: Recommended to operate with `WITH_SUDO=false`, supported by `apply-security.sh`. Safely applies host permissions and ACLs via `SHARED_VOLUME_GROUP_*`.
 
 #### ``APP_URL``
 - ```shell
@@ -504,6 +506,19 @@ graph TD;
 
 - CI tip: If you set ``REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE`` and ``REMOTE_DEPLOYMENT_SSH_USER`` to match your GitHub Actions credentials, and your workflow triggers ``sudo bash run.sh`` on the build server, then with ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` configured, the Runner can perform end-to-end distribution and remote execution in a single run.
 
+
+APP_URL=https://localhost:8085
+
+USE_COMMERCIAL_SSL=true
+COMMERCIAL_SSL_NAME=laravel-crud-boilerplate
+# COMMERCIAL_SSL_NAME 이름은 pk, chained crt 
+
+REMOTE_DEPLOYMENT_RUNNER_PATH=/home/teamlead/test-projects/docker-blue-green-runner
+REMOTE_DEPLOYMENT_IP_ADDRESS_LIST=["223.130.154.176"]
+REMOTE_DEPLOYMENT_PORT_NUMBER_LIST=["10222"]
+REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE=~/.ssh/id_rsa_ssh_dev
+REMOTE_DEPLOYMENT_SSH_USER=teamlead
+REMOTE_DEPLOYMENT_FAILURE_STRATEGY=stop
 
 ### 2. ``GIT_IMAGE_LOAD_FROM=registry`` strategy (with Docker Registry)
 #### Upload Image (CI/CD Server -> Git)
