@@ -8,6 +8,8 @@ cd ${rootPath} || exit 1
 
 chown -R www-data:${shared_volume_group_id} storage bootstrap/cache public
 
+php artisan migrate --no-interaction --verbose
+
 php artisan key:generate
 
 if [[ ! -f ${rootPath}"/storage/oauth-private.key" || ! -f ${rootPath}"/storage/oauth-public.key" ]]
