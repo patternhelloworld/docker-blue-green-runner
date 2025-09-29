@@ -150,21 +150,16 @@ _main() {
   local initially_cached_old_state=${state}
   check_env_integrity
 
-  display_checkpoint_message "Deployment target between Blue and Green has been decided... (3%)"
-  display_planned_transition "$initially_cached_old_state" "$new_state"
-  sleep 2
-
-  if [[ "${git_image_load_from}" == "build" && -n "${project_git_sha}" && -n "${docker_build_sha_insert_git_root}" ]]; then
-      commit_message=$(get_commit_message "$project_git_sha" "$docker_build_sha_insert_git_root")
-      display_checkpoint_message "Build this GIT version: $project_git_sha : $commit_message"
-      sleep 1
-  fi
-
   ## Build the App Image and save it to '.docker/binary' to be used on your production servers.
   if [[ ${only_building_app_image_for_production} == 'true' ]]; then
-    display_checkpoint_message "Building Docker image for the app... ('skip_building_app_image' is set to false) (50%)"
-    load_app_docker_image
-    save_app_docker_image
+    if [[ ${skip_building_app_image} != 'true' ]]; then
+      display_checkpoint_message "Building Docker image for the app... ('only_building_app_image_for_production' is set to true) (50%)"
+      load_app_docker_image
+      save_app_docker_image
+      display_checkpoint_message "Saved as a Docker image binary for the app... ('only_building_app_image_for_production' is set to true) (60%)"
+    else
+      display_checkpoint_message "Skip building image (skip_building_app_image : ${skip_building_app_image}). We will use the previous images on the remote server... (50%)"
+    fi
     # Call remote distribution only when all 4 REMOTE_* envs are provided and lists are non-empty
     need_remote=false
     if [[ -n "${remote_deployment_runner_path}" && -n "${remote_deployment_ip_address_list}" && -n "${remote_deployment_port_number_list}" && -n "${remote_deployment_ssh_private_key_local_path_with_file}" ]]; then
@@ -177,7 +172,11 @@ _main() {
     fi
 
     if [[ ${need_remote} == true ]]; then
-      remote_deployment_connect_and_save_binary
+      if [[ ${skip_building_app_image} != 'true' ]]; then
+        remote_deployment_connect_and_save_binary
+      else
+        display_checkpoint_message "Skip saving binary on the remote server (skip_building_app_image : ${skip_building_app_image}). We will use the previous images on the remote server... (60%)"
+      fi
       if [[ -n "${remote_deployment_failure_strategy}" ]]; then
         remote_deployment_run_on_remotes
       fi
@@ -185,7 +184,20 @@ _main() {
     else
       display_checkpoint_message "[NOTICE] App image binary saved to ./.docker/binary/${project_name}... (100%)" && exit 0
     fi
+
+    exit 0
   fi
+
+  display_checkpoint_message "Deployment target between Blue and Green has been decided... (3%)"
+  display_planned_transition "$initially_cached_old_state" "$new_state"
+  sleep 2
+
+  if [[ "${git_image_load_from}" == "build" && -n "${project_git_sha}" && -n "${docker_build_sha_insert_git_root}" ]]; then
+      commit_message=$(get_commit_message "$project_git_sha" "$docker_build_sha_insert_git_root")
+      display_checkpoint_message "Build this GIT version: $project_git_sha : $commit_message"
+      sleep 1
+  fi
+
 
   ## App (This is for running Docker for your App, not for building the App Docker Image)
   display_checkpoint_message "Setting up the app configuration 'yml' for orchestration type: ${orchestration_type}... (6%)"

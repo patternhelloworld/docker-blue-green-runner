@@ -51,7 +51,7 @@ remote_deployment_connect_and_save_binary(){
     fi
 
     echo "[NOTICE] Checking connectivity to ${remote_host}:${port_item}"
-    ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=8 -p "${port_item}" -i "${key_item}" "${remote_host}" "echo yes" >/dev/null 2>&1 || (echo "[ERROR] SSH connection failed: ${remote_host}:${port_item}" && exit 1)
+    ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 -p "${port_item}" -i "${key_item}" "${remote_host}" "echo yes" >/dev/null 2>&1 || (echo "[ERROR] SSH connection failed: ${remote_host}:${port_item}" && exit 1)
   done
 
   for ((i=1; i<=${ip_len}; i++))
