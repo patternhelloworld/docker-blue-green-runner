@@ -55,11 +55,11 @@
    - In contrast, Traefik requires the creation and gradual adjustment of various configuration files, which requires your App's docker binary running.
 
 
-2. **Isomorphic local-and-remote runner**
-  - The same `run.sh` and `.env` drive deployments locally and on remote servers over SSH.
+2. **Isomorphic standalone-and-remote runner**
+  - The same `run.sh` and `.env` drive deployments on standalone hosts and on remote servers over SSH.
   - Remote servers receive the image binary and execute the same pipeline with `GIT_IMAGE_LOAD_FROM=file` (see [Production > GIT_IMAGE_LOAD_FROM=file](#1-git_image_load_fromfile-strategy-without-docker-registry)).
   - Behavior stays consistent across environments; only the image source differs (build/registry/file).
-  - Example: Run the same pipeline across local and remote (SSH) environments using a single `run.sh` and `.env`. Includes a file-based image delivery and remote execution flow via `GIT_IMAGE_LOAD_FROM=file`.
+  - Example: Run the same pipeline across standalone and remote (SSH) environments using a single `run.sh` and `.env`. Includes a file-based image delivery and remote execution flow via `GIT_IMAGE_LOAD_FROM=file`.
 
 3. **No unpredictable errors in reverse proxy and deployment : Implement safety measures to handle errors caused by your app or Nginx**
   - If any error occurs in the app or router, ``deployment is halted`` to prevent any impact on the existing deployment
@@ -487,38 +487,21 @@ graph TD;
   E -->|Send Docker Image Binary| D[Server 3]
   F[Git] -->|Github Action or Jenkins| E[Build Server]
 ```
-- Set the Load Balancer to use "Round-Robin"
-  - What is "Round-Robin"?
-    - Round-robin is a load-balancing method that distributes incoming requests evenly across all available servers in a sequential order. For example, the first request goes to Server 1, the second request to Server 2, the third request to Server 3, and then it cycles back to Server 1. This ensures a balanced distribution of traffic across the servers.
-- Your Github Action or Jenkins scripts just send the source codes to the Build Server or run ``git pull`` on the server.
-- Set the 'Docker-Blue-Green-Runner' on the Build Server, and run ``run.sh`` with ``ONLY_BUILDING_APP_IMAGE_FOR_PRODUCTION`` set to ``true``.
-- The ``ONLY_BUILDING_APP_IMAGE_FOR_PRODUCTION=true`` creates the Docker binary file to ``./.docker/binary``
-- If ``REMOTE_DEPLOYMENT_RUNNER_PATH``, ``REMOTE_DEPLOYMENT_IP_ADDRESS_LIST``, ``REMOTE_DEPLOYMENT_PORT_NUMBER_LIST``, and ``REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE`` are set:
-  - The Runner automatically copies the binary to each server at ``${REMOTE_DEPLOYMENT_RUNNER_PATH}/.docker/binary``.
-  - If ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` is set (``stop`` | ``rollback`` | ``go``), the Runner connects via SSH and executes ``sudo bash run.sh`` on each server after pre-checks (``GIT_IMAGE_LOAD_FROM=file`` and sudo). Failures follow the configured strategy.
-- If ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` is NOT set, you can perform the steps manually:
-  - Set ``GIT_IMAGE_LOAD_FROM=file`` on each server.
-  - Copy the binary to each server's ``${REMOTE_DEPLOYMENT_RUNNER_PATH}/.docker/binary``.
-  - Run ``run.sh`` on ``Server 1``; if any issues are found, run ``rollback.sh``.
-  - If no problems are detected, run ``run.sh`` on both ``Server 2`` and ``Server 3``.
-
+- From the sample envs (``.env.example.php.production.build``for the Build Server, ``.env.example.php.production.remote``for the Server 1,2,3),
+  - Your Github Action or Jenkins scripts just send the source codes to the Build Server or run ``git pull`` on the server.
+  - Set the 'Docker-Blue-Green-Runner' on the Build Server, and run ``run.sh`` with ``ONLY_BUILDING_APP_IMAGE_FOR_PRODUCTION`` set to ``true``.
+    - If you want to deploy without building and only use the files already present on Server 1, 2, and 3, set ``SKIP_BUILDING_APP_IMAGE=true``.
+  - The ``ONLY_BUILDING_APP_IMAGE_FOR_PRODUCTION=true`` creates the Docker binary file to ``./.docker/binary``
+  - If ``REMOTE_DEPLOYMENT_RUNNER_PATH``, ``REMOTE_DEPLOYMENT_IP_ADDRESS_LIST``, ``REMOTE_DEPLOYMENT_PORT_NUMBER_LIST``, and ``REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE`` are set:
+    - The Runner automatically copies the binary to each server at ``${REMOTE_DEPLOYMENT_RUNNER_PATH}/.docker/binary``.
+    - If ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` is set (``stop`` | ``rollback`` | ``go``), the Runner connects via SSH and executes ``sudo bash run.sh`` on each server after pre-checks (``GIT_IMAGE_LOAD_FROM=file`` and sudo). Failures follow the configured strategy.
+  - If ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` is NOT set, you can perform the steps manually:
+    - Set ``GIT_IMAGE_LOAD_FROM=file`` on each server.
+    - Copy the binary to each server's ``${REMOTE_DEPLOYMENT_RUNNER_PATH}/.docker/binary``.
+    - Run ``run.sh`` on ``Server 1``; if any issues are found, run ``rollback.sh``.
+    - If no problems are detected, run ``run.sh`` on both ``Server 2`` and ``Server 3``.
 - Tip: For smooth permission and volume access, include the UID of the ``REMOTE_DEPLOYMENT_SSH_USER`` in ``UIDS_BELONGING_TO_SHARED_VOLUME_GROUP_ID`` (in your `.env`).
-
 - CI tip: If you set ``REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE`` and ``REMOTE_DEPLOYMENT_SSH_USER`` to match your GitHub Actions credentials, and your workflow triggers ``sudo bash run.sh`` on the build server, then with ``REMOTE_DEPLOYMENT_FAILURE_STRATEGY`` configured, the Runner can perform end-to-end distribution and remote execution in a single run.
-
-
-APP_URL=https://localhost:8085
-
-USE_COMMERCIAL_SSL=true
-COMMERCIAL_SSL_NAME=laravel-crud-boilerplate
-# COMMERCIAL_SSL_NAME 이름은 pk, chained crt 
-
-REMOTE_DEPLOYMENT_RUNNER_PATH=/home/teamlead/test-projects/docker-blue-green-runner
-REMOTE_DEPLOYMENT_IP_ADDRESS_LIST=["223.130.154.176"]
-REMOTE_DEPLOYMENT_PORT_NUMBER_LIST=["10222"]
-REMOTE_DEPLOYMENT_SSH_PRIVATE_KEY_LOCAL_PATH_WITH_FILE=~/.ssh/id_rsa_ssh_dev
-REMOTE_DEPLOYMENT_SSH_USER=teamlead
-REMOTE_DEPLOYMENT_FAILURE_STRATEGY=stop
 
 ### 2. ``GIT_IMAGE_LOAD_FROM=registry`` strategy (with Docker Registry)
 #### Upload Image (CI/CD Server -> Git)
